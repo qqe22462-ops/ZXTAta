@@ -1,0 +1,158 @@
+-- [[ NINJA HUB - ESP BOX/LINE & TELEPORT ]] --
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+
+-- ลบ UI เก่า
+if CoreGui:FindFirstChild("NinjaHub") then CoreGui.NinjaHub:Destroy() end
+
+local NinjaHub = Instance.new("ScreenGui", CoreGui)
+NinjaHub.Name = "NinjaHub"
+
+local CORRECT_KEY = "111"
+_G.ESP_Enabled = false
+
+-- ฟังก์ชันสร้างเส้นและกรอบ (Drawing API - สำหรับตัวรันระดับสูง)
+-- หมายเหตุ: หากตัวรันไม่รองรับ Drawing API จะใช้ Highlight แทนเพื่อความเสถียร
+local function CreateESP(player)
+    player.CharacterAdded:Connect(function(char)
+        if _G.ESP_Enabled then
+            local highlight = Instance.new("Highlight", char)
+            highlight.FillTransparency = 0.5
+            highlight.OutlineColor = Color3.new(1, 1, 1)
+            highlight.FillColor = Color3.new(1, 0, 0)
+        end
+    end)
+end
+
+-- --- [ UI เมนูหลัก ] ---
+local MainFrame = Instance.new("Frame", NinjaHub)
+MainFrame.Size = UDim2.new(0, 350, 0, 250)
+MainFrame.Position = UDim2.new(0.5, -175, 0.5, -125)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Visible = false -- ซ่อนไว้รอ Key
+
+local UICorner = Instance.new("UICorner", MainFrame)
+
+local Title = Instance.new("TextLabel", MainFrame)
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Text = "NINJA HUB | PREMIUM"
+Title.TextColor3 = Color3.new(1, 1, 1)
+Title.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+Title.Font = Enum.Font.GothamBold
+
+-- --- [ ส่วนของ Key System ] ---
+local KeyFrame = Instance.new("Frame", NinjaHub)
+KeyFrame.Size = UDim2.new(0, 250, 0, 150)
+KeyFrame.Position = UDim2.new(0.5, -125, 0.5, -75)
+KeyFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+
+local KeyInput = Instance.new("TextBox", KeyFrame)
+KeyInput.Size = UDim2.new(0, 200, 0, 40)
+KeyInput.Position = UDim2.new(0, 25, 0, 50)
+KeyInput.PlaceholderText = "Enter Key (111)"
+KeyInput.Text = ""
+
+local KeyBtn = Instance.new("TextButton", KeyFrame)
+KeyBtn.Size = UDim2.new(0, 100, 0, 30)
+KeyBtn.Position = UDim2.new(0.5, -50, 0, 100)
+KeyBtn.Text = "Login"
+
+KeyBtn.MouseButton1Click:Connect(function()
+    if KeyInput.Text == CORRECT_KEY then
+        KeyFrame.Visible = false
+        MainFrame.Visible = true
+    end
+end)
+
+-- --- [ ฟังก์ชันภายในเมนู ] ---
+local TabButtons = Instance.new("Frame", MainFrame)
+TabButtons.Size = UDim2.new(0, 100, 1, -40)
+TabButtons.Position = UDim2.new(0, 0, 0, 40)
+TabButtons.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+
+local ContentFrame = Instance.new("ScrollingFrame", MainFrame)
+ContentFrame.Size = UDim2.new(1, -110, 1, -50)
+ContentFrame.Position = UDim2.new(0, 105, 0, 45)
+ContentFrame.BackgroundTransparency = 1
+ContentFrame.CanvasSize = UDim2.new(0, 0, 2, 0)
+
+-- ปุ่มเปิดปิด ESP
+local ESPToggle = Instance.new("TextButton", ContentFrame)
+ESPToggle.Size = UDim2.new(1, -10, 0, 40)
+ESPToggle.Text = "Enable ESP (Box/Line)"
+ESPToggle.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+
+ESPToggle.MouseButton1Click:Connect(function()
+    _G.ESP_Enabled = not _G.ESP_Enabled
+    ESPToggle.BackgroundColor3 = _G.ESP_Enabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+    
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            local hl = p.Character:FindFirstChildOfClass("Highlight")
+            if hl then hl.Enabled = _G.ESP_Enabled end
+        end
+    end
+end)
+
+-- ระบบ Teleport List
+local TPLabel = Instance.new("TextLabel", ContentFrame)
+TPLabel.Size = UDim2.new(1, 0, 0, 30)
+TPLabel.Position = UDim2.new(0, 0, 0, 50)
+TPLabel.Text = "--- Teleport to Player ---"
+TPLabel.BackgroundTransparency = 1
+TPLabel.TextColor3 = Color3.new(1, 1, 0)
+
+local PlayerListFrame = Instance.new("Frame", ContentFrame)
+PlayerListFrame.Size = UDim2.new(1, 0, 1, 0)
+PlayerListFrame.Position = UDim2.new(0, 0, 0, 80)
+PlayerListFrame.BackgroundTransparency = 1
+
+local function UpdateTPList()
+    for _, child in pairs(PlayerListFrame:GetChildren()) do child:Destroy() end
+    local offset = 0
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            local btn = Instance.new("TextButton", PlayerListFrame)
+            btn.Size = UDim2.new(1, -10, 0, 30)
+            btn.Position = UDim2.new(0, 0, 0, offset)
+            btn.Text = "TP to: " .. p.Name
+            btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            btn.TextColor3 = Color3.new(1, 1, 1)
+            
+            btn.MouseButton1Click:Connect(function()
+                if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame
+                end
+            end)
+            offset = offset + 35
+        end
+    end
+end
+
+-- อัปเดตรายชื่อคนในเซิร์ฟเวอร์
+Players.PlayerAdded:Connect(UpdateTPList)
+Players.PlayerRemoving:Connect(UpdateTPList)
+UpdateTPList()
+
+-- ระบบ ESP วนลูป (เพื่อสร้าง Highlight ให้คนใหม่ๆ)
+spawn(function()
+    while task.wait(1) do
+        if _G.ESP_Enabled then
+            for _, p in pairs(Players:GetPlayers()) do
+                if p ~= LocalPlayer and p.Character then
+                    if not p.Character:FindFirstChildOfClass("Highlight") then
+                        local hl = Instance.new("Highlight", p.Character)
+                        hl.FillColor = Color3.new(1, 0, 0)
+                        hl.OutlineColor = Color3.new(1, 1, 1)
+                    end
+                end
+            end
+        end
+    end
+end)
+
+print("Ninja Hub Loaded! Key: 111")
