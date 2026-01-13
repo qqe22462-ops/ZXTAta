@@ -1,0 +1,106 @@
+-- Fly Script with Key System (Key: 111)
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local CoreGui = game:GetService("CoreGui")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local CORRECT_KEY = "111"
+_G.Fly_Enabled = false
+local Fly_Speed = 50
+local bodyGyro, bodyVelocity
+
+-- สร้าง ScreenGui หลัก
+local ScreenGui = Instance.new("ScreenGui", CoreGui)
+
+-- --- หน้าต่างใส่ Key ---
+local KeyFrame = Instance.new("Frame", ScreenGui)
+KeyFrame.Size = UDim2.new(0, 250, 0, 150)
+KeyFrame.Position = UDim2.new(0.5, -125, 0.5, -75)
+KeyFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+KeyFrame.Active = true
+KeyFrame.Draggable = true
+
+local KeyCorner = Instance.new("UICorner", KeyFrame)
+
+local Title = Instance.new("TextLabel", KeyFrame)
+Title.Text = "ENTER KEY"
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.TextColor3 = Color3.new(1, 1, 1)
+Title.BackgroundTransparency = 1
+Title.Font = Enum.Font.SourceSansBold
+Title.TextSize = 20
+
+local KeyInput = Instance.new("TextBox", KeyFrame)
+KeyInput.PlaceholderText = "Input key here..."
+KeyInput.Size = UDim2.new(0, 200, 0, 40)
+KeyInput.Position = UDim2.new(0.5, -100, 0.4, 0)
+KeyInput.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+KeyInput.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", KeyInput)
+
+local SubmitBtn = Instance.new("TextButton", KeyFrame)
+SubmitBtn.Text = "Check Key"
+SubmitBtn.Size = UDim2.new(0, 100, 0, 30)
+SubmitBtn.Position = UDim2.new(0.5, -50, 0.75, 0)
+SubmitBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+SubmitBtn.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", SubmitBtn)
+
+-- --- ปุ่ม Fly (จะถูกซ่อนไว้จนกว่า Key จะถูก) ---
+local ToggleButton = Instance.new("TextButton", ScreenGui)
+ToggleButton.Visible = false
+ToggleButton.Size = UDim2.new(0, 100, 0, 45)
+ToggleButton.Position = UDim2.new(0, 10, 0.5, -22)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(170, 0, 0)
+ToggleButton.Text = "FLY: OFF"
+ToggleButton.TextColor3 = Color3.new(1, 1, 1)
+ToggleButton.Font = Enum.Font.SourceSansBold
+ToggleButton.TextSize = 20
+Instance.new("UICorner", ToggleButton)
+
+-- ระบบตรวจสอบ Key
+SubmitBtn.MouseButton1Click:Connect(function()
+    if KeyInput.Text == CORRECT_KEY then
+        KeyFrame.Visible = false
+        ToggleButton.Visible = true
+        print("Key Correct!")
+    else
+        KeyInput.Text = ""
+        KeyInput.PlaceholderText = "Wrong Key!"
+    end
+end)
+
+-- ระบบการบิน
+RunService.RenderStepped:Connect(function()
+    if _G.Fly_Enabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local root = LocalPlayer.Character.HumanoidRootPart
+        local camera = workspace.CurrentCamera
+        
+        if not bodyVelocity then
+            bodyVelocity = Instance.new("BodyVelocity", root)
+            bodyVelocity.MaxForce = Vector3.new(1, 1, 1) * 10^6
+            bodyGyro = Instance.new("BodyGyro", root)
+            bodyGyro.MaxTorque = Vector3.new(1, 1, 1) * 10^6
+        end
+        
+        bodyGyro.CFrame = camera.CFrame
+        local direction = Vector3.new(0, 0, 0)
+        
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then direction = direction + camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then direction = direction - camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then direction = direction - camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then direction = direction + camera.CFrame.RightVector end
+        
+        bodyVelocity.Velocity = direction * Fly_Speed
+    else
+        if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
+        if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
+    end
+end)
+
+ToggleButton.MouseButton1Click:Connect(function()
+    _G.Fly_Enabled = not _G.Fly_Enabled
+    ToggleButton.Text = _G.Fly_Enabled and "FLY: ON" or "FLY: OFF"
+    ToggleButton.BackgroundColor3 = _G.Fly_Enabled and Color3.fromRGB(0, 170, 0) or Color3.fromRGB(170, 0, 0)
+end)
