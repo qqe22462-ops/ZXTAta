@@ -1,0 +1,52 @@
+local UIS = game:GetService("UserInputService")
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+
+-- อ้างอิง UI (ตรวจสอบชื่อให้ตรงกับที่คุณตั้งใน Explorer)
+local screenGui = script.Parent
+local frame = screenGui:WaitForChild("Frame") -- ชื่อ Frame
+local textBox = frame:WaitForChild("TextBox") -- ช่องกรอกตัวเลข
+local button = frame:WaitForChild("TextButton") -- ปุ่มกด
+
+local TOGGLE_KEY = Enum.KeyCode.F8 -- ปุ่ม เปิด/ปิด เมนู
+local isMenuVisible = true
+
+-- ฟังก์ชันปรับความเร็ว
+local function applySpeed()
+	local humanoid = character:FindFirstChild("Humanoid")
+	if humanoid then
+		local newSpeed = tonumber(textBox.Text) -- แปลงตัวหนังสือเป็นตัวเลข
+		if newSpeed then
+			humanoid.WalkSpeed = newSpeed
+			print("ปรับความเร็วเป็น: " .. newSpeed)
+		else
+			warn("กรุณาใส่ตัวเลขที่ถูกต้อง")
+			textBox.Text = "" -- ล้างค่าถ้าไม่ใช่ตัวเลข
+		end
+	end
+end
+
+-- เมื่อคลิกปุ่ม
+button.MouseButton1Click:Connect(applySpeed)
+
+-- เมื่อกดปุ่ม Enter ในช่องพิมพ์
+textBox.FocusLost:Connect(function(enterPressed)
+	if enterPressed then
+		applySpeed()
+	end
+end)
+
+-- ระบบ เปิด-ปิด เมนู (Toggle Menu)
+UIS.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+	
+	if input.KeyCode == TOGGLE_KEY then
+		isMenuVisible = not isMenuVisible
+		frame.Visible = isMenuVisible
+	end
+end)
+
+-- อัปเดตตัวละครเมื่อเกิดใหม่
+player.CharacterAdded:Connect(function(newCharacter)
+	character = newCharacter
+end)
