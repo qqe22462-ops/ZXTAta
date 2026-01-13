@@ -1,0 +1,31 @@
+local remote = game:GetService("ReplicatedStorage"):WaitForChild("Remotes"):WaitForChild("UsePickaxe")
+local player = game.Players.LocalPlayer
+local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+
+-- รายการตำแหน่งที่ส่งมา
+local locations = {
+    CFrame.new(-117.13, 1062.40, -459.20),
+    CFrame.new(108.09, 1144.99, -416.20),
+    CFrame.new(140.22, 1142.14, -400.14),
+    CFrame.new(131.21, 1137.08, -403.95),
+    CFrame.new(136.02, 1140.53, -413.24)
+}
+
+if root then
+    for _, targetCFrame in ipairs(locations) do
+        -- 1. วาร์ปไปที่ตำแหน่งขุด (บวกระยะความสูงนิดหน่อยกันติดพื้น)
+        root.CFrame = targetCFrame * CFrame.new(0, 2, 0)
+        
+        -- 2. รอเล็กน้อยให้เซิร์ฟเวอร์รับรู้ตำแหน่งใหม่ (ป้องกันการโดนเช็คระยะ)
+        task.wait(0.1)
+        
+        -- 3. ส่งคำสั่งขุด
+        remote:InvokeServer(targetCFrame)
+        
+        -- 4. ดีเลย์สั้นๆ ก่อนไปจุดต่อไป
+        task.wait(0.05)
+    end
+else
+    print("ไม่พบตัวละคร กรุณารอให้ตัวละครโหลดเสร็จก่อนรัน")
+end
+  
