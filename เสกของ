@@ -1,0 +1,13 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local remote = ReplicatedStorage:WaitForChild("SpawnRainbowBlock")
+
+local button = script.Parent
+
+button.Text = "Spawn Rainbow Block"
+button.Size = UDim2.new(0, 200, 0, 50)
+button.Position = UDim2.new(0.5, -100, 0.8, 0)
+button.BackgroundColor3 = Color3.fromRGB(255, 100, 100)
+
+button.MouseButton1Click:Connect(function()
+	remote:FireServer() -- กด 1 ครั้ง รัน 1 ครั้ง
+end)
