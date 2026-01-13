@@ -1,0 +1,140 @@
+-- [[ ROBLOX CUSTOM MENU SCRIPT BY GEMINI ]] --
+
+local Library = {}
+local ScreenGui = Instance.new("ScreenGui")
+local MainMenu = Instance.new("Frame")
+local ToggleBtn = Instance.new("TextButton")
+local UICorner_Z = Instance.new("UICorner")
+
+-- Setup ScreenGui
+ScreenGui.Name = "CustomNinjaMenu"
+ScreenGui.Parent = game.CoreGui
+ScreenGui.ResetOnSpawn = false
+
+-- 1. สร้างปุ่มตัว Z วงกลม
+ToggleBtn.Name = "Z_Toggle"
+ToggleBtn.Parent = ScreenGui
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+ToggleBtn.Position = UDim2.new(0.05, 0, 0.4, 0)
+ToggleBtn.Size = UDim2.new(0, 50, 0, 50)
+ToggleBtn.Font = Enum.Font.SourceSansBold
+ToggleBtn.Text = "Z"
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 0)
+ToggleBtn.TextSize = 30
+ToggleBtn.Visible = true
+
+UICorner_Z.CornerRadius = UDim.new(1, 0)
+UICorner_Z.Parent = ToggleBtn
+
+-- 2. สร้างเมนูหลัก (เมนูลอย)
+MainMenu.Name = "MainMenu"
+MainMenu.Parent = ScreenGui
+MainMenu.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainMenu.BorderSizePixel = 0
+MainMenu.Position = UDim2.new(0.3, 0, 0.3, 0)
+MainMenu.Size = UDim2.new(0, 250, 0, 300)
+MainMenu.Visible = false
+MainMenu.Active = true
+MainMenu.Draggable = true -- ทำให้เลื่อนได้
+
+local Title = Instance.new("TextLabel", MainMenu)
+Title.Size = UDim2.new(1, 0, 0, 30)
+Title.Text = "NINJA MENU"
+Title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+local CloseBtn = Instance.new("TextButton", MainMenu)
+CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+CloseBtn.Position = UDim2.new(1, -30, 0, 0)
+CloseBtn.Text = "X"
+CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+-- --- ฟังก์ชันสลับหน้าจอ ---
+ToggleBtn.MouseButton1Click:Connect(function()
+    MainMenu.Visible = true
+    ToggleBtn.Visible = false
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    MainMenu.Visible = false
+    ToggleBtn.Visible = true
+end)
+
+-- --- [บรรทัดที่ 1: Teleport Section] ---
+local TPLabel = Instance.new("TextLabel", MainMenu)
+TPLabel.Position = UDim2.new(0, 0, 0, 40)
+TPLabel.Size = UDim2.new(1, 0, 0, 20)
+TPLabel.Text = "--- Teleport to Player ---"
+TPLabel.BackgroundTransparency = 1
+TPLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+
+local PlayerList = Instance.new("TextBox", MainMenu) -- ใส่ชื่อผู้เล่น
+PlayerList.Position = UDim2.new(0.1, 0, 0, 65)
+PlayerList.Size = UDim2.new(0.8, 0, 0, 30)
+PlayerList.PlaceholderText = "Enter Player Name"
+PlayerList.Text = ""
+
+local TPBtn = Instance.new("TextButton", MainMenu)
+TPBtn.Position = UDim2.new(0.1, 0, 0, 100)
+TPBtn.Size = UDim2.new(0.8, 0, 0, 30)
+TPBtn.Text = "Teleport"
+TPBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 0)
+TPBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+TPBtn.MouseButton1Click:Connect(function()
+    local targetName = PlayerList.Text
+    for _, v in pairs(game.Players:GetPlayers()) do
+        if string.find(v.Name:lower(), targetName:lower()) then
+            game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = v.Character.HumanoidRootPart.CFrame
+        end
+    end
+end)
+
+-- --- [บรรทัดที่ 2: ESP Section] ---
+local ESPBtn = Instance.new("TextButton", MainMenu)
+ESPBtn.Position = UDim2.new(0.1, 0, 0, 150)
+ESPBtn.Size = UDim2.new(0.8, 0, 0, 30)
+ESPBtn.Text = "ESP: OFF"
+ESPBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+
+local espEnabled = false
+ESPBtn.MouseButton1Click:Connect(function()
+    espEnabled = not espEnabled
+    ESPBtn.Text = "ESP: " .. (espEnabled and "ON" or "OFF")
+    ESPBtn.BackgroundColor3 = espEnabled and Color3.fromRGB(0, 100, 200) or Color3.fromRGB(100, 100, 100)
+    
+    -- ใส่โค้ด ESP พื้นฐานตรงนี้ (สำหรับตัวอย่างจะเน้นที่ UI)
+    if espEnabled then
+        print("ESP Activated")
+    end
+end)
+
+-- --- [บรรทัดที่ 3: Fly Section] ---
+local FlyBtn = Instance.new("TextButton", MainMenu)
+FlyBtn.Position = UDim2.new(0.1, 0, 0, 200)
+FlyBtn.Size = UDim2.new(0.8, 0, 0, 30)
+FlyBtn.Text = "Fly: OFF"
+FlyBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+
+local flying = false
+FlyBtn.MouseButton1Click:Connect(function()
+    flying = not flying
+    FlyBtn.Text = "Fly: " .. (flying and "ON" or "OFF")
+    FlyBtn.BackgroundColor3 = flying and Color3.fromRGB(200, 100, 0) or Color3.fromRGB(100, 100, 100)
+    
+    local player = game.Players.LocalPlayer
+    local char = player.Character or player.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+    
+    if flying then
+        local bv = Instance.new("BodyVelocity", hrp)
+        bv.Name = "FlyVelocity"
+        bv.MaxForce = Vector3.new(1,1,1) * 10^6
+        bv.Velocity = Vector3.new(0, 50, 0)
+    else
+        if hrp:FindFirstChild("FlyVelocity") then
+            hrp.FlyVelocity:Destroy()
+        end
+    end
+end)
