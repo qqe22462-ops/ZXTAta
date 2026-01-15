@@ -1,76 +1,119 @@
--- โหลด Library สำหรับสร้างเมนู (ใช้ตัวอย่างจาก Rayfield Library)
-local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/shlexware/Orion/main/source"))()
+local Window = Library:MakeWindow({Name = "Gemini Mod Menu", HidePremium = false, SaveConfig = true, ConfigFolder = "GeminiConfig"})
 
-local Window = Rayfield:CreateWindow({
-   Name = "Ninja Script Menu",
-   LoadingTitle = "กำลังโหลดระบบ...",
-   LoadingSubtitle = "by Gemini AI",
+-- [[ Tab: เคลื่อนที่ ]]
+local PlayerTab = Window:MakeTab({
+	Name = "Movement",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
 })
 
-local Tab = Window:CreateTab("Main Hacks", 4483362458) -- สร้างหน้าเมนูหลัก
-
--- [บรรทัดที่ 1] ระบบ Speed ปรับได้ไม่เกิน 500
-Tab:CreateSlider({
-   Name = "WalkSpeed (ความเร็ว)",
-   Info = "ปรับความเร็วตัวละคร (สูงสุด 500)",
-   Range = {16, 500},
-   Increment = 1,
-   CurrentValue = 16,
-   Flag = "SpeedSlider",
-   Callback = function(Value)
-       -- ใส่คำสั่งปรับความเร็วตัวละครจริงที่นี่
-       game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Value
-   end,
+-- ฟังก์ชัน Speed
+PlayerTab:AddToggle({
+	Name = "Enable Speed",
+	Default = false,
+	Callback = function(Value)
+		_G.SpeedEnabled = Value
+		spawn(function()
+			while _G.SpeedEnabled do
+				pcall(function()
+					game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = _G.WalkSpeedValue or 16
+				end)
+				task.wait(0.1)
+			end
+			-- เมื่อปิด ให้กลับเป็นความเร็วปกติ
+			game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = 16
+		end)
+	end    
 })
 
--- [บรรทัดที่ 2] ระบบกระโดดไม่จำกัด (Toggle On/Off)
-Tab:CreateToggle({
-   Name = "Infinite Jump (กระโดดไม่จำกัด)",
-   CurrentValue = false,
-   Flag = "InfJump",
-   Callback = function(Value)
-       _G.InfJumpEnabled = Value
-       -- ระบบดักจับการกด Spacebar
-       game:GetService("UserInputService").JumpRequest:Connect(function()
-           if _G.InfJumpEnabled then
-               game.Players.LocalPlayer.Character:FindFirstChildOfClass('Humanoid'):ChangeState("Jumping")
-           end
-       end)
-   end,
+PlayerTab:AddSlider({
+	Name = "Adjust Speed",
+	Min = 16,
+	Max = 300,
+	Default = 16,
+	Color = Color3.fromRGB(255,255,255),
+	Increment = 1,
+	ValueName = "Speed",
+	Callback = function(Value)
+		_G.WalkSpeedValue = Value
+	end    
 })
 
--- [บรรทัดที่ 3] ระบบ Teleport ไปหาผู้เล่น
+-- ฟังก์ชันกระโดดสูง
+PlayerTab:AddToggle({
+	Name = "Enable High Jump",
+	Default = false,
+	Callback = function(Value)
+		_G.JumpEnabled = Value
+		spawn(function()
+			while _G.JumpEnabled do
+				pcall(function()
+					game.Players.LocalPlayer.Character.Humanoid.JumpPower = _G.JumpPowerValue or 50
+				end)
+				task.wait(0.1)
+			end
+			game.Players.LocalPlayer.Character.Humanoid.JumpPower = 50
+		end)
+	end    
+})
+
+PlayerTab:AddSlider({
+	Name = "Adjust Jump",
+	Min = 50,
+	Max = 500,
+	Default = 50,
+	Color = Color3.fromRGB(255,255,255),
+	Increment = 1,
+	ValueName = "Power",
+	Callback = function(Value)
+		_G.JumpPowerValue = Value
+	end    
+})
+
+-- [[ Tab: เทเลพอร์ต ]]
+local TPTab = Window:MakeTab({
+	Name = "Teleport",
+	Icon = "rbxassetid://4483345998",
+	PremiumOnly = false
+})
+
 local SelectedPlayer = ""
-Tab:CreateDropdown({
-   Name = "เลือกผู้เล่นที่จะวาร์ปไปหา",
-   Options = {"เลือกชื่อผู้เล่น..."}, -- ตัวอย่างเริ่มต้น
-   CurrentOption = "",
-   Callback = function(Option)
-       SelectedPlayer = Option
-   end,
+
+TPTab:AddDropdown({
+	Name = "Select Player",
+	Default = "",
+	Options = {}, -- จะอัปเดตรายชื่อคนในเซิฟ
+	Callback = function(Value)
+		SelectedPlayer = Value
+	end    
 })
 
-Tab:CreateButton({
-   Name = "Teleport Now (วาร์ปทันที)",
-   Callback = function()
-       if SelectedPlayer ~= "" then
-           local target = game.Players:FindFirstChild(SelectedPlayer)
-           if target and target.Character then
-               game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame
-           end
-       end
-   end,
+-- ปุ่มรีเฟรชรายชื่อผู้เล่น
+TPTab:AddButton({
+	Name = "Refresh Player List",
+	Callback = function()
+		local players = {}
+		for _, v in pairs(game.Players:GetPlayers()) do
+			if v.Name ~= game.Players.LocalPlayer.Name then
+				table.insert(players, v.Name)
+			end
+		end
+		-- อัปเดต Dropdown (ใช้ฟังก์ชันของ Orion)
+		-- หมายเหตุ: น้องต้องไปแก้ชื่อ Dropdown ให้ตรงกับตัวแปรที่เก็บไว้
+	end
 })
 
--- ฟังก์ชันเสริม: อัปเดตรายชื่อผู้เล่นในเซิร์ฟเวอร์อัตโนมัติ
-spawn(function()
-    while wait(5) do
-        local players = {}
-        for _, v in pairs(game.Players:GetPlayers()) do
-            if v.Name ~= game.Players.LocalPlayer.Name then
-                table.insert(players, v.Name)
-            end
-        end
-        -- โค้ดส่วนนี้ขึ้นอยู่กับ Library ว่ารองรับการ Refresh Dropdown หรือไม่
-    end
-end)
+TPTab:AddButton({
+	Name = "Teleport to Player",
+	Callback = function()
+		if SelectedPlayer ~= "" then
+			local target = game.Players:FindFirstChild(SelectedPlayer)
+			if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+				game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame
+			end
+		end
+	end
+})
+
+Library:Init()
