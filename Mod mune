@@ -1,0 +1,85 @@
+-- ตรวจสอบว่าโหลด Library สำเร็จไหม
+local success, Rayfield = pcall(function()
+    return loadstring(game:HttpGet('https://raw.githubusercontent.com/shlexware/Rayfield/main/source'))()
+end)
+
+if not success then
+    warn("ไม่สามารถโหลด UI Library ได้ ลิงก์อาจจะเสียหรืออินเทอร์เน็ตมีปัญหา")
+    return
+end
+
+local Window = Rayfield:CreateWindow({
+   Name = "Ninja Hub | Beta",
+   LoadingTitle = "กำลังเปิดระบบ...",
+   LoadingSubtitle = "by Gemini AI",
+   ConfigurationSaving = {
+      Enabled = false
+   }
+})
+
+local Tab = Window:CreateTab("ฟังก์ชันหลัก", 4483362458)
+
+-- 1. ระบบความเร็ว (Speed)
+Tab:CreateSlider({
+   Name = "Walk Speed (0-500)",
+   Range = {16, 500},
+   Increment = 1,
+   CurrentValue = 16,
+   Callback = function(Value)
+      if game.Players.LocalPlayer.Character and game.Players.LocalPlayer.Character:FindFirstChild("Humanoid") then
+          game.Players.LocalPlayer.Character.Humanoid.WalkSpeed = Value
+      end
+   end,
+})
+
+-- 2. ระบบกระโดดไม่จำกัด (Infinite Jump)
+Tab:CreateToggle({
+   Name = "Infinite Jump (กระโดดรัวๆ)",
+   CurrentValue = false,
+   Callback = function(Value)
+       _G.InfJump = Value
+       game:GetService("UserInputService").JumpRequest:Connect(function()
+           if _G.InfJump then
+               game.Players.LocalPlayer.Character:FindFirstChildOfClass('Humanoid'):ChangeState("Jumping")
+           end
+       end)
+   end,
+})
+
+-- 3. ระบบวาร์ปไปหาคนในเซิร์ฟ (Teleport)
+local SelectedPlayer = ""
+local Dropdown = Tab:CreateDropdown({
+   Name = "เลือกชื่อผู้เล่น",
+   Options = {"กำลังโหลดรายชื่อ..."},
+   CurrentOption = "",
+   Callback = function(Option)
+      SelectedPlayer = Option
+   end,
+})
+
+-- ปุ่มกดวาร์ป
+Tab:CreateButton({
+   Name = "วาร์ปไปหาทันที",
+   Callback = function()
+      if SelectedPlayer ~= "" and SelectedPlayer ~= "กำลังโหลดรายชื่อ..." then
+          local target = game.Players:FindFirstChild(SelectedPlayer)
+          if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+              game.Players.LocalPlayer.Character.HumanoidRootPart.CFrame = target.Character.HumanoidRootPart.CFrame
+          end
+      end
+   end,
+})
+
+-- ฟังก์ชันดึงรายชื่อผู้เล่นใหม่ทุกๆ 5 วินาที
+spawn(function()
+    while true do
+        local pList = {}
+        for _, v in pairs(game.Players:GetPlayers()) do
+            if v ~= game.Players.LocalPlayer then
+                table.insert(pList, v.Name)
+            end
+        end
+        Dropdown:Refresh(pList)
+        wait(5)
+    end
+end)
