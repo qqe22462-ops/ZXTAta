@@ -1,0 +1,61 @@
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
+local Window = Library.CreateLib("Tree Farm", "DarkScene")
+local Tab = Window:NewTab("Main")
+local Section = Tab:NewSection("Auto Cut")
+
+_G.AutoFarm = false
+
+Section:NewToggle("Auto Cut Tree", "วาร์ปไปตัดไม้ที่กำหนดอัตโนมัติ", function(state)
+    _G.AutoFarm = state
+    
+    if state then
+        spawn(function()
+            while _G.AutoFarm do
+                pcall(function()
+                    local targetModel = workspace:WaitForChild("TreeRegion"):WaitForChild("Model")
+                    local cutEvent = targetModel:WaitForChild("CutEvent")
+                    local player = game:GetService("Players").LocalPlayer
+                    local character = player.Character or player.CharacterAdded:Wait()
+                    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+                    local tool = character:FindFirstChildOfClass("Tool") or player.Backpack:FindFirstChild("Tool")
+
+                    -- 1. วาร์ปไปที่ไม้ (ปรับตำแหน่ง Offset ตามความเหมาะสม)
+                    humanoidRootPart.CFrame = targetModel.PrimaryPart.CFrame * CFrame.new(0, 5, 0)
+                    
+                    -- 2. เช็คว่าถือขวานหรือยัง
+                    if tool and tool.Parent ~= character then
+                        humanoidRootPart.Parent.Humanoid:EquipTool(tool)
+                    end
+
+                    -- 3. ส่งข้อมูลการตัด (Remote Fire)
+                    local directions = {
+                        Vector3.zAxis,
+                        Vector3.new(0, 0, -1),
+                        Vector3.new(-1, 0, 0),
+                        Vector3.xAxis
+                    }
+
+                    for _, dir in ipairs(directions) do
+                        if not _G.AutoFarm then break end
+                        
+                        local args = {
+                            cutEvent,
+                            {
+                                height = 1.5, -- ปรับความสูงตามต้องการ
+                                faceVector = dir,
+                                cooldown = 0.08,
+                                sectionId = 1,
+                                hitPoints = 1.68,
+                                tool = tool,
+                                cuttingClass = "Axe"
+                            }
+                        }
+                        game:GetService("ReplicatedStorage"):WaitForChild("Interaction"):WaitForChild("RemoteProxy"):FireServer(unpack(args))
+                        task.wait(0.1) -- หน่วงเวลาเล็กน้อยกันเด้ง
+                    end
+                end)
+                task.wait(0.5) -- รอรอบถัดไป
+            end
+        end)
+    end
+end)
