@@ -1,0 +1,158 @@
+-- [[ KRAISORN HUB: STRONGEST BATTLEGROUNDS EDITION ]]
+-- ระบบล็อคเป้าเนียน (Smooth Lock) + เป้าวงกลมใหม่
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+-- [ Config ]
+local Settings = {
+    Enabled = false,
+    FOV = 150,
+    Smoothness = 0.15, -- ปรับความหน่วง (0.1 คือลื่นมาก, 0.5 คือล็อคแข็ง)
+    LockPart = "HumanoidRootPart", -- ในแมพนี้ล็อคตัวจะเสถียรกว่าหัว
+    CircleColor = Color3.fromRGB(255, 255, 255)
+}
+
+---------------------------------------------------------
+-- [ ระบบ UI เป้ากลาง & FOV ]
+---------------------------------------------------------
+local gui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+gui.Name = "KraisornLockUI"
+
+-- วงกลม FOV (วงขอบเขตการล็อค)
+local fovCircle = Instance.new("Frame", gui)
+fovCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+fovCircle.Size = UDim2.new(0, Settings.FOV * 2, 0, Settings.FOV * 2)
+fovCircle.Position = UDim2.new(0.5, 0, 0.5, 0)
+fovCircle.BackgroundTransparency = 1
+fovCircle.BorderSizePixel = 0
+local uiStroke = Instance.new("UIStroke", fovCircle)
+uiStroke.Color = Settings.CircleColor
+uiStroke.Transparency = 0.5
+uiStroke.Thickness = 1
+Instance.new("UICorner", fovCircle).CornerRadius = UDim.new(1, 0)
+
+-- จุดกลางหน้าจอ (Dot)
+local centerDot = Instance.new("Frame", gui)
+centerDot.Size = UDim2.new(0, 4, 0, 4)
+centerDot.Position = UDim2.new(0.5, -2, 0.5, -2)
+centerDot.BackgroundColor3 = Color3.new(1, 0, 0) -- จุดแดง
+Instance.new("UICorner", centerDot).CornerRadius = UDim.new(1, 0)
+
+---------------------------------------------------------
+-- [ ฟังก์ชันเช็คกำแพง (Wall Check) ]
+---------------------------------------------------------
+local function IsVisible(targetPart)
+    local character = LocalPlayer.Character
+    if not character then return false end
+    
+    local rayParams = RaycastParams.new()
+    rayParams.FilterDescendantsInstances = {character, targetPart.Parent}
+    rayParams.FilterType = Enum.RaycastFilterType.Exclude
+    
+    local rayResult = workspace:Raycast(Camera.CFrame.Position, (targetPart.Position - Camera.CFrame.Position).Unit * 500, rayParams)
+    
+    return rayResult == nil -- ถ้าไม่ชนอะไรเลยแสดงว่ามองเห็น
+end
+
+---------------------------------------------------------
+-- [ ระบบค้นหาเป้าหมาย ]
+---------------------------------------------------------
+local function GetClosestTarget()
+    local closestTarget = nil
+    local shortestDistance = Settings.FOV
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild(Settings.LockPart) then
+            local part = player.Character[Settings.LockPart]
+            local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
+            
+            if onScreen then
+                local distance = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
+                if distance < shortestDistance and IsVisible(part) then
+                    closestTarget = part
+                    shortestDistance = distance
+                end
+            end
+        end
+    end
+    
+    -- ค้นหา NPC ในแมพด้วย
+    for _, npc in pairs(workspace:GetDescendants()) do
+        if npc:IsA("Humanoid") and npc.Parent ~= LocalPlayer.Character and not Players:GetPlayerFromCharacter(npc.Parent) then
+            local part = npc.Parent:FindFirstChild(Settings.LockPart)
+            if part then
+                local pos, onScreen = Camera:WorldToViewportPoint(part.Position)
+                if onScreen then
+                    local distance = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
+                    if distance < shortestDistance and IsVisible(part) then
+                        closestTarget = part
+                        shortestDistance = distance
+                    end
+                end
+            end
+        end
+    end
+    
+    return closestTarget
+end
+
+---------------------------------------------------------
+-- [ Main Loop ]
+---------------------------------------------------------
+RunService.RenderStepped:Connect(function()
+    fovCircle.Size = UDim2.new(0, Settings.FOV * 2, 0, Settings.FOV * 2)
+    
+    if Settings.Enabled then
+        local target = GetClosestTarget()
+        if target then
+            -- ล็อคเป้าแบบ Smooth
+            local targetCFrame = CFrame.new(Camera.CFrame.Position, target.Position)
+            Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, Settings.Smoothness)
+        end
+    end
+end)
+
+---------------------------------------------------------
+-- [ ปุ่มเปิด/ปิด (สไตล์ใหม่) ]
+---------------------------------------------------------
+local mainFrame = Instance.new("Frame", gui)
+mainFrame.Size = UDim2.new(0, 180, 0, 100)
+mainFrame.Position = UDim2.new(0.05, 0, 0.3, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+Instance.new("UICorner", mainFrame)
+
+local toggleBtn = Instance.new("TextButton", mainFrame)
+toggleBtn.Size = UDim2.new(1, -20, 0, 40)
+toggleBtn.Position = UDim2.new(0, 10, 0, 10)
+toggleBtn.Text = "LOCK: OFF"
+toggleBtn.Font = "SourceSansBold"
+toggleBtn.TextSize = 20
+toggleBtn.TextColor3 = Color3.new(1, 1, 1)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+Instance.new("UICorner", toggleBtn)
+
+local fovBtn = Instance.new("TextButton", mainFrame)
+fovBtn.Size = UDim2.new(1, -20, 0, 30)
+fovBtn.Position = UDim2.new(0, 10, 0, 60)
+fovBtn.Text = "FOV SIZE: " .. Settings.FOV
+fovBtn.Font = "SourceSansBold"
+fovBtn.TextSize = 16
+fovBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+fovBtn.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", fovBtn)
+
+toggleBtn.MouseButton1Click:Connect(function()
+    Settings.Enabled = not Settings.Enabled
+    toggleBtn.Text = Settings.Enabled and "LOCK: ON" or "LOCK: OFF"
+    toggleBtn.BackgroundColor3 = Settings.Enabled and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
+end)
+
+fovBtn.MouseButton1Click:Connect(function()
+    Settings.FOV = Settings.FOV + 50
+    if Settings.FOV > 350 then Settings.FOV = 100 end
+    fovBtn.Text = "FOV SIZE: " .. Settings.FOV
+end)
