@@ -1,0 +1,59 @@
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+-- ฟังก์ชันสร้างการมองเห็นและชื่อ (โทนสีขาว)
+local function applyWhiteESP(player)
+    local function setupVisuals(character)
+        local rootPart = character:WaitForChild("HumanoidRootPart", 10)
+        if not rootPart then return end
+
+        -- 1. ส่วนของ Highlight (ตัวละครสีขาวเรืองแสง)
+        if not character:FindFirstChild("ESPHighlight") then
+            local highlight = Instance.new("Highlight")
+            highlight.Name = "ESPHighlight"
+            highlight.Parent = character
+            highlight.FillColor = Color3.fromRGB(255, 255, 255) -- สีขาว
+            highlight.OutlineColor = Color3.fromRGB(200, 200, 200) -- ขอบสีเทาอ่อนเพื่อให้เห็นมิติ
+            highlight.FillTransparency = 0.4 -- ความชัดของสีขาวที่ตัว
+            highlight.OutlineTransparency = 0
+            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop -- มองทะลุกำแพง
+        end
+
+        -- 2. ส่วนของ Name Tag (ชื่อสีขาว)
+        if not rootPart:FindFirstChild("ESPNameTag") then
+            local billboard = Instance.new("BillboardGui")
+            billboard.Name = "ESPNameTag"
+            billboard.Parent = rootPart
+            billboard.AlwaysOnTop = true
+            billboard.Size = UDim2.new(0, 200, 0, 50)
+            billboard.StudsOffset = Vector3.new(0, 3.5, 0) -- ปรับให้ลอยเหนือหัวพอดี
+
+            local label = Instance.new("TextLabel")
+            label.Parent = billboard
+            label.BackgroundTransparency = 1
+            label.Size = UDim2.new(1, 0, 1, 0)
+            label.Text = player.Name
+            label.TextColor3 = Color3.fromRGB(255, 255, 255) -- ชื่อสีขาว
+            label.TextStrokeColor3 = Color3.fromRGB(0, 0, 0) -- ขอบตัวหนังสือสีดำเพื่อให้เห็นชื่อชัดในที่สว่าง
+            label.TextStrokeTransparency = 0.2
+            label.TextScaled = true
+            label.Font = Enum.Font.SourceSansBold
+        end
+    end
+
+    if player.Character then
+        setupVisuals(player.Character)
+    end
+    player.CharacterAdded:Connect(setupVisuals)
+end
+
+-- รันสคริปต์
+for _, player in pairs(Players:GetPlayers()) do
+    if player ~= LocalPlayer then
+        applyWhiteESP(player)
+    end
+end
+
+Players.PlayerAdded:Connect(function(player)
+    applyWhiteESP(player)
+end)
