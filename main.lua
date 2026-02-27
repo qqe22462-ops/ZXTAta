@@ -1,4 +1,4 @@
--- [[ KRAISORN HUB: THE REAL FINAL VERSION ]]
+-- [[ KRAISORN HUB V.21: COMPLETE EVERYTHING IN ONE ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 
 local Players = game:GetService("Players")
@@ -6,74 +6,24 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
-local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- [ ตั้งค่าสถานะเริ่มต้น ]
-local Toggle = {
-    Fly = false,
-    NoClip = false,
-    Speed = false,
-    InfJump = false,
-    ESP = false
-}
-local flySpeed = 50
-local walkSpeedValue = 100
+-- [ State Configuration ]
+local Toggle = { Fly = false, NoClip = false, Speed = false, InfJump = false, ESP = false }
+local flySpeed, walkSpeedValue = 50, 100
 
 ---------------------------------------------------------
--- [ ระบบ ESP มองเห็นผู้เล่น (แก้ไขชื่อชัดเจน) ]
+-- [ Core Functions ]
 ---------------------------------------------------------
-local function applyESP(player)
-    if player == LocalPlayer then return end
-    local function setup(character)
-        if not character then return end
-        local root = character:WaitForChild("HumanoidRootPart", 10)
-        if not root then return end
 
-        -- ตัวสีขาว
-        local highlight = character:FindFirstChild("ESPHighlight") or Instance.new("Highlight", character)
-        highlight.Name = "ESPHighlight"
-        highlight.FillColor = Color3.fromRGB(255, 255, 255)
-        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-        highlight.Enabled = Toggle.ESP
-
-        -- ป้ายชื่อขนาดคงที่
-        if not root:FindFirstChild("ESPNameTag") then
-            local billboard = Instance.new("BillboardGui", root)
-            billboard.Name = "ESPNameTag"
-            billboard.AlwaysOnTop = true
-            billboard.Size = UDim2.new(0, 150, 0, 40) -- ขนาดคงที่
-            billboard.StudsOffset = Vector3.new(0, 4, 0)
-            billboard.Enabled = Toggle.ESP
-
-            local label = Instance.new("TextLabel", billboard)
-            label.BackgroundTransparency = 1
-            label.Size = UDim2.new(1, 0, 1, 0)
-            label.Text = player.Name
-            label.TextColor3 = Color3.fromRGB(255, 255, 255)
-            label.TextStrokeTransparency = 0
-            label.Font = Enum.Font.SourceSansBold
-            label.TextSize = 20 -- ขนาดคงที่ มองเห็นชัด
-        end
-    end
-    player.CharacterAdded:Connect(setup)
-    if player.Character then setup(player.Character) end
-end
-
-for _, p in pairs(Players:GetPlayers()) do applyESP(p) end
-Players.PlayerAdded:Connect(applyESP)
-
----------------------------------------------------------
--- [ ระบบบิน / ทะลุ / เดินเร็ว / กระโดด ]
----------------------------------------------------------
+-- 1. Fly System
 local function HandleFly()
     local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     local root = char:WaitForChild("HumanoidRootPart")
     local hum = char:WaitForChild("Humanoid")
     local bv = Instance.new("BodyVelocity", root)
     local bg = Instance.new("BodyGyro", root)
-    bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
-    bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-
+    bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+    bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
     task.spawn(function()
         while Toggle.Fly do
             RunService.RenderStepped:Wait()
@@ -91,98 +41,96 @@ local function HandleFly()
     end)
 end
 
-RunService.Stepped:Connect(function()
-    if Toggle.NoClip and LocalPlayer.Character then
-        for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
-            if v:IsA("BasePart") then v.CanCollide = false end
+-- 2. ESP System
+local function updateESP()
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character then
+            local highlight = p.Character:FindFirstChild("KraisornESP") or Instance.new("Highlight", p.Character)
+            highlight.Name = "KraisornESP"
+            highlight.FillColor = Color3.fromRGB(255, 255, 255)
+            highlight.Enabled = Toggle.ESP
+            highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
         end
     end
+end
+
+-- [ Connect Loops ]
+RunService.Stepped:Connect(function()
+    if Toggle.NoClip and LocalPlayer.Character then
+        for _, v in pairs(LocalPlayer.Character:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false end end
+    end
+    if Toggle.ESP then updateESP() end
 end)
 
 RunService.Heartbeat:Connect(function()
-    if Toggle.Speed and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        LocalPlayer.Character.Humanoid.WalkSpeed = walkSpeedValue
-    end
+    if Toggle.Speed and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then LocalPlayer.Character.Humanoid.WalkSpeed = walkSpeedValue end
 end)
 
 UserInputService.JumpRequest:Connect(function()
-    if Toggle.InfJump and LocalPlayer.Character then
-        LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
-    end
+    if Toggle.InfJump and LocalPlayer.Character then LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping") end
 end)
 
 ---------------------------------------------------------
--- [ สร้าง GUI ]
+-- [ GUI Construction ]
 ---------------------------------------------------------
-local screenGui = Instance.new("ScreenGui", PlayerGui)
-screenGui.Name = "KraisornMaster"
+local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+screenGui.Name = "KraisornV21"
 screenGui.ResetOnSpawn = false
 
 local mainBtn = Instance.new("TextButton", screenGui)
-mainBtn.Size = UDim2.new(0, 70, 0, 70)
-mainBtn.Position = UDim2.new(0.05, 0, 0.4, 0)
-mainBtn.BackgroundColor3 = Color3.new(1, 1, 1)
-mainBtn.Text = "W"
-mainBtn.Font = "SourceSansBold"; mainBtn.TextSize = 40
+mainBtn.Size = UDim2.new(0, 75, 0, 75); mainBtn.Position = UDim2.new(0.05, 0, 0.4, 0)
+mainBtn.BackgroundColor3 = Color3.new(1, 1, 1); mainBtn.Text = "W"; mainBtn.Font = "SourceSansBold"; mainBtn.TextSize = 45; mainBtn.TextColor3 = Color3.new(0,0,0)
 Instance.new("UICorner", mainBtn).CornerRadius = UDim.new(1, 0)
 
 local menuFrame = Instance.new("Frame", mainBtn)
-menuFrame.Size = UDim2.new(0, 260, 0, 320)
-menuFrame.Position = UDim2.new(1, 20, 0, 0)
-menuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-menuFrame.Visible = false
+menuFrame.Size = UDim2.new(0, 280, 0, 420); menuFrame.Position = UDim2.new(1, 20, 0, 0)
+menuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20); menuFrame.Visible = false
 Instance.new("UICorner", menuFrame)
 
--- ชื่อสายรุ้ง ไกรสร พิสิษฐ์ 🫡
 local nameLabel = Instance.new("TextLabel", menuFrame)
-nameLabel.Size = UDim2.new(1, 0, 0, 60)
-nameLabel.BackgroundTransparency = 1
-nameLabel.Text = "ไกรสร พิสิษฐ์ 🫡"
-nameLabel.Font = "SourceSansBold"; nameLabel.TextSize = 25
-task.spawn(function()
-    while true do
-        for i = 0, 1, 0.005 do
-            nameLabel.TextColor3 = Color3.fromHSV(i, 0.8, 1)
-            task.wait()
-        end
-    end
-end)
+nameLabel.Size = UDim2.new(1, 0, 0, 60); nameLabel.BackgroundTransparency = 1; nameLabel.Text = "ไกรสร พิสิษฐ์ 🫡"; nameLabel.Font = "SourceSansBold"; nameLabel.TextSize = 25
+task.spawn(function() while true do for i=0,1,0.005 do nameLabel.TextColor3 = Color3.fromHSV(i,0.8,1) task.wait() end end end)
 
 local scroll = Instance.new("ScrollingFrame", menuFrame)
-scroll.Size = UDim2.new(1, 0, 1, -65); scroll.Position = UDim2.new(0, 0, 0, 65)
-scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 420)
-scroll.ScrollBarThickness = 4
-Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 8)
-scroll.UIListLayout.HorizontalAlignment = "Center"
+scroll.Size = UDim2.new(1, 0, 1, -70); scroll.Position = UDim2.new(0, 0, 0, 70)
+scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 700); scroll.ScrollBarThickness = 4
+Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 8); scroll.UIListLayout.HorizontalAlignment = "Center"
 
-local function createBtn(txt, color, callback)
-    local b = Instance.new("TextButton", scroll)
-    b.Size = UDim2.new(0, 230, 0, 50)
-    b.BackgroundColor3 = color
-    b.Text = txt; b.TextColor3 = Color3.new(0, 0, 0)
-    b.Font = "SourceSansBold"; b.TextSize = 24
-    Instance.new("UICorner", b)
-    b.MouseButton1Click:Connect(function() callback(b) end)
-end
+-- Teleport Menu
+local tpFrame = Instance.new("Frame", screenGui); tpFrame.Size = UDim2.new(0, 250, 0, 350); tpFrame.Position = UDim2.new(0.5, -125, 0.5, -175); tpFrame.BackgroundColor3 = Color3.fromRGB(30,30,30); tpFrame.Visible = false; Instance.new("UICorner", tpFrame)
+local tpTitle = Instance.new("TextLabel", tpFrame); tpTitle.Size = UDim2.new(1,0,0,40); tpTitle.Text = "เลือกชื่อผู้เล่น"; tpTitle.TextColor3 = Color3.new(1,1,1); tpTitle.Font = "SourceSansBold"; tpTitle.TextSize = 20
+local tpScroll = Instance.new("ScrollingFrame", tpFrame); tpScroll.Size = UDim2.new(1,0,1,-80); tpScroll.Position = UDim2.new(0,0,0,40); tpScroll.BackgroundTransparency = 1; Instance.new("UIListLayout", tpScroll).Padding = UDim.new(0,5)
+local closeTp = Instance.new("TextButton", tpFrame); closeTp.Size = UDim2.new(1,0,0,40); closeTp.Position = UDim2.new(0,0,1,-40); closeTp.Text = "ปิดหน้าต่าง"; closeTp.BackgroundColor3 = Color3.new(1,0,0); closeTp.TextColor3 = Color3.new(1,1,1); closeTp.MouseButton1Click:Connect(function() tpFrame.Visible = false end)
 
--- ลำดับปุ่ม
-createBtn("เสก Lucky Block", Color3.new(1, 1, 1), function(self)
-    local r = ReplicatedStorage:FindFirstChild("SpawnLuckyBlock")
-    if r then r:FireServer(); self.Text = "✅ สำเร็จ"; task.wait(0.5); self.Text = "เสก Lucky Block"
-    else self.Text = "❌ ไม่พบระบบ" end
-end)
-
-createBtn("มองเห็นผู้เล่น: ปิด", Color3.fromRGB(255, 255, 255), function(self)
-    Toggle.ESP = not Toggle.ESP
-    self.Text = Toggle.ESP and "มองเห็นผู้เล่น: เปิด" or "มองเห็นผู้เล่น: ปิด"
-    self.BackgroundColor3 = Toggle.ESP and Color3.fromRGB(120, 255, 120) or Color3.fromRGB(255, 255, 255)
+local function updateTpList()
+    for _, v in pairs(tpScroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
     for _, p in pairs(Players:GetPlayers()) do
-        if p.Character then
-            if p.Character:FindFirstChild("ESPHighlight") then p.Character.ESPHighlight.Enabled = Toggle.ESP end
-            local root = p.Character:FindFirstChild("HumanoidRootPart")
-            if root and root:FindFirstChild("ESPNameTag") then root.ESPNameTag.Enabled = Toggle.ESP end
+        if p ~= LocalPlayer then
+            local b = Instance.new("TextButton", tpScroll); b.Size = UDim2.new(1, -10, 0, 40); b.Text = p.DisplayName; b.BackgroundColor3 = Color3.new(1,1,1); b.TextColor3 = Color3.new(0,0,0); b.Font = "SourceSansBold"; b.TextSize = 18; Instance.new("UICorner", b)
+            b.MouseButton1Click:Connect(function() if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then LocalPlayer.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, -3) end end)
         end
     end
+end
+
+---------------------------------------------------------
+-- [ Buttons Setup ]
+---------------------------------------------------------
+local function createBtn(txt, color, callback)
+    local b = Instance.new("TextButton", scroll); b.Size = UDim2.new(0, 250, 0, 50); b.BackgroundColor3 = color; b.Text = txt; b.TextColor3 = Color3.new(0,0,0); b.Font = "SourceSansBold"; b.TextSize = 22; Instance.new("UICorner", b); b.MouseButton1Click:Connect(function() callback(b) end)
+end
+
+createBtn("เสก Lucky Block", Color3.new(1, 1, 1), function(self)
+    local r = ReplicatedStorage:FindFirstChild("SpawnLuckyBlock")
+    if r then r:FireServer(); self.Text = "✅ เสกแล้ว"; task.wait(0.5); self.Text = "เสก Lucky Block" else self.Text = "❌ ไม่พบ Remote" end
+end)
+
+createBtn("วาร์ปหาผู้เล่น (เลือกชื่อ)", Color3.fromRGB(180, 150, 255), function() updateTpList(); tpFrame.Visible = true end)
+
+createBtn("ESP มองผู้เล่น: ปิด", Color3.fromRGB(255, 255, 255), function(self)
+    Toggle.ESP = not Toggle.ESP
+    self.Text = Toggle.ESP and "ESP มองผู้เล่น: เปิด" or "ESP มองผู้เล่น: ปิด"
+    self.BackgroundColor3 = Toggle.ESP and Color3.fromRGB(120, 255, 120) or Color3.fromRGB(255, 255, 255)
+    if not Toggle.ESP then for _,p in pairs(Players:GetPlayers()) do if p.Character and p.Character:FindFirstChild("KraisornESP") then p.Character.KraisornESP.Enabled = false end end end
 end)
 
 createBtn("ระบบบิน: ปิด", Color3.fromRGB(255, 120, 120), function(self)
@@ -210,9 +158,9 @@ createBtn("กระโดด INF: ปิด", Color3.fromRGB(100, 220, 255), fu
     self.BackgroundColor3 = Toggle.InfJump and Color3.fromRGB(120, 255, 120) or Color3.fromRGB(100, 220, 255)
 end)
 
--- ระบบลาก
+-- [ Drag & Menu Toggle ]
 mainBtn.MouseButton1Click:Connect(function() menuFrame.Visible = not menuFrame.Visible end)
-local d, di, ds, sp
+local d, ds, sp
 mainBtn.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true; ds = i.Position; sp = mainBtn.Position end end)
 UserInputService.InputChanged:Connect(function(i) if d and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then local del = i.Position - ds; mainBtn.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X, sp.Y.Scale, sp.Y.Offset + del.Y) end end)
-UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = false end end)
+UserInputService.InputEnded:Connect(function() d = false end)
