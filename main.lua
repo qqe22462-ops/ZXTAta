@@ -1,4 +1,4 @@
--- [[ WARUN THAI HUB: STICKY TP VERSION ]]
+-- [[ WARUN THAI HUB: REAL STICKY TP (สิงร่าง) ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -10,6 +10,7 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 local espEnabled = false
 local noclipEnabled = false
 local menuVisible = false
+local isStickyTP = false -- สถานะพิเศษสำหรับช่วงสิงร่าง
 
 ---------------------------------------------------------
 -- [ ระบบ 1: ESP มองเห็นสีขาว ]
@@ -68,7 +69,8 @@ Players.PlayerAdded:Connect(function(p) if p ~= LocalPlayer then applyESP(p) end
 -- [ ระบบ 2: เดินทะลุกำแพง (NoClip) ]
 ---------------------------------------------------------
 RunService.Stepped:Connect(function()
-    if noclipEnabled and LocalPlayer.Character then
+    -- จะทะลุกำแพงถ้ากดเปิดปุ่ม NoClip หรือ กำลังใช้ฟังก์ชันสิงร่าง
+    if (noclipEnabled or isStickyTP) and LocalPlayer.Character then
         for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
             if part:IsA("BasePart") and part.CanCollide then
                 part.CanCollide = false
@@ -78,16 +80,15 @@ RunService.Stepped:Connect(function()
 end)
 
 ---------------------------------------------------------
--- [ ระบบ 3: วาร์ปแบบล็อคติดตัว 1 วินาที (Sticky TP) ]
+-- [ ระบบ 3: วาร์ปสิงร่าง 1 วินาที (The Shadow TP) ]
 ---------------------------------------------------------
 local function tpToNearestPlayer()
     local character = LocalPlayer.Character
     if not character or not character:FindFirstChild("HumanoidRootPart") then return end
     
     local myRoot = character.HumanoidRootPart
-    local originalPos = myRoot.CFrame -- เก็บตำแหน่งเดิม
+    local originalPos = myRoot.CFrame
     
-    -- หาผู้เล่นที่ใกล้ที่สุด
     local targetRoot = nil
     local shortestDistance = math.huge
     
@@ -103,26 +104,28 @@ local function tpToNearestPlayer()
     end
     
     if targetRoot then
+        isStickyTP = true -- เริ่มโหมดสิงร่าง (ทะลุตัวเขาด้วย)
         local startTime = tick()
-        -- ล็อคตำแหน่งให้ขยับตามเป้าหมายเป็นเวลา 1 วินาที
+        
+        -- ลูป 1 วินาที: ย้ายตำแหน่งทุกเฟรม (RenderStepped) ให้ติดหนึบ
         while tick() - startTime < 1 do
             if targetRoot and targetRoot.Parent and myRoot then
-                -- วาร์ปไปตำแหน่งเป้าหมาย (บวกระยะห่างเล็กน้อยไม่ให้ตัวซ้อนกัน)
-                myRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 3)
+                -- วาร์ปไปทับตำแหน่งเป้าหมายเป๊ะๆ (0, 0, 0)
+                myRoot.CFrame = targetRoot.CFrame
             end
-            RunService.RenderStepped:Wait() -- อัปเดตตำแหน่งตามเฟรมเรตเพื่อให้ลื่นไหล
+            RunService.RenderStepped:Wait() 
         end
         
-        -- ครบ 1 วินาทีแล้ววาร์ปกลับ
-        myRoot.CFrame = originalPos
+        isStickyTP = false -- จบโหมดสิงร่าง
+        myRoot.CFrame = originalPos -- ดีดกลับที่เดิม
     end
 end
 
 ---------------------------------------------------------
--- [ สร้าง GUI เหมือนเดิม ]
+-- [ สร้าง GUI ภาษาไทย ]
 ---------------------------------------------------------
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "WarunStickyHub"
+screenGui.Name = "WarunShadowHub"
 screenGui.Parent = PlayerGui
 screenGui.ResetOnSpawn = false
 
@@ -139,7 +142,7 @@ Instance.new("UICorner", mainButton).CornerRadius = UDim.new(1, 0)
 local menuFrame = Instance.new("Frame")
 menuFrame.Size = UDim2.new(0, 210, 0, 230)
 menuFrame.Position = UDim2.new(1, 10, 0, 0)
-menuFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+menuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 menuFrame.Visible = false
 menuFrame.Parent = mainButton
 Instance.new("UICorner", menuFrame)
@@ -156,7 +159,7 @@ local function createBtn(txt, color)
     b.Text = txt
     b.TextColor3 = (color == Color3.new(1,1,1)) and Color3.new(0,0,0) or Color3.new(1,1,1)
     b.Font = "SourceSansBold"
-    b.TextSize = 15
+    b.TextSize = 14
     b.Parent = menuFrame
     Instance.new("UICorner", b)
     return b
@@ -164,7 +167,7 @@ end
 
 local espBtn = createBtn("เปิดมองเห็น: ปิดอยู่", Color3.fromRGB(255, 50, 50))
 local noclipBtn = createBtn("ทะลุกำแพง: ปิดอยู่", Color3.fromRGB(255, 50, 50))
-local tpBtn = createBtn("วาร์ปไปหาคนใกล้ที่สุด", Color3.fromRGB(255, 170, 0))
+local tpBtn = createBtn("สิงร่างคนใกล้ที่สุด (1 วิ)", Color3.fromRGB(255, 170, 0))
 local spawnBtn = createBtn("เสก Lucky Block", Color3.new(1, 1, 1))
 
 mainButton.MouseButton1Click:Connect(function()
@@ -186,10 +189,10 @@ noclipBtn.MouseButton1Click:Connect(function()
 end)
 
 tpBtn.MouseButton1Click:Connect(function()
-    tpBtn.Text = "กำลังติดตามเป้าหมาย..."
-    tpBtn.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
+    tpBtn.Text = "กำลังสิงร่าง..."
+    tpBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
     tpToNearestPlayer()
-    tpBtn.Text = "วาร์ปไปหาคนใกล้ที่สุด"
+    tpBtn.Text = "สิงร่างคนใกล้ที่สุด (1 วิ)"
     tpBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
 end)
 
