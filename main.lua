@@ -1,14 +1,17 @@
--- [[ TWO-BUTTONS SYSTEM: ESP TOGGLE & LUCKY SPAWNER ]]
+-- [[ WARUN-STYLE THAI VERSION ]]
+-- 1. เปิด/ปิด การมองเห็น (บน)
+-- 2. ตีไข่ทั้งหมด (กลาง)
+-- 3. เสกบล็อกโชคดี (ล่าง)
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
-local espEnabled = false -- สถานะเริ่มต้นของ ESP
+local espEnabled = false
 
 ---------------------------------------------------------
--- 1. ระบบ ESP (ฟังก์ชันเหมือนเดิม)
+-- [ ระบบ 1: ESP มองเห็นผู้เล่น (สีขาว) ]
 ---------------------------------------------------------
 local function updateESP()
     for _, player in pairs(Players:GetPlayers()) do
@@ -70,55 +73,71 @@ Players.PlayerAdded:Connect(function(player)
 end)
 
 ---------------------------------------------------------
--- 2. สร้าง GUI (มี 2 ปุ่มเรียงกัน)
+-- [ สร้างปุ่มเมนู (ภาษาไทย) ]
 ---------------------------------------------------------
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "WarunStyleGui"
+screenGui.Name = "WarunThaiHub"
 screenGui.Parent = PlayerGui
 screenGui.ResetOnSpawn = false
 
--- ฟังก์ชันช่วยสร้างปุ่มให้หน้าตาเหมือนกัน
-local function createButton(name, text, pos, color)
+local function createBtn(name, text, pos, color)
     local btn = Instance.new("TextButton")
     btn.Name = name
     btn.Parent = screenGui
-    btn.Size = UDim2.new(0, 160, 0, 50)
+    btn.Size = UDim2.new(0, 180, 0, 45)
     btn.Position = pos
     btn.BackgroundColor3 = color
     btn.Text = text
-    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.TextColor3 = (color == Color3.new(1,1,1)) and Color3.new(0,0,0) or Color3.new(1,1,1)
     btn.Font = Enum.Font.SourceSansBold
     btn.TextSize = 16
-    
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 12)
+    corner.CornerRadius = UDim.new(0, 10)
     corner.Parent = btn
-    
     return btn
 end
 
--- ปุ่มบน: ESP Toggle (สีแดง/เขียว)
-local espBtn = createButton("ESPToggle", "ESP: OFF", UDim2.new(1, -180, 0.5, -60), Color3.fromRGB(255, 50, 50))
+-- 1. ปุ่ม ESP (บนสุด)
+local espBtn = createBtn("ESPToggle", "เปิดมองเห็น: ปิดอยู่", UDim2.new(1, -200, 0.5, -80), Color3.fromRGB(255, 50, 50))
 
--- ปุ่มล่าง: Spawn Lucky Block (สีขาว)
-local spawnBtn = createButton("SpawnButton", "Spawn Lucky Block", UDim2.new(1, -180, 0.5, 5), Color3.fromRGB(255, 255, 255))
-spawnBtn.TextColor3 = Color3.new(0, 0, 0)
+-- 2. ปุ่มตีไข่ (กลาง)
+local eggBtn = createBtn("EggBtn", "ตีไข่ทั้งหมดอัตโนมัติ", UDim2.new(1, -200, 0.5, -25), Color3.fromRGB(80, 80, 255))
+
+-- 3. ปุ่มเสกบล็อก (ล่างสุด)
+local spawnBtn = createBtn("SpawnBtn", "เสก Lucky Block", UDim2.new(1, -200, 0.5, 30), Color3.new(1, 1, 1))
 
 ---------------------------------------------------------
--- 3. การทำงานของปุ่ม
+-- [ การทำงานของแต่ละปุ่ม ]
 ---------------------------------------------------------
 
--- คลิกเปิด/ปิด ESP
+-- คลิกเปิด/ปิดมองเห็น
 espBtn.MouseButton1Click:Connect(function()
     espEnabled = not espEnabled
-    if espEnabled then
-        espBtn.Text = "ESP: ON"
-        espBtn.BackgroundColor3 = Color3.fromRGB(50, 255, 50)
-    else
-        espBtn.Text = "ESP: OFF"
-        espBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-    end
+    espBtn.Text = espEnabled and "เปิดมองเห็น: เปิดอยู่" or "เปิดมองเห็น: ปิดอยู่"
+    espBtn.BackgroundColor3 = espEnabled and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
     updateESP()
+end)
+
+-- คลิกตีไข่
+eggBtn.MouseButton1Click:Connect(function()
+    local knitPath = ReplicatedStorage:FindFirstChild("Packages") and ReplicatedStorage.Packages:FindFirstChild("Knit")
+    if knitPath then
+        local eggRemote = knitPath:WaitForChild("Services"):WaitForChild("EggSpawnerService"):WaitForChild("RF"):WaitForChild("RequestHitEgg")
+        
+        for _, obj in pairs(game.Workspace:GetDescendants()) do
+            if obj:IsA("Model") and (obj.Name:lower():find("egg") or obj:FindFirstChild("ID")) then
+                local eggID = obj:FindFirstChild("ID") and obj.ID.Value or obj.Name
+                task.spawn(function()
+                    eggRemote:InvokeServer({{"RenderModel", eggID}})
+                end)
+            end
+        end
+        eggBtn.Text = "กำลังตีไข่รัวๆ! ⚡"
+        task.wait(1)
+        eggBtn.Text = "ตีไข่ทั้งหมดอัตโนมัติ"
+    else
+        eggBtn.Text = "❌ ไม่พบระบบตีไข่"
+    end
 end)
 
 -- คลิกเสกของ
@@ -126,14 +145,12 @@ spawnBtn.MouseButton1Click:Connect(function()
     local remote = ReplicatedStorage:FindFirstChild("SpawnLuckyBlock")
     if remote then
         remote:FireServer()
-        spawnBtn.Text = "✅ Success!"
+        spawnBtn.Text = "✅ เสกสำเร็จ!"
         task.wait(0.5)
-        spawnBtn.Text = "Spawn Lucky Block"
+        spawnBtn.Text = "เสก Lucky Block"
     else
-        spawnBtn.Text = "❌ No Remote"
-        task.wait(1)
-        spawnBtn.Text = "Spawn Lucky Block"
+        spawnBtn.Text = "❌ เสกไม่ได้ (ไม่พบ Remote)"
     end
 end)
 
-print("--- Two-Button Script Loaded Successfully ---")
+print("--- [Warun Thai Hub] โหลดเสร็จสิ้นแล้ว! ---")
