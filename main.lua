@@ -1,4 +1,4 @@
--- [[ WARUN THAI HUB: FIXED MENU HEIGHT VERSION ]]
+-- [[ WARUN THAI HUB: FLY SPEED CONTROL VERSION ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,10 +12,10 @@ local noclipEnabled = false
 local flyEnabled = false
 local menuVisible = false
 local isStickyTP = false
-local flySpeed = 50 
+local flySpeed = 30 -- ค่าเริ่มต้น (ปรับได้ 1-60)
 
 ---------------------------------------------------------
--- [ ระบบ ESP ]
+-- [ ระบบ ESP & NoClip ]
 ---------------------------------------------------------
 local function updateESP()
     for _, player in pairs(Players:GetPlayers()) do
@@ -31,45 +31,6 @@ local function updateESP()
     end
 end
 
-local function applyESP(player)
-    local function setup(character)
-        local rootPart = character:WaitForChild("HumanoidRootPart", 10)
-        if not rootPart then return end
-        local highlight = character:FindFirstChild("ESPHighlight") or Instance.new("Highlight")
-        highlight.Name = "ESPHighlight"
-        highlight.Parent = character
-        highlight.FillColor = Color3.fromRGB(255, 255, 255)
-        highlight.Enabled = espEnabled
-        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-
-        if not rootPart:FindFirstChild("ESPNameTag") then
-            local billboard = Instance.new("BillboardGui")
-            billboard.Name = "ESPNameTag"
-            billboard.Parent = rootPart
-            billboard.AlwaysOnTop = true
-            billboard.Size = UDim2.new(0, 200, 0, 50)
-            billboard.StudsOffset = Vector3.new(0, 3, 0)
-            billboard.Enabled = espEnabled
-            local label = Instance.new("TextLabel")
-            label.Parent = billboard
-            label.BackgroundTransparency = 1
-            label.Size = UDim2.new(1, 0, 1, 0)
-            label.Text = player.Name
-            label.TextColor3 = Color3.new(1, 1, 1)
-            label.TextStrokeTransparency = 0
-            label.TextScaled = true
-        end
-    end
-    player.CharacterAdded:Connect(setup)
-    if player.Character then setup(player.Character) end
-end
-
-for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then applyESP(p) end end
-Players.PlayerAdded:Connect(function(p) if p ~= LocalPlayer then applyESP(p) end end)
-
----------------------------------------------------------
--- [ ระบบ NoClip & Fly ]
----------------------------------------------------------
 RunService.Stepped:Connect(function()
     if (noclipEnabled or isStickyTP or flyEnabled) and LocalPlayer.Character then
         for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
@@ -80,6 +41,9 @@ RunService.Stepped:Connect(function()
     end
 end)
 
+---------------------------------------------------------
+-- [ ระบบบิน 360 องศา + ปรับความเร็ว ]
+---------------------------------------------------------
 local bg, bv
 local function startFly()
     local char = LocalPlayer.Character
@@ -100,7 +64,9 @@ local function startFly()
             RunService.RenderStepped:Wait()
             local moveDir = char.Humanoid.MoveDirection
             bg.cframe = camera.CFrame
+            
             if moveDir.Magnitude > 0 then
+                -- บินไปตามทิศทางกล้องด้วยความเร็ว flySpeed ที่ปรับได้
                 bv.velocity = camera.CFrame:VectorToWorldSpace(Vector3.new(
                     (UserInputService:IsKeyDown(Enum.KeyCode.D) and flySpeed or 0) - (UserInputService:IsKeyDown(Enum.KeyCode.A) and flySpeed or 0),
                     0,
@@ -117,41 +83,10 @@ local function startFly()
 end
 
 ---------------------------------------------------------
--- [ ระบบสิงร่าง ]
----------------------------------------------------------
-local function tpToNearestPlayer()
-    local character = LocalPlayer.Character
-    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
-    local myRoot = character.HumanoidRootPart
-    local originalPos = myRoot.CFrame
-    local targetRoot = nil
-    local shortestDistance = math.huge
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local distance = (myRoot.Position - player.Character.HumanoidRootPart.Position).Magnitude
-            if distance < shortestDistance then
-                shortestDistance = distance
-                targetRoot = player.Character.HumanoidRootPart
-            end
-        end
-    end
-    if targetRoot then
-        isStickyTP = true
-        local startTime = tick()
-        while tick() - startTime < 1 do
-            if targetRoot and myRoot then myRoot.CFrame = targetRoot.CFrame end
-            RunService.RenderStepped:Wait() 
-        end
-        isStickyTP = false
-        myRoot.CFrame = originalPos
-    end
-end
-
----------------------------------------------------------
--- [ สร้าง GUI (แก้ไขขนาดความสูง) ]
+-- [ สร้าง GUI (ขยายขนาดรองรับปุ่มปรับความเร็ว) ]
 ---------------------------------------------------------
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "WarunFixedHub"
+screenGui.Name = "WarunSpeedHub"
 screenGui.Parent = PlayerGui
 screenGui.ResetOnSpawn = false
 
@@ -166,7 +101,7 @@ mainButton.Parent = screenGui
 Instance.new("UICorner", mainButton).CornerRadius = UDim.new(1, 0)
 
 local menuFrame = Instance.new("Frame")
-menuFrame.Size = UDim2.new(0, 210, 0, 280) -- **ขยายความสูงเป็น 280 เพื่อให้เห็นครบทุกปุ่ม**
+menuFrame.Size = UDim2.new(0, 210, 0, 320) -- เพิ่มความสูงเป็น 320
 menuFrame.Position = UDim2.new(1, 10, 0, 0)
 menuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 menuFrame.Visible = false
@@ -174,13 +109,13 @@ menuFrame.Parent = mainButton
 Instance.new("UICorner", menuFrame)
 
 local layout = Instance.new("UIListLayout", menuFrame)
-layout.Padding = UDim.new(0, 8)
+layout.Padding = UDim.new(0, 6)
 layout.HorizontalAlignment = "Center"
 layout.VerticalAlignment = "Center"
 
 local function createBtn(txt, color)
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0, 190, 0, 42)
+    b.Size = UDim2.new(0, 190, 0, 38)
     b.BackgroundColor3 = color
     b.Text = txt
     b.TextColor3 = (color == Color3.new(1,1,1)) and Color3.new(0,0,0) or Color3.new(1,1,1)
@@ -192,22 +127,16 @@ local function createBtn(txt, color)
 end
 
 local espBtn = createBtn("เปิดมองเห็น: ปิดอยู่", Color3.fromRGB(255, 50, 50))
-local flyBtn = createBtn("ระบบบิน: ปิดอยู่", Color3.fromRGB(255, 50, 50)) -- ปุ่มบินที่เพิ่มเข้ามา
+local flyBtn = createBtn("ระบบบิน: ปิดอยู่", Color3.fromRGB(255, 50, 50))
+local speedBtn = createBtn("ความเร็วบิน: " .. flySpeed, Color3.fromRGB(100, 100, 255)) -- ปุ่มปรับความเร็ว
 local noclipBtn = createBtn("ทะลุกำแพง: ปิดอยู่", Color3.fromRGB(255, 50, 50))
 local tpBtn = createBtn("สิงร่างคนใกล้ (1 วิ)", Color3.fromRGB(255, 170, 0))
 local spawnBtn = createBtn("เสก Lucky Block", Color3.new(1, 1, 1))
 
--- การทำงานปุ่ม
+-- ระบบปุ่ม
 mainButton.MouseButton1Click:Connect(function()
     menuVisible = not menuVisible
     menuFrame.Visible = menuVisible
-end)
-
-espBtn.MouseButton1Click:Connect(function()
-    espEnabled = not espEnabled
-    espBtn.Text = espEnabled and "เปิดมองเห็น: เปิดอยู่" or "เปิดมองเห็น: ปิดอยู่"
-    espBtn.BackgroundColor3 = espEnabled and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
-    updateESP()
 end)
 
 flyBtn.MouseButton1Click:Connect(function()
@@ -217,6 +146,21 @@ flyBtn.MouseButton1Click:Connect(function()
     if flyEnabled then startFly() end
 end)
 
+-- กดปุ่มเพื่อวนลูปความเร็ว 10-60
+speedBtn.MouseButton1Click:Connect(function()
+    flySpeed = flySpeed + 10
+    if flySpeed > 60 then flySpeed = 10 end
+    speedBtn.Text = "ความเร็วบิน: " .. flySpeed
+end)
+
+-- ฟังก์ชันอื่นๆ คงเดิม
+espBtn.MouseButton1Click:Connect(function()
+    espEnabled = not espEnabled
+    espBtn.Text = espEnabled and "เปิดมองเห็น: เปิดอยู่" or "เปิดมองเห็น: ปิดอยู่"
+    espBtn.BackgroundColor3 = espEnabled and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
+    updateESP()
+end)
+
 noclipBtn.MouseButton1Click:Connect(function()
     noclipEnabled = not noclipEnabled
     noclipBtn.Text = noclipEnabled and "ทะลุกำแพง: เปิดอยู่" or "ทะลุกำแพง: ปิดอยู่"
@@ -224,7 +168,29 @@ noclipBtn.MouseButton1Click:Connect(function()
 end)
 
 tpBtn.MouseButton1Click:Connect(function()
-    tpToNearestPlayer()
+    -- (โค้ดสิงร่าง 1 วิ ตามเวอร์ชันก่อนหน้า)
+    local character = LocalPlayer.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+    local myRoot = character.HumanoidRootPart
+    local originalPos = myRoot.CFrame
+    local targetRoot = nil
+    local shortestDistance = math.huge
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local dist = (myRoot.Position - player.Character.HumanoidRootPart.Position).Magnitude
+            if dist < shortestDistance then shortestDistance = dist; targetRoot = player.Character.HumanoidRootPart end
+        end
+    end
+    if targetRoot then
+        isStickyTP = true
+        local st = tick()
+        while tick() - st < 1 do
+            if targetRoot and myRoot then myRoot.CFrame = targetRoot.CFrame end
+            RunService.RenderStepped:Wait()
+        end
+        isStickyTP = false
+        myRoot.CFrame = originalPos
+    end
 end)
 
 spawnBtn.MouseButton1Click:Connect(function()
@@ -232,25 +198,19 @@ spawnBtn.MouseButton1Click:Connect(function()
     if r then r:FireServer() end
 end)
 
----------------------------------------------------------
--- [ ระบบลาก (Drag) ]
----------------------------------------------------------
-local dragStart, startPos, dragging
+-- ระบบลาก (Drag) คงเดิม
+local dS, sP, dG
 mainButton.InputBegan:Connect(function(i)
     if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = i.Position
-        startPos = mainButton.Position
+        dG = true dS = i.Position sP = mainButton.Position
     end
 end)
 UserInputService.InputChanged:Connect(function(i)
-    if dragging and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
-        local d = i.Position - dragStart
-        mainButton.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y)
+    if dG and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+        local d = i.Position - dS
+        mainButton.Position = UDim2.new(sP.X.Scale, sP.X.Offset + d.X, sP.Y.Scale, sP.Y.Offset + d.Y)
     end
 end)
 UserInputService.InputEnded:Connect(function(i)
-    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-        dragging = false
-    end
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dG = false end
 end)
