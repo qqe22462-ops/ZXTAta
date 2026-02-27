@@ -1,4 +1,4 @@
--- [[ WARUN THAI HUB: ESP & NOCLIP VERSION ]]
+-- [[ WARUN THAI HUB: TP NEAREST PLAYER VERSION ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -78,10 +78,47 @@ RunService.Stepped:Connect(function()
 end)
 
 ---------------------------------------------------------
+-- [ ระบบ 3: วาร์ปไปหาคนใกล้ที่สุด (TP to Nearest) ]
+---------------------------------------------------------
+local function tpToNearestPlayer()
+    local character = LocalPlayer.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+    
+    local myRoot = character.HumanoidRootPart
+    local originalPos = myRoot.CFrame -- เก็บตำแหน่งเดิมไว้
+    
+    local nearestPlayer = nil
+    local shortestDistance = math.huge -- ตั้งค่าระยะทางให้มากที่สุดไว้ก่อน
+    
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local enemyRoot = player.Character.HumanoidRootPart
+            local distance = (myRoot.Position - enemyRoot.Position).Magnitude -- คำนวณระยะห่าง
+            
+            if distance < shortestDistance then
+                shortestDistance = distance
+                nearestPlayer = enemyRoot
+            end
+        end
+    end
+    
+    if nearestPlayer then
+        -- 1. วาร์ปไปหา
+        myRoot.CFrame = nearestPlayer.CFrame * CFrame.new(0, 0, 3) -- วาร์ปไปอยู่ข้างหน้า 3 Studs
+        
+        -- 2. รอ 1 วินาที
+        task.wait(1)
+        
+        -- 3. วาร์ปกลับตำแหน่งเดิม
+        myRoot.CFrame = originalPos
+    end
+end
+
+---------------------------------------------------------
 -- [ สร้าง GUI ]
 ---------------------------------------------------------
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "WarunNoclipHub"
+screenGui.Name = "WarunMasterHub"
 screenGui.Parent = PlayerGui
 screenGui.ResetOnSpawn = false
 
@@ -96,7 +133,7 @@ mainButton.Parent = screenGui
 Instance.new("UICorner", mainButton).CornerRadius = UDim.new(1, 0)
 
 local menuFrame = Instance.new("Frame")
-menuFrame.Size = UDim2.new(0, 200, 0, 180)
+menuFrame.Size = UDim2.new(0, 210, 0, 230) -- ปรับขนาดให้พอดี 4 ปุ่ม
 menuFrame.Position = UDim2.new(1, 10, 0, 0)
 menuFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 menuFrame.Visible = false
@@ -104,18 +141,18 @@ menuFrame.Parent = mainButton
 Instance.new("UICorner", menuFrame)
 
 local layout = Instance.new("UIListLayout", menuFrame)
-layout.Padding = UDim.new(0, 10)
+layout.Padding = UDim.new(0, 8)
 layout.HorizontalAlignment = "Center"
 layout.VerticalAlignment = "Center"
 
 local function createBtn(txt, color)
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0, 180, 0, 40)
+    b.Size = UDim2.new(0, 190, 0, 40)
     b.BackgroundColor3 = color
     b.Text = txt
     b.TextColor3 = (color == Color3.new(1,1,1)) and Color3.new(0,0,0) or Color3.new(1,1,1)
     b.Font = "SourceSansBold"
-    b.TextSize = 16
+    b.TextSize = 15
     b.Parent = menuFrame
     Instance.new("UICorner", b)
     return b
@@ -123,6 +160,7 @@ end
 
 local espBtn = createBtn("เปิดมองเห็น: ปิดอยู่", Color3.fromRGB(255, 50, 50))
 local noclipBtn = createBtn("ทะลุกำแพง: ปิดอยู่", Color3.fromRGB(255, 50, 50))
+local tpBtn = createBtn("วาร์ปไปหาคนใกล้ที่สุด", Color3.fromRGB(255, 170, 0))
 local spawnBtn = createBtn("เสก Lucky Block", Color3.new(1, 1, 1))
 
 ---------------------------------------------------------
@@ -145,6 +183,14 @@ noclipBtn.MouseButton1Click:Connect(function()
     noclipEnabled = not noclipEnabled
     noclipBtn.Text = noclipEnabled and "ทะลุกำแพง: เปิดอยู่" or "ทะลุกำแพง: ปิดอยู่"
     noclipBtn.BackgroundColor3 = noclipEnabled and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
+end)
+
+tpBtn.MouseButton1Click:Connect(function()
+    tpBtn.Text = "กำลังวาร์ป..."
+    tpBtn.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
+    tpToNearestPlayer()
+    tpBtn.Text = "วาร์ปไปหาคนใกล้ที่สุด"
+    tpBtn.BackgroundColor3 = Color3.fromRGB(255, 170, 0)
 end)
 
 spawnBtn.MouseButton1Click:Connect(function()
