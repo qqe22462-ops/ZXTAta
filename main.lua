@@ -1,4 +1,4 @@
--- [[ WARUN THAI HUB: CLEAN VERSION (NO AUTO PUMP) ]]
+-- [[ WARUN THAI HUB: RAINBOW OWNER NAME VERSION ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -113,10 +113,10 @@ local function tpToNearestPlayer()
 end
 
 ---------------------------------------------------------
--- [ สร้าง GUI (ขนาด 280 เท่าเดิม - ไม่มีปุ่มปั๊ม) ]
+-- [ สร้าง GUI (ขนาด 320 เพื่อรองรับชื่อ) ]
 ---------------------------------------------------------
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "WarunCleanHub"
+screenGui.Name = "KraisornHub"
 screenGui.Parent = PlayerGui
 screenGui.ResetOnSpawn = false
 
@@ -131,18 +131,40 @@ mainButton.Parent = screenGui
 Instance.new("UICorner", mainButton).CornerRadius = UDim.new(1, 0)
 
 local menuFrame = Instance.new("Frame")
-menuFrame.Size = UDim2.new(0, 210, 0, 280) -- ปรับขนาดกลับมาให้กะทัดรัด
+menuFrame.Size = UDim2.new(0, 210, 0, 330) -- ปรับขนาดเพิ่มพื้นที่ให้ชื่อ
 menuFrame.Position = UDim2.new(1, 10, 0, 0)
-menuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+menuFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 menuFrame.Visible = false
 menuFrame.Parent = mainButton
 Instance.new("UICorner", menuFrame)
 
 local layout = Instance.new("UIListLayout", menuFrame)
-layout.Padding = UDim.new(0, 7)
+layout.Padding = UDim.new(0, 8)
 layout.HorizontalAlignment = "Center"
-layout.VerticalAlignment = "Center"
+layout.VerticalAlignment = "Top" -- จัดให้เริ่มจากข้างบนสุด
 
+-- [ ส่วนที่เพิ่มเข้ามา: ชื่อสายรุ้ง ]
+local nameLabel = Instance.new("TextLabel")
+nameLabel.Size = UDim2.new(0, 190, 0, 45)
+nameLabel.BackgroundTransparency = 1
+nameLabel.Text = "ไกรสร พิสิษฐ์ 🫡"
+nameLabel.Font = "SourceSansBold"
+nameLabel.TextSize = 22
+nameLabel.Parent = menuFrame
+
+-- ระบบเปลี่ยนสีสายรุ้ง (Rainbow Effect)
+task.spawn(function()
+    while true do
+        for i = 0, 1, 0.005 do
+            nameLabel.TextColor3 = Color3.fromHSV(i, 0.8, 1)
+            task.wait()
+        end
+    end
+end)
+
+---------------------------------------------------------
+-- [ ฟังก์ชันสร้างปุ่ม ]
+---------------------------------------------------------
 local function createBtn(txt, color)
     local b = Instance.new("TextButton")
     b.Size = UDim2.new(0, 190, 0, 40)
@@ -163,6 +185,7 @@ local noclipBtn = createBtn("ทะลุกำแพง: ปิดอยู่"
 local tpBtn = createBtn("สิงร่างคนใกล้ (1 วิ)", Color3.fromRGB(255, 170, 0))
 local spawnBtn = createBtn("เสก Lucky Block", Color3.new(1, 1, 1))
 
+-- การทำงานปุ่ม (เหมือนเดิม)
 mainButton.MouseButton1Click:Connect(function()
     menuVisible = not menuVisible
     menuFrame.Visible = menuVisible
