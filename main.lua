@@ -1,4 +1,4 @@
--- [[ WARUN THAI HUB: 360 FLY VERSION ]]
+-- [[ WARUN THAI HUB: FIXED MENU HEIGHT VERSION ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,11 +12,10 @@ local noclipEnabled = false
 local flyEnabled = false
 local menuVisible = false
 local isStickyTP = false
-
-local flySpeed = 50 -- ความเร็วในการบิน
+local flySpeed = 50 
 
 ---------------------------------------------------------
--- [ ระบบ 1: ESP มองเห็นสีขาว ]
+-- [ ระบบ ESP ]
 ---------------------------------------------------------
 local function updateESP()
     for _, player in pairs(Players:GetPlayers()) do
@@ -69,7 +68,7 @@ for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then applyESP(p) 
 Players.PlayerAdded:Connect(function(p) if p ~= LocalPlayer then applyESP(p) end end)
 
 ---------------------------------------------------------
--- [ ระบบ 2: เดินทะลุกำแพง (NoClip) ]
+-- [ ระบบ NoClip & Fly ]
 ---------------------------------------------------------
 RunService.Stepped:Connect(function()
     if (noclipEnabled or isStickyTP or flyEnabled) and LocalPlayer.Character then
@@ -81,40 +80,26 @@ RunService.Stepped:Connect(function()
     end
 end)
 
----------------------------------------------------------
--- [ ระบบ 3: บินแบบ 360 องศา (Fly System) ]
----------------------------------------------------------
-local camera = workspace.CurrentCamera
-local bg = nil
-local bv = nil
-
+local bg, bv
 local function startFly()
     local char = LocalPlayer.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
     local root = char.HumanoidRootPart
+    local camera = workspace.CurrentCamera
     
-    -- สร้างแรงสำหรับบิน
     bg = Instance.new("BodyGyro", root)
-    bg.P = 9e4
     bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
     bg.cframe = root.CFrame
-    
     bv = Instance.new("BodyVelocity", root)
-    bv.velocity = Vector3.new(0, 0, 0)
     bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
     
-    char.Humanoid.PlatformStand = true -- ทำให้ตัวไม่ยืนแข็ง
+    char.Humanoid.PlatformStand = true
     
-    spawn(function()
+    task.spawn(function()
         while flyEnabled do
             RunService.RenderStepped:Wait()
             local moveDir = char.Humanoid.MoveDirection
             bg.cframe = camera.CFrame
-            
-            -- ควบคุมทิศทางตามกล้อง
-            local flyVec = camera.CFrame.LookVector * (moveDir.Magnitude > 0 and flySpeed or 0)
-            
-            -- ถ้ากดเดินหน้า/ถอยหลัง/ซ้าย/ขวา
             if moveDir.Magnitude > 0 then
                 bv.velocity = camera.CFrame:VectorToWorldSpace(Vector3.new(
                     (UserInputService:IsKeyDown(Enum.KeyCode.D) and flySpeed or 0) - (UserInputService:IsKeyDown(Enum.KeyCode.A) and flySpeed or 0),
@@ -122,10 +107,9 @@ local function startFly()
                     (UserInputService:IsKeyDown(Enum.KeyCode.S) and flySpeed or 0) - (UserInputService:IsKeyDown(Enum.KeyCode.W) and flySpeed or 0)
                 ))
             else
-                bv.velocity = Vector3.new(0, 0.1, 0) -- ลอยตัวอยู่เฉยๆ
+                bv.velocity = Vector3.new(0, 0.1, 0)
             end
         end
-        -- เมื่อปิดการบิน
         if bg then bg:Destroy() end
         if bv then bv:Destroy() end
         char.Humanoid.PlatformStand = false
@@ -133,7 +117,7 @@ local function startFly()
 end
 
 ---------------------------------------------------------
--- [ ระบบ 4: สิงร่าง 1 วินาที ]
+-- [ ระบบสิงร่าง ]
 ---------------------------------------------------------
 local function tpToNearestPlayer()
     local character = LocalPlayer.Character
@@ -144,11 +128,10 @@ local function tpToNearestPlayer()
     local shortestDistance = math.huge
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local enemyRoot = player.Character.HumanoidRootPart
-            local distance = (myRoot.Position - enemyRoot.Position).Magnitude
+            local distance = (myRoot.Position - player.Character.HumanoidRootPart.Position).Magnitude
             if distance < shortestDistance then
                 shortestDistance = distance
-                targetRoot = enemyRoot
+                targetRoot = player.Character.HumanoidRootPart
             end
         end
     end
@@ -156,9 +139,7 @@ local function tpToNearestPlayer()
         isStickyTP = true
         local startTime = tick()
         while tick() - startTime < 1 do
-            if targetRoot and targetRoot.Parent and myRoot then
-                myRoot.CFrame = targetRoot.CFrame
-            end
+            if targetRoot and myRoot then myRoot.CFrame = targetRoot.CFrame end
             RunService.RenderStepped:Wait() 
         end
         isStickyTP = false
@@ -167,10 +148,10 @@ local function tpToNearestPlayer()
 end
 
 ---------------------------------------------------------
--- [ สร้าง GUI (5 ปุ่ม) ]
+-- [ สร้าง GUI (แก้ไขขนาดความสูง) ]
 ---------------------------------------------------------
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "WarunFlyHub"
+screenGui.Name = "WarunFixedHub"
 screenGui.Parent = PlayerGui
 screenGui.ResetOnSpawn = false
 
@@ -185,7 +166,7 @@ mainButton.Parent = screenGui
 Instance.new("UICorner", mainButton).CornerRadius = UDim.new(1, 0)
 
 local menuFrame = Instance.new("Frame")
-menuFrame.Size = UDim2.new(0, 220, 0, 270) -- ขยายขนาดรับ 5 ปุ่ม
+menuFrame.Size = UDim2.new(0, 210, 0, 280) -- **ขยายความสูงเป็น 280 เพื่อให้เห็นครบทุกปุ่ม**
 menuFrame.Position = UDim2.new(1, 10, 0, 0)
 menuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 menuFrame.Visible = false
@@ -193,13 +174,13 @@ menuFrame.Parent = mainButton
 Instance.new("UICorner", menuFrame)
 
 local layout = Instance.new("UIListLayout", menuFrame)
-layout.Padding = UDim.new(0, 7)
+layout.Padding = UDim.new(0, 8)
 layout.HorizontalAlignment = "Center"
 layout.VerticalAlignment = "Center"
 
 local function createBtn(txt, color)
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0, 200, 0, 38)
+    b.Size = UDim2.new(0, 190, 0, 42)
     b.BackgroundColor3 = color
     b.Text = txt
     b.TextColor3 = (color == Color3.new(1,1,1)) and Color3.new(0,0,0) or Color3.new(1,1,1)
@@ -211,11 +192,12 @@ local function createBtn(txt, color)
 end
 
 local espBtn = createBtn("เปิดมองเห็น: ปิดอยู่", Color3.fromRGB(255, 50, 50))
-local flyBtn = createBtn("ระบบบิน: ปิดอยู่", Color3.fromRGB(255, 50, 50))
+local flyBtn = createBtn("ระบบบิน: ปิดอยู่", Color3.fromRGB(255, 50, 50)) -- ปุ่มบินที่เพิ่มเข้ามา
 local noclipBtn = createBtn("ทะลุกำแพง: ปิดอยู่", Color3.fromRGB(255, 50, 50))
 local tpBtn = createBtn("สิงร่างคนใกล้ (1 วิ)", Color3.fromRGB(255, 170, 0))
 local spawnBtn = createBtn("เสก Lucky Block", Color3.new(1, 1, 1))
 
+-- การทำงานปุ่ม
 mainButton.MouseButton1Click:Connect(function()
     menuVisible = not menuVisible
     menuFrame.Visible = menuVisible
