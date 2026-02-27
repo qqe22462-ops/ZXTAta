@@ -1,4 +1,4 @@
--- [[ WARUN THAI HUB: FLY SPEED CONTROL VERSION ]]
+-- [[ WARUN THAI HUB: CLEAN VERSION (NO AUTO PUMP) ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,10 +12,10 @@ local noclipEnabled = false
 local flyEnabled = false
 local menuVisible = false
 local isStickyTP = false
-local flySpeed = 30 -- ค่าเริ่มต้น (ปรับได้ 1-60)
+local flySpeed = 30 
 
 ---------------------------------------------------------
--- [ ระบบ ESP & NoClip ]
+-- [ ระบบ 1: ESP มองเห็นสีขาว ]
 ---------------------------------------------------------
 local function updateESP()
     for _, player in pairs(Players:GetPlayers()) do
@@ -31,6 +31,9 @@ local function updateESP()
     end
 end
 
+---------------------------------------------------------
+-- [ ระบบ 2: เดินทะลุกำแพง (NoClip) ]
+---------------------------------------------------------
 RunService.Stepped:Connect(function()
     if (noclipEnabled or isStickyTP or flyEnabled) and LocalPlayer.Character then
         for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
@@ -42,7 +45,7 @@ RunService.Stepped:Connect(function()
 end)
 
 ---------------------------------------------------------
--- [ ระบบบิน 360 องศา + ปรับความเร็ว ]
+-- [ ระบบ 3: บินแบบ 360 องศา + ปรับความเร็ว ]
 ---------------------------------------------------------
 local bg, bv
 local function startFly()
@@ -82,10 +85,38 @@ local function startFly()
 end
 
 ---------------------------------------------------------
--- [ สร้าง GUI ]
+-- [ ระบบ 4: สิงร่าง 1 วินาที ]
+---------------------------------------------------------
+local function tpToNearestPlayer()
+    local character = LocalPlayer.Character
+    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
+    local myRoot = character.HumanoidRootPart
+    local originalPos = myRoot.CFrame
+    local targetRoot = nil
+    local shortestDistance = math.huge
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local dist = (myRoot.Position - player.Character.HumanoidRootPart.Position).Magnitude
+            if dist < shortestDistance then shortestDistance = dist; targetRoot = player.Character.HumanoidRootPart end
+        end
+    end
+    if targetRoot then
+        isStickyTP = true
+        local st = tick()
+        while tick() - st < 1 do
+            if targetRoot and myRoot then myRoot.CFrame = targetRoot.CFrame end
+            RunService.RenderStepped:Wait()
+        end
+        isStickyTP = false
+        myRoot.CFrame = originalPos
+    end
+end
+
+---------------------------------------------------------
+-- [ สร้าง GUI (ขนาด 280 เท่าเดิม - ไม่มีปุ่มปั๊ม) ]
 ---------------------------------------------------------
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "WarunSpeedHub"
+screenGui.Name = "WarunCleanHub"
 screenGui.Parent = PlayerGui
 screenGui.ResetOnSpawn = false
 
@@ -100,7 +131,7 @@ mainButton.Parent = screenGui
 Instance.new("UICorner", mainButton).CornerRadius = UDim.new(1, 0)
 
 local menuFrame = Instance.new("Frame")
-menuFrame.Size = UDim2.new(0, 210, 0, 280) 
+menuFrame.Size = UDim2.new(0, 210, 0, 280) -- ปรับขนาดกลับมาให้กะทัดรัด
 menuFrame.Position = UDim2.new(1, 10, 0, 0)
 menuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 menuFrame.Visible = false
@@ -108,13 +139,13 @@ menuFrame.Parent = mainButton
 Instance.new("UICorner", menuFrame)
 
 local layout = Instance.new("UIListLayout", menuFrame)
-layout.Padding = UDim.new(0, 6)
+layout.Padding = UDim.new(0, 7)
 layout.HorizontalAlignment = "Center"
 layout.VerticalAlignment = "Center"
 
 local function createBtn(txt, color)
     local b = Instance.new("TextButton")
-    b.Size = UDim2.new(0, 190, 0, 38)
+    b.Size = UDim2.new(0, 190, 0, 40)
     b.BackgroundColor3 = color
     b.Text = txt
     b.TextColor3 = (color == Color3.new(1,1,1)) and Color3.new(0,0,0) or Color3.new(1,1,1)
@@ -164,31 +195,27 @@ noclipBtn.MouseButton1Click:Connect(function()
 end)
 
 tpBtn.MouseButton1Click:Connect(function()
-    local character = LocalPlayer.Character
-    if not character or not character:FindFirstChild("HumanoidRootPart") then return end
-    local myRoot = character.HumanoidRootPart
-    local originalPos = myRoot.CFrame
-    local targetRoot = nil
-    local shortestDistance = math.huge
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local dist = (myRoot.Position - player.Character.HumanoidRootPart.Position).Magnitude
-            if dist < shortestDistance then shortestDistance = dist; targetRoot = player.Character.HumanoidRootPart end
-        end
-    end
-    if targetRoot then
-        isStickyTP = true
-        local st = tick()
-        while tick() - st < 1 do
-            if targetRoot and myRoot then myRoot.CFrame = targetRoot.CFrame end
-            RunService.RenderStepped:Wait()
-        end
-        isStickyTP = false
-        myRoot.CFrame = originalPos
-    end
+    tpToNearestPlayer()
 end)
 
 spawnBtn.MouseButton1Click:Connect(function()
     local r = ReplicatedStorage:FindFirstChild("SpawnLuckyBlock")
     if r then r:FireServer() end
+end)
+
+-- ระบบลาก (Drag)
+local dS, sP, dG
+mainButton.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        dG = true dS = i.Position sP = mainButton.Position
+    end
+end)
+UserInputService.InputChanged:Connect(function(i)
+    if dG and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+        local d = i.Position - dS
+        mainButton.Position = UDim2.new(sP.X.Scale, sP.X.Offset + d.X, sP.Y.Scale, sP.Y.Offset + d.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then dG = false end
 end)
