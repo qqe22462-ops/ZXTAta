@@ -1,4 +1,4 @@
--- [[ WARUN THAI HUB: TP NEAREST PLAYER VERSION ]]
+-- [[ WARUN THAI HUB: STICKY TP VERSION ]]
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -78,47 +78,51 @@ RunService.Stepped:Connect(function()
 end)
 
 ---------------------------------------------------------
--- [ ระบบ 3: วาร์ปไปหาคนใกล้ที่สุด (TP to Nearest) ]
+-- [ ระบบ 3: วาร์ปแบบล็อคติดตัว 1 วินาที (Sticky TP) ]
 ---------------------------------------------------------
 local function tpToNearestPlayer()
     local character = LocalPlayer.Character
     if not character or not character:FindFirstChild("HumanoidRootPart") then return end
     
     local myRoot = character.HumanoidRootPart
-    local originalPos = myRoot.CFrame -- เก็บตำแหน่งเดิมไว้
+    local originalPos = myRoot.CFrame -- เก็บตำแหน่งเดิม
     
-    local nearestPlayer = nil
-    local shortestDistance = math.huge -- ตั้งค่าระยะทางให้มากที่สุดไว้ก่อน
+    -- หาผู้เล่นที่ใกล้ที่สุด
+    local targetRoot = nil
+    local shortestDistance = math.huge
     
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             local enemyRoot = player.Character.HumanoidRootPart
-            local distance = (myRoot.Position - enemyRoot.Position).Magnitude -- คำนวณระยะห่าง
-            
+            local distance = (myRoot.Position - enemyRoot.Position).Magnitude
             if distance < shortestDistance then
                 shortestDistance = distance
-                nearestPlayer = enemyRoot
+                targetRoot = enemyRoot
             end
         end
     end
     
-    if nearestPlayer then
-        -- 1. วาร์ปไปหา
-        myRoot.CFrame = nearestPlayer.CFrame * CFrame.new(0, 0, 3) -- วาร์ปไปอยู่ข้างหน้า 3 Studs
+    if targetRoot then
+        local startTime = tick()
+        -- ล็อคตำแหน่งให้ขยับตามเป้าหมายเป็นเวลา 1 วินาที
+        while tick() - startTime < 1 do
+            if targetRoot and targetRoot.Parent and myRoot then
+                -- วาร์ปไปตำแหน่งเป้าหมาย (บวกระยะห่างเล็กน้อยไม่ให้ตัวซ้อนกัน)
+                myRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 3)
+            end
+            RunService.RenderStepped:Wait() -- อัปเดตตำแหน่งตามเฟรมเรตเพื่อให้ลื่นไหล
+        end
         
-        -- 2. รอ 1 วินาที
-        task.wait(1)
-        
-        -- 3. วาร์ปกลับตำแหน่งเดิม
+        -- ครบ 1 วินาทีแล้ววาร์ปกลับ
         myRoot.CFrame = originalPos
     end
 end
 
 ---------------------------------------------------------
--- [ สร้าง GUI ]
+-- [ สร้าง GUI เหมือนเดิม ]
 ---------------------------------------------------------
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "WarunMasterHub"
+screenGui.Name = "WarunStickyHub"
 screenGui.Parent = PlayerGui
 screenGui.ResetOnSpawn = false
 
@@ -133,7 +137,7 @@ mainButton.Parent = screenGui
 Instance.new("UICorner", mainButton).CornerRadius = UDim.new(1, 0)
 
 local menuFrame = Instance.new("Frame")
-menuFrame.Size = UDim2.new(0, 210, 0, 230) -- ปรับขนาดให้พอดี 4 ปุ่ม
+menuFrame.Size = UDim2.new(0, 210, 0, 230)
 menuFrame.Position = UDim2.new(1, 10, 0, 0)
 menuFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 menuFrame.Visible = false
@@ -163,10 +167,6 @@ local noclipBtn = createBtn("ทะลุกำแพง: ปิดอยู่"
 local tpBtn = createBtn("วาร์ปไปหาคนใกล้ที่สุด", Color3.fromRGB(255, 170, 0))
 local spawnBtn = createBtn("เสก Lucky Block", Color3.new(1, 1, 1))
 
----------------------------------------------------------
--- [ การทำงานของปุ่ม ]
----------------------------------------------------------
-
 mainButton.MouseButton1Click:Connect(function()
     menuVisible = not menuVisible
     menuFrame.Visible = menuVisible
@@ -186,7 +186,7 @@ noclipBtn.MouseButton1Click:Connect(function()
 end)
 
 tpBtn.MouseButton1Click:Connect(function()
-    tpBtn.Text = "กำลังวาร์ป..."
+    tpBtn.Text = "กำลังติดตามเป้าหมาย..."
     tpBtn.BackgroundColor3 = Color3.fromRGB(150, 150, 150)
     tpToNearestPlayer()
     tpBtn.Text = "วาร์ปไปหาคนใกล้ที่สุด"
