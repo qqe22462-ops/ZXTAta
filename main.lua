@@ -1,5 +1,5 @@
--- [[ KRAISORN HUB V.31: EVERYTHING INCLUDED ]]
--- OWNER: ไกรสร พิสิษฐ์ 🫡 (รวมทุกอย่าง + ระบบเลือกคนวาร์ป + 0.6s กดทีเดียว)
+-- [[ KRAISORN HUB V.32: SMART VISIBLE LOCK UPDATE ]]
+-- OWNER: ไกรสร พิสิษฐ์ 🫡 (ล็อคเฉพาะตอนเห็นตัว + ทุกอย่างอยู่ครบ)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -17,7 +17,29 @@ local flySpeed, walkSpeedValue = 50, 100
 -- [ Core Functions ]
 ---------------------------------------------------------
 
--- 1. วาร์ป 0.6s (กดทีเดียว - Instant Flash)
+-- 1. ฟังก์ชันเช็คว่า "เห็นตัวผู้เล่น" จริงไหม (ไม่โดนกำแพงบัง)
+local function IsVisible(targetPart)
+    local character = LocalPlayer.Character
+    if not character or not targetPart then return false end
+    
+    local origin = Camera.CFrame.Position
+    local destination = targetPart.Position
+    local direction = (destination - origin).Unit * (destination - origin).Magnitude
+    
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterDescendantsInstances = {character, targetPart.Parent} -- ไม่นับตัวเรากับตัวเป้าหมายเป็นกำแพง
+    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+    
+    local raycastResult = workspace:Raycast(origin, direction, raycastParams)
+    
+    -- ถ้า raycast ไม่โดนอะไรเลย แสดงว่าทางสะดวก (เห็นตัว)
+    if not raycastResult then
+        return true
+    end
+    return false
+end
+
+-- 2. วาร์ป 0.6s (Instant Flash)
 local function TriggerFlashWarp(btn)
     local char = LocalPlayer.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
@@ -47,7 +69,7 @@ local function TriggerFlashWarp(btn)
     end
 end
 
--- 2. ระบบบิน (Fly)
+-- 3. ระบบบิน (Fly)
 local function HandleFly()
     local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     local root = char:WaitForChild("HumanoidRootPart")
@@ -87,13 +109,16 @@ RunService.Stepped:Connect(function()
     if Toggle.FullBright then
         Lighting.ClockTime = 14; Lighting.Brightness = 3; Lighting.GlobalShadows = false
     end
+    
+    -- ระบบล็อคเป้าแบบฉลาด (Check Visibility)
     if Toggle.VisibleLock and LocalPlayer.Character then
         local target = nil; local dist = math.huge
         for _, p in pairs(Players:GetPlayers()) do
             if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
                 local r = p.Character.HumanoidRootPart
                 local _, screen = Camera:WorldToViewportPoint(r.Position)
-                if screen then
+                -- เงื่อนไข: ต้องอยู่บนจอ และ ต้องไม่โดนกำแพงบัง
+                if screen and IsVisible(r) then
                     local mag = (r.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
                     if mag < dist then dist = mag; target = r end
                 end
@@ -112,10 +137,10 @@ UserInputService.JumpRequest:Connect(function()
 end)
 
 ---------------------------------------------------------
--- [ GUI ]
+-- [ GUI Construction ]
 ---------------------------------------------------------
 local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-screenGui.Name = "KraisornV31"; screenGui.ResetOnSpawn = false
+screenGui.Name = "KraisornV32"; screenGui.ResetOnSpawn = false
 
 local mainBtn = Instance.new("TextButton", screenGui)
 mainBtn.Size = UDim2.new(0, 75, 0, 75); mainBtn.Position = UDim2.new(0.05, 0, 0.4, 0)
@@ -126,38 +151,15 @@ local menuFrame = Instance.new("Frame", screenGui)
 menuFrame.Size = UDim2.new(0, 280, 0, 450); menuFrame.Position = UDim2.new(0.12, 0, 0.4, 0)
 menuFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25); menuFrame.Visible = false; Instance.new("UICorner", menuFrame)
 
-local nameLabel = Instance.new("TextLabel", menuFrame)
-nameLabel.Size = UDim2.new(1, 0, 0, 50); nameLabel.BackgroundTransparency = 1; nameLabel.Text = "KRAISORN HUB 🫡"; nameLabel.Font = "SourceSansBold"; nameLabel.TextSize = 22; nameLabel.TextColor3 = Color3.new(1,1,1)
-
 local scroll = Instance.new("ScrollingFrame", menuFrame)
-scroll.Size = UDim2.new(1, 0, 1, -60); scroll.Position = UDim2.new(0, 0, 0, 55); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 1100); scroll.ScrollBarThickness = 3
+scroll.Size = UDim2.new(1, 0, 1, -20); scroll.Position = UDim2.new(0, 0, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 1100); scroll.ScrollBarThickness = 3
 Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 5); scroll.UIListLayout.HorizontalAlignment = "Center"
 
 local function createBtn(txt, color, callback)
     local b = Instance.new("TextButton", scroll); b.Size = UDim2.new(0, 250, 0, 40); b.BackgroundColor3 = color; b.Text = txt; b.Font = "SourceSansBold"; b.TextSize = 16; Instance.new("UICorner", b); b.MouseButton1Click:Connect(function() callback(b) end)
 end
 
--- [[ ฟังก์ชันเทเลพอตเลือกคน ]]
-local function OpenTeleportMenu()
-    local tpFrame = Instance.new("Frame", screenGui); tpFrame.Size = UDim2.new(0, 200, 0, 300); tpFrame.Position = UDim2.new(0.5, -100, 0.5, -150); tpFrame.BackgroundColor3 = Color3.fromRGB(30,30,30); Instance.new("UICorner", tpFrame)
-    local tpScroll = Instance.new("ScrollingFrame", tpFrame); tpScroll.Size = UDim2.new(1,0,1,-40); tpScroll.Position = UDim2.new(0,0,0,10); tpScroll.BackgroundTransparency = 1; tpScroll.CanvasSize = UDim2.new(0,0,0,1000)
-    Instance.new("UIListLayout", tpScroll)
-    local close = Instance.new("TextButton", tpFrame); close.Size = UDim2.new(1,0,0,30); close.Position = UDim2.new(0,0,1,-30); close.Text = "ปิด"; close.BackgroundColor3 = Color3.new(1,0,0); close.MouseButton1Click:Connect(function() tpFrame:Destroy() end)
-    
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer then
-            local b = Instance.new("TextButton", tpScroll); b.Size = UDim2.new(1,0,0,30); b.Text = p.Name; b.BackgroundColor3 = Color3.new(0.2,0.2,0.2); b.TextColor3 = Color3.new(1,1,1)
-            b.MouseButton1Click:Connect(function()
-                if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                    LocalPlayer.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame
-                    tpFrame:Destroy()
-                end
-            end)
-        end
-    end
-end
-
--- [[ เรียงปุ่มตามสั่งครับคุณไกรสร ]]
+-- [[ ปุ่มทั้งหมด ]]
 createBtn("เสก Lucky Block", Color3.new(1,1,1), function(self)
     local r = ReplicatedStorage:FindFirstChild("SpawnLuckyBlock")
     if r then r:FireServer(); self.Text = "✅ เสกแล้ว"; task.wait(0.5); self.Text = "เสก Lucky Block" end
@@ -168,12 +170,22 @@ createBtn("วาร์ป 0.6s (Flash)", Color3.fromRGB(255, 80, 255), function
 end)
 
 createBtn("วาร์ปไปหาผู้เล่น (Teleport)", Color3.fromRGB(80, 255, 150), function()
-    OpenTeleportMenu()
+    -- ระบบเมนูวาร์ปแบบเลือกคน
+    local tpFrame = Instance.new("Frame", screenGui); tpFrame.Size = UDim2.new(0, 200, 0, 300); tpFrame.Position = UDim2.new(0.5, -100, 0.5, -150); tpFrame.BackgroundColor3 = Color3.fromRGB(30,30,30); Instance.new("UICorner", tpFrame)
+    local tpScroll = Instance.new("ScrollingFrame", tpFrame); tpScroll.Size = UDim2.new(1,0,1,-40); tpScroll.Position = UDim2.new(0,0,0,10); tpScroll.BackgroundTransparency = 1; tpScroll.CanvasSize = UDim2.new(0,0,0,1000)
+    Instance.new("UIListLayout", tpScroll)
+    local close = Instance.new("TextButton", tpFrame); close.Size = UDim2.new(1,0,0,30); close.Position = UDim2.new(0,0,1,-30); close.Text = "ปิด"; close.BackgroundColor3 = Color3.new(1,0,0); close.MouseButton1Click:Connect(function() tpFrame:Destroy() end)
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            local b = Instance.new("TextButton", tpScroll); b.Size = UDim2.new(1,0,0,30); b.Text = p.Name; b.BackgroundColor3 = Color3.new(0.2,0.2,0.2); b.TextColor3 = Color3.new(1,1,1)
+            b.MouseButton1Click:Connect(function() if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then LocalPlayer.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame; tpFrame:Destroy() end end)
+        end
+    end
 end)
 
-createBtn("ล็อคเป้าหน้าจอ: ปิด", Color3.fromRGB(255, 100, 100), function(self)
+createBtn("ล็อคเมื่อเห็นตัว: ปิด", Color3.fromRGB(255, 100, 100), function(self)
     Toggle.VisibleLock = not Toggle.VisibleLock
-    self.Text = Toggle.VisibleLock and "ล็อคเป้าหน้าจอ: เปิด" or "ล็อคเป้าหน้าจอ: ปิด"
+    self.Text = Toggle.VisibleLock and "ล็อคเมื่อเห็นตัว: เปิด" or "ล็อคเมื่อเห็นตัว: ปิด"
     self.BackgroundColor3 = Toggle.VisibleLock and Color3.fromRGB(120, 255, 120) or Color3.fromRGB(255, 100, 100)
 end)
 
@@ -214,7 +226,7 @@ createBtn("กระโดด INF: ปิด", Color3.fromRGB(100, 220, 255), fu
     self.BackgroundColor3 = Toggle.InfJump and Color3.fromRGB(120, 255, 120) or Color3.fromRGB(100, 220, 255)
 end)
 
--- [ Drag System สำหรับปุ่ม W ]
+-- [ Drag & Menu Toggle ]
 mainBtn.MouseButton1Click:Connect(function() 
     menuFrame.Visible = not menuFrame.Visible 
     menuFrame.Position = UDim2.new(mainBtn.Position.X.Scale, mainBtn.Position.X.Offset + 85, mainBtn.Position.Y.Scale, mainBtn.Position.Y.Offset)
