@@ -1,15 +1,15 @@
--- [[ KRAISORN HUB V.22: COMPLETE EVERYTHING IN ONE + CAT EYE ]]
--- OWNER: ไกรสร พิสิษฐ์ 🫡
+-- [[ KRAISORN HUB V.23: ULTIMATE FULL BRIGHT EDITION ]]
+-- แก้ไขโหมดตาแมวให้สว่างเหมือนตอนกลางวัน 100%
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Lighting = game:GetService("Lighting") -- เพิ่ม Lighting สำหรับตาแมว
+local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
 
 -- [ State Configuration ]
-local Toggle = { Fly = false, NoClip = false, Speed = false, InfJump = false, ESP = false, FullBright = false } -- เพิ่มสถานะ FullBright
+local Toggle = { Fly = false, NoClip = false, Speed = false, InfJump = false, ESP = false, FullBright = false }
 local flySpeed, walkSpeedValue = 50, 100
 
 ---------------------------------------------------------
@@ -62,13 +62,21 @@ RunService.Stepped:Connect(function()
     end
     if Toggle.ESP then updateESP() end
     
-    -- ระบบตาแมว (Full Bright Loop)
+    -- [ ระบบตาแมวขั้นสุด: ลบความมืดทิ้งทั้งหมด ]
     if Toggle.FullBright then
-        Lighting.Brightness = 2
-        Lighting.ClockTime = 14
-        Lighting.FogEnd = 100000
-        Lighting.GlobalShadows = false
-        Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+        Lighting.ClockTime = 14 -- บังคับเที่ยงวัน
+        Lighting.Brightness = 3 -- เพิ่มความสว่างเข้มข้น
+        Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255) -- ลบเงาข้างนอก
+        Lighting.Ambient = Color3.fromRGB(255, 255, 255) -- ลบเงาข้างใน
+        Lighting.FogEnd = 9e9 -- ลบหมอก
+        Lighting.GlobalShadows = false -- ปิดเงา
+        
+        -- ลบฟิลเตอร์สีม่วง/มืด (Atmosphere)
+        for _, v in pairs(Lighting:GetChildren()) do
+            if v:IsA("Atmosphere") or v:IsA("Sky") or v:IsA("ColorCorrectionEffect") then
+                v.Parent = ReplicatedStorage -- ย้ายไปเก็บที่อื่นชั่วคราวเพื่อให้แมพสว่าง
+            end
+        end
     end
 end)
 
@@ -84,7 +92,7 @@ end)
 -- [ GUI Construction ]
 ---------------------------------------------------------
 local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-screenGui.Name = "KraisornV21"
+screenGui.Name = "KraisornV23"
 screenGui.ResetOnSpawn = false
 
 local mainBtn = Instance.new("TextButton", screenGui)
@@ -103,7 +111,7 @@ task.spawn(function() while true do for i=0,1,0.005 do nameLabel.TextColor3 = Co
 
 local scroll = Instance.new("ScrollingFrame", menuFrame)
 scroll.Size = UDim2.new(1, 0, 1, -70); scroll.Position = UDim2.new(0, 0, 0, 70)
-scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 750); scroll.ScrollBarThickness = 4 -- เพิ่ม CanvasSize
+scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 750); scroll.ScrollBarThickness = 4
 Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 8); scroll.UIListLayout.HorizontalAlignment = "Center"
 
 -- Teleport Menu
