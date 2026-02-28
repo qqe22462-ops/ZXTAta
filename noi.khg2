@@ -46,7 +46,7 @@ local function BuildMainMenu()
     menuFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25); menuFrame.Visible = false; Instance.new("UICorner", menuFrame)
     
     local scroll = Instance.new("ScrollingFrame", menuFrame)
-    scroll.Size = UDim2.new(1, 0, 1, -20); scroll.Position = UDim2.new(0, 0, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 400); scroll.ScrollBarThickness = 2
+    scroll.Size = UDim2.new(1, 0, 1, -20); scroll.Position = UDim2.new(0, 0, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 450); scroll.ScrollBarThickness = 2
     Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 10); scroll.UIListLayout.HorizontalAlignment = "Center"
 
     -- ฟังก์ชันสร้างปุ่มในเมนู
@@ -59,7 +59,33 @@ local function BuildMainMenu()
 
     -- [ รายการฟังก์ชัน ]
     
-    -- H1
+    -- 1. Auto Eat (ฟังก์ชันใหม่ที่คุณต้องการ)
+    local autoEatEnabled = false
+    local eatBtn = createMenuBtn("Auto Eat: ปิด", Color3.fromRGB(100, 100, 100), function(b)
+        autoEatEnabled = not autoEatEnabled
+        if autoEatEnabled then
+            b.Text = "Auto Eat: เปิด"
+            b.BackgroundColor3 = Color3.fromRGB(0, 170, 0) -- สีเขียวเข้มตอนเปิด
+        else
+            b.Text = "Auto Eat: ปิด"
+            b.BackgroundColor3 = Color3.fromRGB(100, 100, 100) -- สีเทาตอนปิด
+        end
+    end)
+
+    -- Loop สำหรับ Auto Eat (รันทุก 0.1 วิ)
+    task.spawn(function()
+        while true do
+            if autoEatEnabled then
+                local event = ReplicatedStorage:WaitForChild("EatingHandler_holdFoodEvent", 5)
+                if event then
+                    event:FireServer(Vector3.new(-64.5, 6.063042640686035, -63.96592712402344))
+                end
+            end
+            task.wait(0.1)
+        end
+    end)
+
+    -- 2. H1
     local cd1 = false
     createMenuBtn("HIT 1 (Red)", Color3.fromRGB(255, 50, 50), function(b)
         if cd1 then return end; cd1 = true
@@ -68,9 +94,9 @@ local function BuildMainMenu()
         b.Text = "HIT 1 (Red)"; cd1 = false
     end)
 
-    -- H2
+    -- 3. H2
     local cd2, clicks = false, 0
-    local b2 = createMenuBtn("HIT 2 (5)", Color3.fromRGB(80, 255, 80), function(b)
+    createMenuBtn("HIT 2 (5)", Color3.fromRGB(80, 255, 80), function(b)
         if cd2 then return end
         ReplicatedStorage.Events.Hit:FireServer(0.2337765097618103)
         clicks = clicks + 1; b.Text = "HIT 2 (".. 5-clicks ..")"
@@ -80,7 +106,7 @@ local function BuildMainMenu()
         end
     end)
 
-    -- CHAIR
+    -- 4. CHAIR
     local cd3 = false
     createMenuBtn("CHAIR CRATE", Color3.fromRGB(50, 100, 255), function(b)
         if cd3 then return end; cd3 = true
@@ -89,7 +115,7 @@ local function BuildMainMenu()
         b.Text = "CHAIR CRATE"; cd3 = false
     end)
 
-    -- SLAP
+    -- 5. SLAP
     local cd4 = false
     createMenuBtn("SLAP CRATE", Color3.fromRGB(255, 220, 50), function(b)
         if cd4 then return end; cd4 = true
