@@ -1,5 +1,5 @@
--- [[ KRAISORN HUB V.32: SMART VISIBLE LOCK UPDATE ]]
--- OWNER: ไกรสร พิสิษฐ์ 🫡 (ล็อคเฉพาะตอนเห็นตัว + ทุกอย่างอยู่ครบ)
+-- [[ KRAISORN HUB V.33: SMART NEAREST LOCK UPDATE ]]
+-- OWNER: ไกรสร พิสิษฐ์ 🫡 (เน้นล็อคคนใกล้สุดที่มองเห็น)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -17,29 +17,21 @@ local flySpeed, walkSpeedValue = 50, 100
 -- [ Core Functions ]
 ---------------------------------------------------------
 
--- 1. ฟังก์ชันเช็คว่า "เห็นตัวผู้เล่น" จริงไหม (ไม่โดนกำแพงบัง)
+-- 1. ฟังก์ชันเช็คการมองเห็น (Raycast)
 local function IsVisible(targetPart)
     local character = LocalPlayer.Character
     if not character or not targetPart then return false end
-    
     local origin = Camera.CFrame.Position
     local destination = targetPart.Position
-    local direction = (destination - origin).Unit * (destination - origin).Magnitude
-    
+    local direction = (destination - origin)
     local raycastParams = RaycastParams.new()
-    raycastParams.FilterDescendantsInstances = {character, targetPart.Parent} -- ไม่นับตัวเรากับตัวเป้าหมายเป็นกำแพง
+    raycastParams.FilterDescendantsInstances = {character, targetPart.Parent}
     raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-    
     local raycastResult = workspace:Raycast(origin, direction, raycastParams)
-    
-    -- ถ้า raycast ไม่โดนอะไรเลย แสดงว่าทางสะดวก (เห็นตัว)
-    if not raycastResult then
-        return true
-    end
-    return false
+    return raycastResult == nil -- ถ้าไม่โดนอะไรเลยคือเห็นตัว
 end
 
--- 2. วาร์ป 0.6s (Instant Flash)
+-- 2. วาร์ป 0.6s (Flash Warp)
 local function TriggerFlashWarp(btn)
     local char = LocalPlayer.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
@@ -69,30 +61,6 @@ local function TriggerFlashWarp(btn)
     end
 end
 
--- 3. ระบบบิน (Fly)
-local function HandleFly()
-    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    local root = char:WaitForChild("HumanoidRootPart")
-    local hum = char:WaitForChild("Humanoid")
-    local bv = Instance.new("BodyVelocity", root)
-    local bg = Instance.new("BodyGyro", root)
-    bv.MaxForce = Vector3.new(9e9, 9e9, 9e9); bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-    task.spawn(function()
-        while Toggle.Fly do
-            RunService.RenderStepped:Wait()
-            bg.CFrame = Camera.CFrame
-            hum.PlatformStand = true
-            local dir = Vector3.new(0,0,0); local cam = Camera.CFrame
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + cam.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - cam.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + cam.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - cam.RightVector end
-            bv.Velocity = dir.Magnitude > 0 and dir.Unit * flySpeed or Vector3.new(0, 0.1, 0)
-        end
-        bv:Destroy(); bg:Destroy(); hum.PlatformStand = false
-    end)
-end
-
 -- [ Main Loops ]
 RunService.Stepped:Connect(function()
     if Toggle.NoClip and LocalPlayer.Character then
@@ -110,21 +78,31 @@ RunService.Stepped:Connect(function()
         Lighting.ClockTime = 14; Lighting.Brightness = 3; Lighting.GlobalShadows = false
     end
     
-    -- ระบบล็อคเป้าแบบฉลาด (Check Visibility)
+    -- [[ ระบบล็อคเป้าอัจฉริยะ: เน้นคนใกล้ที่สุดที่มองเห็น ]]
     if Toggle.VisibleLock and LocalPlayer.Character then
-        local target = nil; local dist = math.huge
+        local target = nil
+        local shortestDistance = math.huge -- ตั้งค่าระยะเริ่มต้นให้มากที่สุด
+        
         for _, p in pairs(Players:GetPlayers()) do
             if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                local r = p.Character.HumanoidRootPart
-                local _, screen = Camera:WorldToViewportPoint(r.Position)
-                -- เงื่อนไข: ต้องอยู่บนจอ และ ต้องไม่โดนกำแพงบัง
-                if screen and IsVisible(r) then
-                    local mag = (r.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-                    if mag < dist then dist = mag; target = r end
+                local root = p.Character.HumanoidRootPart
+                local _, onScreen = Camera:WorldToViewportPoint(root.Position)
+                
+                if onScreen and IsVisible(root) then
+                    local dist = (root.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                    -- ถ้าคนนี้ใกล้กว่าเป้าหมายเดิม ให้เปลี่ยนมาล็อคคนนี้
+                    if dist < shortestDistance then
+                        shortestDistance = dist
+                        target = root
+                    end
                 end
             end
         end
-        if target then Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position) end
+        
+        if target then
+            -- หันหน้าจอไปหาเป้าหมายที่ใกล้ที่สุดที่ผ่านเงื่อนไข
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
+        end
     end
 end)
 
@@ -140,7 +118,7 @@ end)
 -- [ GUI Construction ]
 ---------------------------------------------------------
 local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-screenGui.Name = "KraisornV32"; screenGui.ResetOnSpawn = false
+screenGui.Name = "KraisornV33"; screenGui.ResetOnSpawn = false
 
 local mainBtn = Instance.new("TextButton", screenGui)
 mainBtn.Size = UDim2.new(0, 75, 0, 75); mainBtn.Position = UDim2.new(0.05, 0, 0.4, 0)
@@ -159,18 +137,15 @@ local function createBtn(txt, color, callback)
     local b = Instance.new("TextButton", scroll); b.Size = UDim2.new(0, 250, 0, 40); b.BackgroundColor3 = color; b.Text = txt; b.Font = "SourceSansBold"; b.TextSize = 16; Instance.new("UICorner", b); b.MouseButton1Click:Connect(function() callback(b) end)
 end
 
--- [[ ปุ่มทั้งหมด ]]
+-- [ ปุ่มทั้งหมด ]
 createBtn("เสก Lucky Block", Color3.new(1,1,1), function(self)
     local r = ReplicatedStorage:FindFirstChild("SpawnLuckyBlock")
     if r then r:FireServer(); self.Text = "✅ เสกแล้ว"; task.wait(0.5); self.Text = "เสก Lucky Block" end
 end)
 
-createBtn("วาร์ป 0.6s (Flash)", Color3.fromRGB(255, 80, 255), function(self)
-    TriggerFlashWarp(self)
-end)
+createBtn("วาร์ป 0.6s (Flash)", Color3.fromRGB(255, 80, 255), function(self) TriggerFlashWarp(self) end)
 
 createBtn("วาร์ปไปหาผู้เล่น (Teleport)", Color3.fromRGB(80, 255, 150), function()
-    -- ระบบเมนูวาร์ปแบบเลือกคน
     local tpFrame = Instance.new("Frame", screenGui); tpFrame.Size = UDim2.new(0, 200, 0, 300); tpFrame.Position = UDim2.new(0.5, -100, 0.5, -150); tpFrame.BackgroundColor3 = Color3.fromRGB(30,30,30); Instance.new("UICorner", tpFrame)
     local tpScroll = Instance.new("ScrollingFrame", tpFrame); tpScroll.Size = UDim2.new(1,0,1,-40); tpScroll.Position = UDim2.new(0,0,0,10); tpScroll.BackgroundTransparency = 1; tpScroll.CanvasSize = UDim2.new(0,0,0,1000)
     Instance.new("UIListLayout", tpScroll)
@@ -183,9 +158,9 @@ createBtn("วาร์ปไปหาผู้เล่น (Teleport)", Color3.
     end
 end)
 
-createBtn("ล็อคเมื่อเห็นตัว: ปิด", Color3.fromRGB(255, 100, 100), function(self)
+createBtn("ล็อคเป้าใกล้สุด(เห็นตัว): ปิด", Color3.fromRGB(255, 100, 100), function(self)
     Toggle.VisibleLock = not Toggle.VisibleLock
-    self.Text = Toggle.VisibleLock and "ล็อคเมื่อเห็นตัว: เปิด" or "ล็อคเมื่อเห็นตัว: ปิด"
+    self.Text = Toggle.VisibleLock and "ล็อคเป้าใกล้สุด(เห็นตัว): เปิด" or "ล็อคเป้าใกล้สุด(เห็นตัว): ปิด"
     self.BackgroundColor3 = Toggle.VisibleLock and Color3.fromRGB(120, 255, 120) or Color3.fromRGB(255, 100, 100)
 end)
 
@@ -205,7 +180,28 @@ createBtn("ระบบบิน: ปิด", Color3.fromRGB(255, 120, 120), fun
     Toggle.Fly = not Toggle.Fly
     self.Text = Toggle.Fly and "ระบบบิน: เปิด" or "ระบบบิน: ปิด"
     self.BackgroundColor3 = Toggle.Fly and Color3.fromRGB(120, 255, 120) or Color3.fromRGB(255, 120, 120)
-    if Toggle.Fly then HandleFly() end
+    if Toggle.Fly then
+        local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        local root = char:WaitForChild("HumanoidRootPart")
+        local hum = char:WaitForChild("Humanoid")
+        local bv = Instance.new("BodyVelocity", root)
+        local bg = Instance.new("BodyGyro", root)
+        bv.MaxForce = Vector3.new(9e9, 9e9, 9e9); bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+        task.spawn(function()
+            while Toggle.Fly do
+                RunService.RenderStepped:Wait()
+                bg.CFrame = Camera.CFrame
+                hum.PlatformStand = true
+                local dir = Vector3.new(0,0,0); local cam = Camera.CFrame
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + cam.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - cam.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + cam.RightVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - cam.RightVector end
+                bv.Velocity = dir.Magnitude > 0 and dir.Unit * flySpeed or Vector3.new(0, 0.1, 0)
+            end
+            bv:Destroy(); bg:Destroy(); hum.PlatformStand = false
+        end)
+    end
 end)
 
 createBtn("ทะลุกำแพง: ปิด", Color3.fromRGB(200, 200, 200), function(self)
