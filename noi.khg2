@@ -1,5 +1,6 @@
--- [[ KRAISORN SINGLE HIT BUTTON: DRAGGABLE ]]
+-- [[ KRAISORN DUAL HIT BUTTONS ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
+-- รวมปุ่มแดง (Hit 1) และ ปุ่มเขียว (Hit 2) ลากได้อิสระ
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -8,86 +9,87 @@ local LocalPlayer = Players.LocalPlayer
 
 -- [ สร้าง GUI ]
 local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-screenGui.Name = "KraisornDraggableHit"
+screenGui.Name = "KraisornDualButtons"
 screenGui.ResetOnSpawn = false
 
--- [ สร้างปุ่ม ]
-local hitBtn = Instance.new("TextButton", screenGui)
-hitBtn.Size = UDim2.new(0, 80, 0, 80)
-hitBtn.Position = UDim2.new(0.9, -40, 0.5, -40) -- เริ่มต้นที่ขวามือ
-hitBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-hitBtn.Text = "HIT"
-hitBtn.Font = "SourceSansBold"
-hitBtn.TextSize = 25
-hitBtn.TextColor3 = Color3.new(1, 1, 1)
-hitBtn.AutoButtonColor = false -- ปิดเพื่อให้เราคุมสีเองตอนกด
-
--- ตกแต่งปุ่ม
-local corner = Instance.new("UICorner", hitBtn)
-corner.CornerRadius = UDim.new(1, 0)
-local stroke = Instance.new("UIStroke", hitBtn)
-stroke.Thickness = 2
-stroke.Color = Color3.new(1, 1, 1)
-
 ---------------------------------------------------------
--- [ ระบบลากปุ่ม (Drag System) ]
+-- [ ฟังก์ชันทำให้ปุ่มลากได้ (Universal Drag Function) ]
 ---------------------------------------------------------
-local dragging, dragInput, dragStart, startPos
+local function MakeDraggable(ui)
+    local dragging, dragInput, dragStart, startPos
+    
+    ui.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = ui.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
 
-local function update(input)
-    local delta = input.Position - dragStart
-    hitBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    ui.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            ui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
 end
 
-hitBtn.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = hitBtn.Position
-        
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
-    end
-end)
-
-hitBtn.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        update(input)
-    end
-end)
-
 ---------------------------------------------------------
--- [ ระบบการทำงานของปุ่ม (Hit Logic) ]
+-- [ ปุ่มที่ 1: สีแดง (Hit 0.979...) ]
 ---------------------------------------------------------
-hitBtn.MouseButton1Click:Connect(function()
-    -- เอฟเฟกต์ปุ่ม
-    hitBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    hitBtn.TextColor3 = Color3.new(0, 0, 0)
+local redBtn = Instance.new("TextButton", screenGui)
+redBtn.Size = UDim2.new(0, 70, 0, 70)
+redBtn.Position = UDim2.new(0.9, -40, 0.4, 0) -- ตำแหน่งเริ่มต้น
+redBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+redBtn.Text = "HIT 1"
+redBtn.Font = "SourceSansBold"; redBtn.TextSize = 20; redBtn.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", redBtn).CornerRadius = UDim.new(1, 0)
+Instance.new("UIStroke", redBtn).Thickness = 2
+MakeDraggable(redBtn)
+
+redBtn.MouseButton1Click:Connect(function()
+    local args = { [1] = 0.9791415333747864 }
+    local hitEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Hit")
+    if hitEvent then hitEvent:FireServer(unpack(args)) end
     
-    -- รันโค้ดที่คุณต้องการ
-    local args = {
-        [1] = 0.9791415333747864
-    }
-    
-    local events = ReplicatedStorage:FindFirstChild("Events")
-    local hitEvent = events and events:FindFirstChild("Hit")
-    
-    if hitEvent then
-        hitEvent:FireServer(unpack(args))
-    else
-        warn("ไม่พบ Events/Hit")
-    end
-    
+    -- เอฟเฟกต์กระพริบ
+    redBtn.BackgroundColor3 = Color3.new(1, 1, 1)
     task.wait(0.1)
-    hitBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-    hitBtn.TextColor3 = Color3.new(1, 1, 1)
+    redBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+end)
+
+---------------------------------------------------------
+-- [ ปุ่มที่ 2: สีเขียว (Hit 0.233...) ]
+---------------------------------------------------------
+local greenBtn = Instance.new("TextButton", screenGui)
+greenBtn.Size = UDim2.new(0, 70, 0, 70)
+greenBtn.Position = UDim2.new(0.9, -40, 0.6, 0) -- ตำแหน่งเริ่มต้น (อยู่ล่างปุ่มแดง)
+greenBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 80)
+greenBtn.Text = "HIT 2"
+greenBtn.Font = "SourceSansBold"; greenBtn.TextSize = 20; greenBtn.TextColor3 = Color3.new(0, 0, 0)
+Instance.new("UICorner", greenBtn).CornerRadius = UDim.new(1, 0)
+Instance.new("UIStroke", greenBtn).Thickness = 2
+MakeDraggable(greenBtn)
+
+greenBtn.MouseButton1Click:Connect(function()
+    local args = { [1] = 0.2337765097618103 }
+    local hitEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Hit")
+    if hitEvent then hitEvent:FireServer(unpack(args)) end
+    
+    -- เอฟเฟกต์กระพริบ
+    greenBtn.BackgroundColor3 = Color3.new(1, 1, 1)
+    task.wait(0.1)
+    greenBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 80)
 end)
