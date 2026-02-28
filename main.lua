@@ -1,14 +1,15 @@
--- [[ KRAISORN HUB V.21: COMPLETE EVERYTHING IN ONE ]]
+-- [[ KRAISORN HUB V.22: COMPLETE EVERYTHING IN ONE + CAT EYE ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Lighting = game:GetService("Lighting") -- เพิ่ม Lighting สำหรับตาแมว
 local LocalPlayer = Players.LocalPlayer
 
 -- [ State Configuration ]
-local Toggle = { Fly = false, NoClip = false, Speed = false, InfJump = false, ESP = false }
+local Toggle = { Fly = false, NoClip = false, Speed = false, InfJump = false, ESP = false, FullBright = false } -- เพิ่มสถานะ FullBright
 local flySpeed, walkSpeedValue = 50, 100
 
 ---------------------------------------------------------
@@ -60,6 +61,15 @@ RunService.Stepped:Connect(function()
         for _, v in pairs(LocalPlayer.Character:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false end end
     end
     if Toggle.ESP then updateESP() end
+    
+    -- ระบบตาแมว (Full Bright Loop)
+    if Toggle.FullBright then
+        Lighting.Brightness = 2
+        Lighting.ClockTime = 14
+        Lighting.FogEnd = 100000
+        Lighting.GlobalShadows = false
+        Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+    end
 end)
 
 RunService.Heartbeat:Connect(function()
@@ -93,7 +103,7 @@ task.spawn(function() while true do for i=0,1,0.005 do nameLabel.TextColor3 = Co
 
 local scroll = Instance.new("ScrollingFrame", menuFrame)
 scroll.Size = UDim2.new(1, 0, 1, -70); scroll.Position = UDim2.new(0, 0, 0, 70)
-scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 700); scroll.ScrollBarThickness = 4
+scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 750); scroll.ScrollBarThickness = 4 -- เพิ่ม CanvasSize
 Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 8); scroll.UIListLayout.HorizontalAlignment = "Center"
 
 -- Teleport Menu
@@ -125,6 +135,12 @@ createBtn("เสก Lucky Block", Color3.new(1, 1, 1), function(self)
 end)
 
 createBtn("วาร์ปหาผู้เล่น (เลือกชื่อ)", Color3.fromRGB(180, 150, 255), function() updateTpList(); tpFrame.Visible = true end)
+
+createBtn("โหมดตาแมว (สว่าง): ปิด", Color3.fromRGB(255, 255, 0), function(self)
+    Toggle.FullBright = not Toggle.FullBright
+    self.Text = Toggle.FullBright and "โหมดตาแมว (สว่าง): เปิด" or "โหมดตาแมว (สว่าง): ปิด"
+    self.BackgroundColor3 = Toggle.FullBright and Color3.fromRGB(120, 255, 120) or Color3.fromRGB(255, 255, 0)
+end)
 
 createBtn("ESP มองผู้เล่น: ปิด", Color3.fromRGB(255, 255, 255), function(self)
     Toggle.ESP = not Toggle.ESP
