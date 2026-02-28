@@ -1,4 +1,4 @@
--- [[ KRAISORN HUB V.44: P-MENU ULTIMATE GOD DODGE ]]
+-- [[ KRAISORN HUB V.45: P-MENU + CCTV CAMERA ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 -- KEY: 1
 
@@ -32,7 +32,6 @@ submitBtn.Size = UDim2.new(0, 220, 0, 35); submitBtn.Position = UDim2.new(0.5, -
 -- [ เมนูหลัก (หลังใส่คีย์) ]
 ---------------------------------------------------------
 local function BuildMainMenu()
-    if screenGui:FindFirstChild("KraisornKeyFrame") then screenGui.KraisornKeyFrame:Destroy() end
     keyFrame:Destroy()
 
     local pBtn = Instance.new("TextButton", screenGui)
@@ -41,11 +40,11 @@ local function BuildMainMenu()
     Instance.new("UICorner", pBtn).CornerRadius = UDim.new(1,0)
 
     local menuFrame = Instance.new("Frame", screenGui)
-    menuFrame.Size = UDim2.new(0, 250, 0, 400); menuFrame.Position = UDim2.new(0.12, 0, 0.4, 0)
+    menuFrame.Size = UDim2.new(0, 250, 0, 420); menuFrame.Position = UDim2.new(0.12, 0, 0.4, 0)
     menuFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25); menuFrame.Visible = false; Instance.new("UICorner", menuFrame)
     
     local scroll = Instance.new("ScrollingFrame", menuFrame)
-    scroll.Size = UDim2.new(1, 0, 1, -20); scroll.Position = UDim2.new(0, 0, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 650); scroll.ScrollBarThickness = 2
+    scroll.Size = UDim2.new(1, 0, 1, -20); scroll.Position = UDim2.new(0, 0, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 750); scroll.ScrollBarThickness = 2
     Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 10); scroll.UIListLayout.HorizontalAlignment = "Center"
 
     local function createMenuBtn(txt, color, callback)
@@ -55,70 +54,63 @@ local function BuildMainMenu()
         return b
     end
 
-    -- [ ปุ่มเดิม ]
-    local cd1 = false
-    createMenuBtn("HIT 1 (Red)", Color3.fromRGB(255, 50, 50), function(b)
-        if cd1 then return end; cd1 = true
-        ReplicatedStorage.Events.Hit:FireServer(0.9791415333747864)
-        for i = 5, 1, -1 do b.Text = "COOLING: "..i; task.wait(1) end
-        b.Text = "HIT 1 (Red)"; cd1 = false
+    -- [ รายการปุ่มเดิม ]
+    createMenuBtn("HIT 1 (Red)", Color3.fromRGB(255, 50, 50), function(b) 
+        ReplicatedStorage.Events.Hit:FireServer(0.9791415333747864) 
     end)
 
-    local cd2, clicks = false, 0
-    createMenuBtn("HIT 2 (5)", Color3.fromRGB(80, 255, 80), function(b)
-        if cd2 then return end
-        ReplicatedStorage.Events.Hit:FireServer(0.2337765097618103)
-        clicks = clicks + 1; b.Text = "HIT 2 (".. 5-clicks ..")"
-        if clicks >= 5 then
-            cd2 = true; for i = 4, 1, -1 do b.Text = "WAIT: "..i; task.wait(1) end
-            clicks = 0; b.Text = "HIT 2 (5)"; cd2 = false
-        end
+    createMenuBtn("HIT 2 (5)", Color3.fromRGB(80, 255, 80), function(b) 
+        ReplicatedStorage.Events.Hit:FireServer(0.2337765097618103) 
     end)
 
-    local cd3 = false
-    createMenuBtn("CHAIR CRATE", Color3.fromRGB(50, 100, 255), function(b)
-        if cd3 then return end; cd3 = true
-        ReplicatedStorage.Events.CreateRE:FireServer("Chair Crate", "Rare", 6, Vector3.new(-83.8627, 1.2767, -10.0044))
-        local t = 1.5; while t > 0 do b.Text = string.format("CD: %.1f", t); task.wait(0.1); t = t - 0.1 end
-        b.Text = "CHAIR CRATE"; cd3 = false
+    createMenuBtn("CHAIR CRATE", Color3.fromRGB(50, 100, 255), function(b) 
+        ReplicatedStorage.Events.CreateRE:FireServer("Chair Crate", "Rare", 6, Vector3.new(-83.8627, 1.2767, -10.0044)) 
     end)
 
-    local cd4 = false
-    createMenuBtn("SLAP CRATE", Color3.fromRGB(255, 220, 50), function(b)
-        if cd4 then return end; cd4 = true
-        ReplicatedStorage.Events.CreateRE:FireServer("Slap Crate", "Cammon", 5)
-        b.Text = "CD: 1s"; task.wait(1)
-        b.Text = "SLAP CRATE"; cd4 = false
+    createMenuBtn("SLAP CRATE", Color3.fromRGB(255, 220, 50), function(b) 
+        ReplicatedStorage.Events.CreateRE:FireServer("Slap Crate", "Cammon", 5) 
     end)
 
-    -- [[ ฟังก์ชันใหม่: Ultimate God Dodge (7 Keys) สีชมพู ]]
+    -- [[ Ultimate Dodge G+Z+E+X+R+Q+C (Pink) ]]
     local dodgeEnabled = false
     local dodgeBtn = createMenuBtn("Ultimate Dodge: ปิด", Color3.fromRGB(255, 105, 180), function(b)
         dodgeEnabled = not dodgeEnabled
-        if dodgeEnabled then
-            b.Text = "Dodge: เปิด (7 Keys)"; b.BackgroundColor3 = Color3.fromRGB(255, 20, 147)
-        else
-            b.Text = "Ultimate Dodge: ปิด"; b.BackgroundColor3 = Color3.fromRGB(255, 105, 180)
-        end
+        b.Text = dodgeEnabled and "Dodge: เปิด (7 Keys)" or "Ultimate Dodge: ปิด"
+        b.BackgroundColor3 = dodgeEnabled and Color3.fromRGB(255, 20, 147) or Color3.fromRGB(255, 105, 180)
     end)
 
-    -- Loop หลบ 7 ทิศทาง (G, Z, E, X, R, Q, C)
     task.spawn(function()
         while true do
             if dodgeEnabled then
                 pcall(function()
-                    local dodgeEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Dodge")
+                    local d = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Dodge")
                     local keys = {"G", "Z", "E", "X", "R", "Q", "C"}
-                    for _, k in pairs(keys) do
-                        dodgeEvent:FireServer(k)
-                    end
+                    for _, k in pairs(keys) do d:FireServer(k) end
                 end)
             end
             task.wait(0.1)
         end
     end)
 
-    -- [ ระบบลากปุ่ม P และเปิดเมนู ]
+    -- [[ ฟังก์ชันใหม่: มุมกล้องแอบดู (Hack Camera Zoom) ]]
+    local cctvEnabled = false
+    createMenuBtn("มุมกล้องแอบดู: ปิด", Color3.fromRGB(130, 130, 130), function(b)
+        cctvEnabled = not cctvEnabled
+        if cctvEnabled then
+            b.Text = "มุมกล้องแอบดู: เปิดอยู่"
+            b.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
+            -- แฮกปลดล็อคกล้อง
+            LocalPlayer.CameraMaxZoomDistance = 10000 -- ปลดล็อคให้ซูมออกได้หมื่นเมตร
+            LocalPlayer.CameraMinZoomDistance = 0.5
+        else
+            b.Text = "มุมกล้องแอบดู: ปิด"
+            b.BackgroundColor3 = Color3.fromRGB(130, 130, 130)
+            -- คืนค่าเดิม (มาตรฐานเกมส่วนใหญ่คือ 12.8 หรือ 20)
+            LocalPlayer.CameraMaxZoomDistance = 20
+        end
+    end)
+
+    -- [ ระบบลากและเปิดเมนู ]
     local dragging, dragStart, startPos
     pBtn.MouseButton1Click:Connect(function() 
         menuFrame.Visible = not menuFrame.Visible
