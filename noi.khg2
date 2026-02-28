@@ -1,0 +1,93 @@
+-- [[ KRAISORN SINGLE HIT BUTTON: DRAGGABLE ]]
+-- OWNER: ไกรสร พิสิษฐ์ 🫡
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+
+-- [ สร้าง GUI ]
+local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+screenGui.Name = "KraisornDraggableHit"
+screenGui.ResetOnSpawn = false
+
+-- [ สร้างปุ่ม ]
+local hitBtn = Instance.new("TextButton", screenGui)
+hitBtn.Size = UDim2.new(0, 80, 0, 80)
+hitBtn.Position = UDim2.new(0.9, -40, 0.5, -40) -- เริ่มต้นที่ขวามือ
+hitBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+hitBtn.Text = "HIT"
+hitBtn.Font = "SourceSansBold"
+hitBtn.TextSize = 25
+hitBtn.TextColor3 = Color3.new(1, 1, 1)
+hitBtn.AutoButtonColor = false -- ปิดเพื่อให้เราคุมสีเองตอนกด
+
+-- ตกแต่งปุ่ม
+local corner = Instance.new("UICorner", hitBtn)
+corner.CornerRadius = UDim.new(1, 0)
+local stroke = Instance.new("UIStroke", hitBtn)
+stroke.Thickness = 2
+stroke.Color = Color3.new(1, 1, 1)
+
+---------------------------------------------------------
+-- [ ระบบลากปุ่ม (Drag System) ]
+---------------------------------------------------------
+local dragging, dragInput, dragStart, startPos
+
+local function update(input)
+    local delta = input.Position - dragStart
+    hitBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+hitBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = hitBtn.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+hitBtn.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        update(input)
+    end
+end)
+
+---------------------------------------------------------
+-- [ ระบบการทำงานของปุ่ม (Hit Logic) ]
+---------------------------------------------------------
+hitBtn.MouseButton1Click:Connect(function()
+    -- เอฟเฟกต์ปุ่ม
+    hitBtn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    hitBtn.TextColor3 = Color3.new(0, 0, 0)
+    
+    -- รันโค้ดที่คุณต้องการ
+    local args = {
+        [1] = 0.9791415333747864
+    }
+    
+    local events = ReplicatedStorage:FindFirstChild("Events")
+    local hitEvent = events and events:FindFirstChild("Hit")
+    
+    if hitEvent then
+        hitEvent:FireServer(unpack(args))
+    else
+        warn("ไม่พบ Events/Hit")
+    end
+    
+    task.wait(0.1)
+    hitBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    hitBtn.TextColor3 = Color3.new(1, 1, 1)
+end)
