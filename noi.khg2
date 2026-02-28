@@ -1,4 +1,4 @@
--- [[ KRAISORN HUB V.46: P-MENU + FIXED CAMERA ]]
+-- [[ KRAISORN HUB V.47: FAST CD EDITION ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 -- KEY: 1
 
@@ -57,13 +57,41 @@ local function BuildMainMenu()
         return b
     end
 
-    -- [ รายการฟังก์ชัน ]
-    createMenuBtn("HIT 1 (Red)", Color3.fromRGB(255, 50, 50), function() ReplicatedStorage.Events.Hit:FireServer(0.9791415333747864) end)
-    createMenuBtn("HIT 2 (5)", Color3.fromRGB(80, 255, 80), function() ReplicatedStorage.Events.Hit:FireServer(0.2337765097618103) end)
-    createMenuBtn("CHAIR CRATE", Color3.fromRGB(50, 100, 255), function() ReplicatedStorage.Events.CreateRE:FireServer("Chair Crate", "Rare", 6, Vector3.new(-83.8627, 1.2767, -10.0044)) end)
-    createMenuBtn("SLAP CRATE", Color3.fromRGB(255, 220, 50), function() ReplicatedStorage.Events.CreateRE:FireServer("Slap Crate", "Cammon", 5) end)
+    -- [ รายการฟังก์ชันพร้อมคูลดาวน์ 0.5s ]
+    
+    -- HIT 1
+    local cd1 = false
+    createMenuBtn("HIT 1 (Red)", Color3.fromRGB(255, 50, 50), function(b)
+        if cd1 then return end; cd1 = true
+        ReplicatedStorage.Events.Hit:FireServer(0.9791415333747864)
+        b.Text = "CD: 0.5s"; task.wait(0.5); b.Text = "HIT 1 (Red)"; cd1 = false
+    end)
 
-    -- Ultimate Dodge (Pink)
+    -- HIT 2
+    local cd2 = false
+    createMenuBtn("HIT 2 (Fast)", Color3.fromRGB(80, 255, 80), function(b)
+        if cd2 then return end; cd2 = true
+        ReplicatedStorage.Events.Hit:FireServer(0.2337765097618103)
+        b.Text = "CD: 0.5s"; task.wait(0.5); b.Text = "HIT 2 (Fast)"; cd2 = false
+    end)
+
+    -- CHAIR
+    local cd3 = false
+    createMenuBtn("CHAIR CRATE", Color3.fromRGB(50, 100, 255), function(b)
+        if cd3 then return end; cd3 = true
+        ReplicatedStorage.Events.CreateRE:FireServer("Chair Crate", "Rare", 6, Vector3.new(-83.8627, 1.2767, -10.0044))
+        b.Text = "CD: 0.5s"; task.wait(0.5); b.Text = "CHAIR CRATE"; cd3 = false
+    end)
+
+    -- SLAP
+    local cd4 = false
+    createMenuBtn("SLAP CRATE", Color3.fromRGB(255, 220, 50), function(b)
+        if cd4 then return end; cd4 = true
+        ReplicatedStorage.Events.CreateRE:FireServer("Slap Crate", "Cammon", 5)
+        b.Text = "CD: 0.5s"; task.wait(0.5); b.Text = "SLAP CRATE"; cd4 = false
+    end)
+
+    -- Ultimate Dodge (Pink) - รันทุก 0.1s เหมือนเดิม
     local dodgeEnabled = false
     local dodgeBtn = createMenuBtn("Ultimate Dodge: ปิด", Color3.fromRGB(255, 105, 180), function(b)
         dodgeEnabled = not dodgeEnabled
@@ -84,22 +112,22 @@ local function BuildMainMenu()
         end
     end)
 
-    -- [[ ฟังก์ชัน: มุมกล้องแอบดู (เปิด-ปิด) ]]
+    -- มุมกล้องแอบดู
     local cctvEnabled = false
     createMenuBtn("มุมกล้องแอบดู: ปิด", Color3.fromRGB(130, 130, 130), function(b)
         cctvEnabled = not cctvEnabled
         if cctvEnabled then
             b.Text = "มุมกล้องแอบดู: ล็อคหน้าจออยู่"
             b.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
-            Camera.CameraType = Enum.CameraType.Scriptable -- ล็อคกล้อง
+            Camera.CameraType = Enum.CameraType.Scriptable
         else
             b.Text = "มุมกล้องแอบดู: ปิด"
             b.BackgroundColor3 = Color3.fromRGB(130, 130, 130)
-            Camera.CameraType = Enum.CameraType.Custom -- คืนค่ากล้องติดตามตัว
+            Camera.CameraType = Enum.CameraType.Custom
         end
     end)
 
-    -- [ ระบบลาก ]
+    -- [ ระบบลากปุ่ม P ]
     local dragging, dragStart, startPos
     pBtn.MouseButton1Click:Connect(function() 
         menuFrame.Visible = not menuFrame.Visible
