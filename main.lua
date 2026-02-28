@@ -1,5 +1,5 @@
--- [[ KRAISORN HUB V.35: FIXED EVERYTHING ]]
--- OWNER: ไกรสร พิสิษฐ์ 🫡 (ตรวจสอบแล้ว รันติดแน่นอน)
+-- [[ KRAISORN HUB V.36: OFFSET FIXED ]]
+-- OWNER: ไกรสร พิสิษฐ์ 🫡 (วาร์ปไปข้างหลัง ไม่ซ้อนตัว + 0.3s)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -10,23 +10,14 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
 -- [ State Configuration ]
-local Toggle = { 
-    Fly = false, 
-    NoClip = false, 
-    Speed = false, 
-    InfJump = false, 
-    ESP = false, 
-    FullBright = false, 
-    VisibleLock = false 
-}
-local flySpeed = 50
-local walkSpeedValue = 100
+local Toggle = { Fly = false, NoClip = false, Speed = false, InfJump = false, ESP = false, FullBright = false, VisibleLock = false }
+local flySpeed, walkSpeedValue = 50, 100
 
 ---------------------------------------------------------
 -- [ Core Logic Functions ]
 ---------------------------------------------------------
 
--- 1. ฟังก์ชันเช็คการมองเห็น (Raycast)
+-- 1. เช็คการมองเห็น
 local function IsVisible(targetPart)
     local character = LocalPlayer.Character
     if not character or not targetPart then return false end
@@ -40,7 +31,7 @@ local function IsVisible(targetPart)
     return raycastResult == nil
 end
 
--- 2. วาร์ป 0.3s (Flash Warp)
+-- 2. วาร์ป 0.3s (ปรับตำแหน่งให้ไปอยู่ข้างหลังเป้าหมาย ไม่ซ้อนกลางตัว)
 local function TriggerFlashWarp(btn)
     local char = LocalPlayer.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
@@ -56,13 +47,14 @@ local function TriggerFlashWarp(btn)
     end
     
     if targetRoot then
-        btn.Text = "⚡ Flash 0.3s..."; btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        btn.Text = "⚡ Flash!"; btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
         local originalPos = root.CFrame
         local startTime = tick()
         local connection
         connection = RunService.Heartbeat:Connect(function()
             if tick() - startTime < 0.3 and targetRoot and targetRoot.Parent then
-                root.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 2)
+                -- [[ แก้ไขตรงนี้: วาร์ปไปข้างหลังเป้าหมาย 2 หน่วย ไม่ให้ตัวทับกัน ]]
+                root.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 2.5) 
             else
                 root.CFrame = originalPos
                 connection:Disconnect()
@@ -72,7 +64,7 @@ local function TriggerFlashWarp(btn)
     end
 end
 
--- 3. ระบบบิน (Fly Logic)
+-- 3. ระบบบิน
 local function StartFly()
     local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     local root = char:WaitForChild("HumanoidRootPart")
@@ -80,14 +72,11 @@ local function StartFly()
     local bv = Instance.new("BodyVelocity", root)
     local bg = Instance.new("BodyGyro", root)
     bv.MaxForce = Vector3.new(9e9, 9e9, 9e9); bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-    
     task.spawn(function()
         while Toggle.Fly do
             RunService.RenderStepped:Wait()
-            bg.CFrame = Camera.CFrame
-            hum.PlatformStand = true
-            local dir = Vector3.new(0,0,0)
-            local cam = Camera.CFrame
+            bg.CFrame = Camera.CFrame; hum.PlatformStand = true
+            local dir = Vector3.new(0,0,0); local cam = Camera.CFrame
             if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + cam.LookVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - cam.LookVector end
             if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + cam.RightVector end
@@ -99,10 +88,10 @@ local function StartFly()
 end
 
 ---------------------------------------------------------
--- [ GUI & Main Setup ]
+-- [ GUI Construction ]
 ---------------------------------------------------------
 local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-screenGui.Name = "KraisornV35"; screenGui.ResetOnSpawn = false
+screenGui.Name = "KraisornV36"; screenGui.ResetOnSpawn = false
 
 local mainBtn = Instance.new("TextButton", screenGui)
 mainBtn.Size = UDim2.new(0, 75, 0, 75); mainBtn.Position = UDim2.new(0.05, 0, 0.4, 0)
@@ -118,90 +107,68 @@ scroll.Size = UDim2.new(1, 0, 1, -20); scroll.Position = UDim2.new(0, 0, 0, 10);
 Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 5); scroll.UIListLayout.HorizontalAlignment = "Center"
 
 local function createBtn(txt, color, callback)
-    local b = Instance.new("TextButton", scroll); b.Size = UDim2.new(0, 250, 0, 40); b.BackgroundColor3 = color; b.Text = txt; b.Font = "SourceSansBold"; b.TextSize = 16; Instance.new("UICorner", b)
-    b.MouseButton1Click:Connect(function() callback(b) end)
+    local b = Instance.new("TextButton", scroll); b.Size = UDim2.new(0, 250, 0, 40); b.BackgroundColor3 = color; b.Text = txt; b.Font = "SourceSansBold"; b.TextSize = 16; Instance.new("UICorner", b); b.MouseButton1Click:Connect(function() callback(b) end)
 end
 
--- [Buttons Setup]
+-- [ ปุ่มทั้งหมด ]
 createBtn("เสก Lucky Block", Color3.new(1,1,1), function(self)
     local r = ReplicatedStorage:FindFirstChild("SpawnLuckyBlock")
     if r then r:FireServer(); self.Text = "✅ เสกแล้ว"; task.wait(0.5); self.Text = "เสก Lucky Block" end
 end)
-
 createBtn("วาร์ป 0.3s (Flash)", Color3.fromRGB(255, 80, 255), function(self) TriggerFlashWarp(self) end)
-
 createBtn("วาร์ปไปหาผู้เล่น (Teleport)", Color3.fromRGB(80, 255, 150), function()
     local tpFrame = Instance.new("Frame", screenGui); tpFrame.Size = UDim2.new(0, 200, 0, 300); tpFrame.Position = UDim2.new(0.5, -100, 0.5, -150); tpFrame.BackgroundColor3 = Color3.fromRGB(30,30,30); Instance.new("UICorner", tpFrame)
     local tpScroll = Instance.new("ScrollingFrame", tpFrame); tpScroll.Size = UDim2.new(1,0,1,-40); tpScroll.Position = UDim2.new(0,0,0,10); tpScroll.BackgroundTransparency = 1; tpScroll.CanvasSize = UDim2.new(0,0,0,1000); Instance.new("UIListLayout", tpScroll)
     local close = Instance.new("TextButton", tpFrame); close.Size = UDim2.new(1,0,0,30); close.Position = UDim2.new(0,0,1,-30); close.Text = "ปิด"; close.BackgroundColor3 = Color3.new(1,0,0); close.MouseButton1Click:Connect(function() tpFrame:Destroy() end)
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer then
-            local b = Instance.new("TextButton", tpScroll); b.Size = UDim2.new(1,0,0,30); b.Text = p.Name; b.BackgroundColor3 = Color3.new(0.2,0.2,0.2); b.TextColor3 = Color3.new(1,1,1)
-            b.MouseButton1Click:Connect(function() if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then LocalPlayer.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame; tpFrame:Destroy() end end)
-        end
-    end
+    for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer then
+        local b = Instance.new("TextButton", tpScroll); b.Size = UDim2.new(1,0,0,30); b.Text = p.Name; b.BackgroundColor3 = Color3.new(0.2,0.2,0.2); b.TextColor3 = Color3.new(1,1,1)
+        b.MouseButton1Click:Connect(function() if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then LocalPlayer.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame; tpFrame:Destroy() end end)
+    end end
 end)
-
 createBtn("ล็อคเป้าใกล้สุด(เห็นตัว): ปิด", Color3.fromRGB(255, 100, 100), function(self)
-    Toggle.VisibleLock = not Toggle.VisibleLock
-    self.Text = Toggle.VisibleLock and "ล็อคเป้าใกล้สุด(เห็นตัว): เปิด" or "ล็อคเป้าใกล้สุด(เห็นตัว): ปิด"
+    Toggle.VisibleLock = not Toggle.VisibleLock; self.Text = Toggle.VisibleLock and "ล็อคเป้าใกล้สุด(เห็นตัว): เปิด" or "ล็อคเป้าใกล้สุด(เห็นตัว): ปิด"
     self.BackgroundColor3 = Toggle.VisibleLock and Color3.fromRGB(120, 255, 120) or Color3.fromRGB(255, 100, 100)
 end)
-
 createBtn("ตาแมวสว่าง: ปิด", Color3.fromRGB(255, 255, 0), function(self)
-    Toggle.FullBright = not Toggle.FullBright
-    self.Text = Toggle.FullBright and "ตาแมวสว่าง: เปิด" or "ตาแมวสว่าง: ปิด"
+    Toggle.FullBright = not Toggle.FullBright; self.Text = Toggle.FullBright and "ตาแมวสว่าง: เปิด" or "ตาแมวสว่าง: ปิด"
     self.BackgroundColor3 = Toggle.FullBright and Color3.fromRGB(120, 255, 120) or Color3.fromRGB(255, 255, 0)
 end)
-
 createBtn("ESP มองคน: ปิด", Color3.fromRGB(255, 255, 255), function(self)
-    Toggle.ESP = not Toggle.ESP
-    self.Text = Toggle.ESP and "ESP มองคน: เปิด" or "ESP มองคน: ปิด"
+    Toggle.ESP = not Toggle.ESP; self.Text = Toggle.ESP and "ESP มองคน: เปิด" or "ESP มองคน: ปิด"
     self.BackgroundColor3 = Toggle.ESP and Color3.fromRGB(120, 255, 120) or Color3.fromRGB(255, 255, 255)
 end)
-
 createBtn("ระบบบิน: ปิด", Color3.fromRGB(255, 120, 120), function(self)
-    Toggle.Fly = not Toggle.Fly
-    self.Text = Toggle.Fly and "ระบบบิน: เปิด" or "ระบบบิน: ปิด"
+    Toggle.Fly = not Toggle.Fly; self.Text = Toggle.Fly and "ระบบบิน: เปิด" or "ระบบบิน: ปิด"
     self.BackgroundColor3 = Toggle.Fly and Color3.fromRGB(120, 255, 120) or Color3.fromRGB(255, 120, 120)
     if Toggle.Fly then StartFly() end
 end)
-
 createBtn("ทะลุกำแพง: ปิด", Color3.fromRGB(200, 200, 200), function(self)
-    Toggle.NoClip = not Toggle.NoClip
-    self.Text = Toggle.NoClip and "ทะลุกำแพง: เปิด" or "ทะลุกำแพง: ปิด"
+    Toggle.NoClip = not Toggle.NoClip; self.Text = Toggle.NoClip and "ทะลุกำแพง: เปิด" or "ทะลุกำแพง: ปิด"
     self.BackgroundColor3 = Toggle.NoClip and Color3.fromRGB(120, 255, 120) or Color3.fromRGB(200, 200, 200)
 end)
-
 createBtn("เดินเร็ว 100: ปิด", Color3.fromRGB(255, 220, 100), function(self)
-    Toggle.Speed = not Toggle.Speed
-    self.Text = Toggle.Speed and "เดินเร็ว 100: เปิด" or "เดินเร็ว 100: ปิด"
+    Toggle.Speed = not Toggle.Speed; self.Text = Toggle.Speed and "เดินเร็ว 100: เปิด" or "เดินเร็ว 100: ปิด"
     self.BackgroundColor3 = Toggle.Speed and Color3.fromRGB(120, 255, 120) or Color3.fromRGB(255, 220, 100)
 end)
-
 createBtn("กระโดด INF: ปิด", Color3.fromRGB(100, 220, 255), function(self)
-    Toggle.InfJump = not Toggle.InfJump
-    self.Text = Toggle.InfJump and "กระโดด INF: เปิด" or "กระโดด INF: ปิด"
+    Toggle.InfJump = not Toggle.InfJump; self.Text = Toggle.InfJump and "กระโดด INF: เปิด" or "กระโดด INF: ปิด"
     self.BackgroundColor3 = Toggle.InfJump and Color3.fromRGB(120, 255, 120) or Color3.fromRGB(100, 220, 255)
 end)
 
 ---------------------------------------------------------
--- [ Connection Loops ]
+-- [ Main Loops ]
 ---------------------------------------------------------
 RunService.Stepped:Connect(function()
     if Toggle.NoClip and LocalPlayer.Character then
         for _, v in pairs(LocalPlayer.Character:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false end end
     end
     if Toggle.ESP then
-        for _, p in pairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer and p.Character then
-                local h = p.Character:FindFirstChild("KraisornESP") or Instance.new("Highlight", p.Character)
-                h.Name = "KraisornESP"; h.FillColor = Color3.new(1,1,1); h.Enabled = true
-            end
-        end
+        for _, p in pairs(Players:GetPlayers()) do if p ~= LocalPlayer and p.Character then
+            local h = p.Character:FindFirstChild("KraisornESP") or Instance.new("Highlight", p.Character)
+            h.Name = "KraisornESP"; h.FillColor = Color3.new(1,1,1); h.Enabled = true
+        end end
     end
     if Toggle.FullBright then Lighting.ClockTime = 14; Lighting.Brightness = 3; Lighting.GlobalShadows = false end
-    
     if Toggle.VisibleLock and LocalPlayer.Character then
         local target = nil; local shortestDistance = math.huge
         for _, p in pairs(Players:GetPlayers()) do
@@ -218,17 +185,8 @@ RunService.Stepped:Connect(function()
     end
 end)
 
-RunService.Heartbeat:Connect(function()
-    if Toggle.Speed and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        LocalPlayer.Character.Humanoid.WalkSpeed = walkSpeedValue
-    end
-end)
-
-UserInputService.JumpRequest:Connect(function()
-    if Toggle.InfJump and LocalPlayer.Character then 
-        LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping") 
-    end
-end)
+RunService.Heartbeat:Connect(function() if Toggle.Speed and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then LocalPlayer.Character.Humanoid.WalkSpeed = walkSpeedValue end end)
+UserInputService.JumpRequest:Connect(function() if Toggle.InfJump and LocalPlayer.Character then LocalPlayer.Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping") end end)
 
 -- [ Drag & Menu Toggle ]
 mainBtn.MouseButton1Click:Connect(function() 
@@ -236,13 +194,8 @@ mainBtn.MouseButton1Click:Connect(function()
     menuFrame.Position = UDim2.new(mainBtn.Position.X.Scale, mainBtn.Position.X.Offset + 85, mainBtn.Position.Y.Scale, mainBtn.Position.Y.Offset)
 end)
 
-local dragging, dragInput, dragStart, startPos
-mainBtn.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true; dragStart = input.Position; startPos = mainBtn.Position
-        input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
-    end
-end)
+local dragging, dragStart, startPos
+mainBtn.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = true; dragStart = input.Position; startPos = mainBtn.Position end end)
 UserInputService.InputChanged:Connect(function(input)
     if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local delta = input.Position - dragStart
@@ -250,3 +203,4 @@ UserInputService.InputChanged:Connect(function(input)
         if menuFrame.Visible then menuFrame.Position = UDim2.new(mainBtn.Position.X.Scale, mainBtn.Position.X.Offset + 85, mainBtn.Position.Y.Scale, mainBtn.Position.Y.Offset) end
     end
 end)
+UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end end)
