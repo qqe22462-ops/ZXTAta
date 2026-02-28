@@ -1,5 +1,5 @@
--- [[ KRAISORN HUB V.23: ULTIMATE FULL BRIGHT EDITION ]]
--- แก้ไขโหมดตาแมวให้สว่างเหมือนตอนกลางวัน 100%
+-- [[ KRAISORN HUB V.24: COMPLETE EVERYTHING IN ONE + VISIBLE LOCK-ON ]]
+-- OWNER: ไกรสร พิสิษฐ์ 🫡
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -7,9 +7,18 @@ local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Lighting = game:GetService("Lighting")
 local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
 -- [ State Configuration ]
-local Toggle = { Fly = false, NoClip = false, Speed = false, InfJump = false, ESP = false, FullBright = false }
+local Toggle = { 
+    Fly = false, 
+    NoClip = false, 
+    Speed = false, 
+    InfJump = false, 
+    ESP = false, 
+    FullBright = false,
+    VisibleLock = false -- ฟังก์ชันใหม่: ล็อคเมื่อเห็นตัว
+}
 local flySpeed, walkSpeedValue = 50, 100
 
 ---------------------------------------------------------
@@ -55,6 +64,37 @@ local function updateESP()
     end
 end
 
+-- 3. Visible Lock-On Logic (ฟังก์ชันใหม่)
+local function GetClosestVisiblePlayer()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local targetPart = player.Character.HumanoidRootPart
+            local pos, onScreen = Camera:WorldToViewportPoint(targetPart.Position)
+            
+            if onScreen then
+                -- เช็คว่ามีกำแพงกั้นไหม (Raycast)
+                local rayParams = RaycastParams.new()
+                rayParams.FilterDescendantsInstances = {LocalPlayer.Character, player.Character}
+                rayParams.FilterType = Enum.RaycastFilterType.Exclude
+                
+                local ray = workspace:Raycast(Camera.CFrame.Position, targetPart.Position - Camera.CFrame.Position, rayParams)
+                
+                if not ray then -- ถ้าไม่มีอะไรกั้น (แปลว่าเห็นตัวแล้ว)
+                    local distance = (Vector2.new(pos.X, pos.Y) - Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y/2)).Magnitude
+                    if distance < shortestDistance then
+                        closestPlayer = targetPart
+                        shortestDistance = distance
+                    end
+                end
+            end
+        end
+    end
+    return closestPlayer
+end
+
 -- [ Connect Loops ]
 RunService.Stepped:Connect(function()
     if Toggle.NoClip and LocalPlayer.Character then
@@ -62,20 +102,26 @@ RunService.Stepped:Connect(function()
     end
     if Toggle.ESP then updateESP() end
     
-    -- [ ระบบตาแมวขั้นสุด: ลบความมืดทิ้งทั้งหมด ]
+    -- โหมดตาแมว
     if Toggle.FullBright then
-        Lighting.ClockTime = 14 -- บังคับเที่ยงวัน
-        Lighting.Brightness = 3 -- เพิ่มความสว่างเข้มข้น
-        Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255) -- ลบเงาข้างนอก
-        Lighting.Ambient = Color3.fromRGB(255, 255, 255) -- ลบเงาข้างใน
-        Lighting.FogEnd = 9e9 -- ลบหมอก
-        Lighting.GlobalShadows = false -- ปิดเงา
-        
-        -- ลบฟิลเตอร์สีม่วง/มืด (Atmosphere)
+        Lighting.ClockTime = 14
+        Lighting.Brightness = 3
+        Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+        Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+        Lighting.FogEnd = 9e9
+        Lighting.GlobalShadows = false
         for _, v in pairs(Lighting:GetChildren()) do
             if v:IsA("Atmosphere") or v:IsA("Sky") or v:IsA("ColorCorrectionEffect") then
-                v.Parent = ReplicatedStorage -- ย้ายไปเก็บที่อื่นชั่วคราวเพื่อให้แมพสว่าง
+                v.Parent = ReplicatedStorage
             end
+        end
+    end
+
+    -- ระบบล็อคเมื่อเห็นตัว
+    if Toggle.VisibleLock then
+        local target = GetClosestVisiblePlayer()
+        if target then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
         end
     end
 end)
@@ -92,7 +138,7 @@ end)
 -- [ GUI Construction ]
 ---------------------------------------------------------
 local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-screenGui.Name = "KraisornV23"
+screenGui.Name = "KraisornV24"
 screenGui.ResetOnSpawn = false
 
 local mainBtn = Instance.new("TextButton", screenGui)
@@ -101,7 +147,7 @@ mainBtn.BackgroundColor3 = Color3.new(1, 1, 1); mainBtn.Text = "W"; mainBtn.Font
 Instance.new("UICorner", mainBtn).CornerRadius = UDim.new(1, 0)
 
 local menuFrame = Instance.new("Frame", mainBtn)
-menuFrame.Size = UDim2.new(0, 280, 0, 420); menuFrame.Position = UDim2.new(1, 20, 0, 0)
+menuFrame.Size = UDim2.new(0, 280, 0, 480); menuFrame.Position = UDim2.new(1, 20, 0, 0) -- ขยายความสูง
 menuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20); menuFrame.Visible = false
 Instance.new("UICorner", menuFrame)
 
@@ -111,7 +157,7 @@ task.spawn(function() while true do for i=0,1,0.005 do nameLabel.TextColor3 = Co
 
 local scroll = Instance.new("ScrollingFrame", menuFrame)
 scroll.Size = UDim2.new(1, 0, 1, -70); scroll.Position = UDim2.new(0, 0, 0, 70)
-scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 750); scroll.ScrollBarThickness = 4
+scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 850); scroll.ScrollBarThickness = 4
 Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 8); scroll.UIListLayout.HorizontalAlignment = "Center"
 
 -- Teleport Menu
@@ -143,6 +189,12 @@ createBtn("เสก Lucky Block", Color3.new(1, 1, 1), function(self)
 end)
 
 createBtn("วาร์ปหาผู้เล่น (เลือกชื่อ)", Color3.fromRGB(180, 150, 255), function() updateTpList(); tpFrame.Visible = true end)
+
+createBtn("ล็อคเมื่อโผล่มุมตึก: ปิด", Color3.fromRGB(255, 100, 100), function(self)
+    Toggle.VisibleLock = not Toggle.VisibleLock
+    self.Text = Toggle.VisibleLock and "ล็อคเมื่อโผล่มุมตึก: เปิด" or "ล็อคเมื่อโผล่มุมตึก: ปิด"
+    self.BackgroundColor3 = Toggle.VisibleLock and Color3.fromRGB(120, 255, 120) or Color3.fromRGB(255, 100, 100)
+end)
 
 createBtn("โหมดตาแมว (สว่าง): ปิด", Color3.fromRGB(255, 255, 0), function(self)
     Toggle.FullBright = not Toggle.FullBright
