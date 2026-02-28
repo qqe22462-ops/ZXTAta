@@ -1,119 +1,101 @@
--- [[ KRAISORN TRIPLE HIT: CHAIR CRATE UPDATE ]]
+-- [[ KRAISORN HUB: 4-BUTTONS & KEY SYSTEM ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
+-- KEY: 1
 
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local LocalPlayer = Players.LocalPlayer
+local function StartKraisornHub()
+    local Players = game:GetService("Players")
+    local UserInputService = game:GetService("UserInputService")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local LocalPlayer = Players.LocalPlayer
 
-local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-screenGui.Name = "KraisornTripleButtons"
-screenGui.ResetOnSpawn = false
+    -- [ สร้าง GUI หลัก ]
+    local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+    screenGui.Name = "KraisornFinalHub"
+    screenGui.ResetOnSpawn = false
 
----------------------------------------------------------
--- [ ฟังก์ชันลากปุ่ม (Universal Drag) ]
----------------------------------------------------------
-local function MakeDraggable(ui)
-    local dragging, dragInput, dragStart, startPos
-    ui.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true; dragStart = input.Position; startPos = ui.Position
-            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
-        end
-    end)
-    ui.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end end)
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart
-            ui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    -- [ ระบบลากปุ่ม (Universal Drag) ]
+    local function MakeDraggable(ui)
+        local dragging, dragInput, dragStart, startPos
+        ui.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = true; dragStart = input.Position; startPos = ui.Position
+                input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
+            end
+        end)
+        ui.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end end)
+        UserInputService.InputChanged:Connect(function(input)
+            if input == dragInput and dragging then
+                local delta = input.Position - dragStart
+                ui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            end
+        end)
+    end
+
+    ---------------------------------------------------------
+    -- [ หน้าต่างใส่คีย์ (Key UI) ]
+    ---------------------------------------------------------
+    local keyFrame = Instance.new("Frame", screenGui)
+    keyFrame.Size = UDim2.new(0, 250, 0, 150); keyFrame.Position = UDim2.new(0.5, -125, 0.5, -75)
+    keyFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35); Instance.new("UICorner", keyFrame)
+
+    local keyTitle = Instance.new("TextLabel", keyFrame)
+    keyTitle.Size = UDim2.new(1, 0, 0, 40); keyTitle.Text = "KRAISORN HUB (KEY: 1)"; keyTitle.TextColor3 = Color3.new(1,1,1); keyTitle.BackgroundTransparency = 1; keyTitle.Font = "SourceSansBold"
+
+    local keyInput = Instance.new("TextBox", keyFrame)
+    keyInput.Size = UDim2.new(0, 200, 0, 35); keyInput.Position = UDim2.new(0.5, -100, 0.4, 0); keyInput.PlaceholderText = "ใส่รหัสที่นี่..."; keyInput.Text = ""; keyInput.BackgroundColor3 = Color3.fromRGB(50, 50, 50); keyInput.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", keyInput)
+
+    local submitBtn = Instance.new("TextButton", keyFrame)
+    submitBtn.Size = UDim2.new(0, 200, 0, 35); submitBtn.Position = UDim2.new(0.5, -100, 0.7, 0); submitBtn.Text = "เข้าสู่ระบบ"; submitBtn.BackgroundColor3 = Color3.fromRGB(80, 120, 255); submitBtn.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", submitBtn)
+
+    ---------------------------------------------------------
+    -- [ ฟังก์ชันสร้างปุ่มโปร (Main Buttons) ]
+    ---------------------------------------------------------
+    local function CreateMainButtons()
+        keyFrame:Destroy() -- ลบหน้าต่างคีย์ทิ้ง
+
+        -- 1. ปุ่มแดง (Hit 1 - 5s)
+        local b1 = Instance.new("TextButton", screenGui); b1.Size = UDim2.new(0, 65, 0, 65); b1.Position = UDim2.new(0.9, -40, 0.2, 0)
+        b1.BackgroundColor3 = Color3.fromRGB(255, 50, 50); b1.Text = "H1"; b1.Font = "SourceSansBold"; b1.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", b1).CornerRadius = UDim.new(1,0); MakeDraggable(b1)
+        local cd1 = false; b1.MouseButton1Click:Connect(function()
+            if cd1 then return end; cd1 = true; ReplicatedStorage.Events.Hit:FireServer(0.9791415333747864)
+            b1.BackgroundTransparency = 0.5; for i = 5, 1, -1 do b1.Text = i; task.wait(1) end; b1.Text = "H1"; b1.BackgroundTransparency = 0; cd1 = false
+        end)
+
+        -- 2. ปุ่มเขียว (Hit 2 - 5 Clicks / 4s)
+        local b2 = Instance.new("TextButton", screenGui); b2.Size = UDim2.new(0, 65, 0, 65); b2.Position = UDim2.new(0.9, -40, 0.35, 0)
+        b2.BackgroundColor3 = Color3.fromRGB(80, 255, 80); b2.Text = "H2\n(5)"; b2.Font = "SourceSansBold"; b2.TextColor3 = Color3.new(0,0,0); Instance.new("UICorner", b2).CornerRadius = UDim.new(1,0); MakeDraggable(b2)
+        local cd2, clicks = false, 0; b2.MouseButton1Click:Connect(function()
+            if cd2 then return end; ReplicatedStorage.Events.Hit:FireServer(0.2337765097618103); clicks = clicks + 1; b2.Text = "H2\n(".. 5-clicks ..")"
+            if clicks >= 5 then cd2 = true; b2.BackgroundTransparency = 0.5; for i = 4, 1, -1 do b2.Text = i; task.wait(1) end; clicks = 0; b2.Text = "H2\n(5)"; b2.BackgroundTransparency = 0; cd2 = false end
+        end)
+
+        -- 3. ปุ่มน้ำเงิน (Chair - 1.5s)
+        local b3 = Instance.new("TextButton", screenGui); b3.Size = UDim2.new(0, 65, 0, 65); b3.Position = UDim2.new(0.9, -40, 0.5, 0)
+        b3.BackgroundColor3 = Color3.fromRGB(50, 100, 255); b3.Text = "CHAIR"; b3.Font = "SourceSansBold"; b3.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", b3).CornerRadius = UDim.new(1,0); MakeDraggable(b3)
+        local cd3 = false; b3.MouseButton1Click:Connect(function()
+            if cd3 then return end; cd3 = true; ReplicatedStorage.Events.CreateRE:FireServer("Chair Crate", "Rare", 6, Vector3.new(-83.8627, 1.2767, -10.0044))
+            b3.BackgroundTransparency = 0.5; local t = 1.5; while t > 0 do b3.Text = string.format("%.1f", t); task.wait(0.1); t = t - 0.1 end; b3.Text = "CHAIR"; b3.BackgroundTransparency = 0; cd3 = false
+        end)
+
+        -- 4. ปุ่มเหลือง (Slap - 1s)
+        local b4 = Instance.new("TextButton", screenGui); b4.Size = UDim2.new(0, 65, 0, 65); b4.Position = UDim2.new(0.9, -40, 0.65, 0)
+        b4.BackgroundColor3 = Color3.fromRGB(255, 220, 50); b4.Text = "SLAP"; b4.Font = "SourceSansBold"; b4.TextColor3 = Color3.new(0,0,0); Instance.new("UICorner", b4).CornerRadius = UDim.new(1,0); MakeDraggable(b4)
+        local cd4 = false; b4.MouseButton1Click:Connect(function()
+            if cd4 then return end; cd4 = true; ReplicatedStorage.Events.CreateRE:FireServer("Slap Crate", "Cammon", 5)
+            b4.BackgroundTransparency = 0.5; b4.Text = "1"; task.wait(1); b4.Text = "SLAP"; b4.BackgroundTransparency = 0; cd4 = false
+        end)
+    end
+
+    -- ตรวจสอบคีย์
+    submitBtn.MouseButton1Click:Connect(function()
+        if keyInput.Text == "1" then
+            CreateMainButtons()
+        else
+            submitBtn.Text = "คีย์ผิด!"; submitBtn.BackgroundColor3 = Color3.new(1,0,0)
+            task.wait(1); submitBtn.Text = "เข้าสู่ระบบ"; submitBtn.BackgroundColor3 = Color3.fromRGB(80, 120, 255)
         end
     end)
 end
 
----------------------------------------------------------
--- [ ปุ่ม 1: สีแดง (Hit 1 - Cooldown 5s) ]
----------------------------------------------------------
-local redBtn = Instance.new("TextButton", screenGui)
-redBtn.Size = UDim2.new(0, 70, 0, 70); redBtn.Position = UDim2.new(0.9, -40, 0.3, 0)
-redBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50); redBtn.Text = "HIT 1"
-redBtn.Font = "SourceSansBold"; redBtn.TextSize = 18; redBtn.TextColor3 = Color3.new(1, 1, 1)
-Instance.new("UICorner", redBtn).CornerRadius = UDim.new(1, 0)
-Instance.new("UIStroke", redBtn).Thickness = 2
-MakeDraggable(redBtn)
-
-local redCooldown = false
-redBtn.MouseButton1Click:Connect(function()
-    if redCooldown then return end
-    redCooldown = true
-    ReplicatedStorage:WaitForChild("Events"):WaitForChild("Hit"):FireServer(0.9791415333747864)
-    redBtn.BackgroundTransparency = 0.5
-    for i = 5, 1, -1 do
-        redBtn.Text = tostring(i); task.wait(1)
-    end
-    redBtn.Text = "HIT 1"; redBtn.BackgroundTransparency = 0; redCooldown = false
-end)
-
----------------------------------------------------------
--- [ ปุ่ม 2: สีเขียว (Hit 2 - 5 Clicks / Cooldown 4s) ]
----------------------------------------------------------
-local greenBtn = Instance.new("TextButton", screenGui)
-greenBtn.Size = UDim2.new(0, 70, 0, 70); greenBtn.Position = UDim2.new(0.9, -40, 0.5, 0)
-greenBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 80); greenBtn.Text = "HIT 2\n(5)"
-greenBtn.Font = "SourceSansBold"; greenBtn.TextSize = 16; greenBtn.TextColor3 = Color3.new(0, 0, 0)
-Instance.new("UICorner", greenBtn).CornerRadius = UDim.new(1, 0)
-Instance.new("UIStroke", greenBtn).Thickness = 2
-MakeDraggable(greenBtn)
-
-local greenCooldown, greenClicks = false, 0
-greenBtn.MouseButton1Click:Connect(function()
-    if greenCooldown then return end
-    ReplicatedStorage:WaitForChild("Events"):WaitForChild("Hit"):FireServer(0.2337765097618103)
-    greenClicks = greenClicks + 1
-    greenBtn.Text = "HIT 2\n(".. (5 - greenClicks) ..")"
-    if greenClicks >= 5 then
-        greenCooldown = true; greenBtn.BackgroundTransparency = 0.5
-        for i = 4, 1, -1 do
-            greenBtn.Text = "WAIT\n"..i; task.wait(1)
-        end
-        greenClicks = 0; greenBtn.Text = "HIT 2\n(5)"; greenBtn.BackgroundTransparency = 0; greenCooldown = false
-    end
-end)
-
----------------------------------------------------------
--- [ ปุ่ม 3: สีน้ำเงิน (CreateRE - Cooldown 1.5s) ]
----------------------------------------------------------
-local blueBtn = Instance.new("TextButton", screenGui)
-blueBtn.Size = UDim2.new(0, 70, 0, 70); blueBtn.Position = UDim2.new(0.9, -40, 0.7, 0)
-blueBtn.BackgroundColor3 = Color3.fromRGB(50, 100, 255); blueBtn.Text = "CHAIR"
-blueBtn.Font = "SourceSansBold"; blueBtn.TextSize = 18; blueBtn.TextColor3 = Color3.new(1, 1, 1)
-Instance.new("UICorner", blueBtn).CornerRadius = UDim.new(1, 0)
-Instance.new("UIStroke", blueBtn).Thickness = 2
-MakeDraggable(blueBtn)
-
-local blueCooldown = false
-blueBtn.MouseButton1Click:Connect(function()
-    if blueCooldown then return end
-    blueCooldown = true
-    
-    -- รันโค้ด CreateRE
-    local args = {
-        "Chair Crate",
-        "Rare",
-        6,
-        Vector3.new(-83.86271667480469, 1.2767139673233032, -10.004477500915527)
-    }
-    ReplicatedStorage:WaitForChild("Events"):WaitForChild("CreateRE"):FireServer(unpack(args))
-    
-    -- คูลดาวน์แบบตัวเลขวิ่ง 1.5 วินาที
-    blueBtn.BackgroundTransparency = 0.5
-    local timeLeft = 1.5
-    while timeLeft > 0 do
-        blueBtn.Text = string.format("%.1f", timeLeft)
-        task.wait(0.1)
-        timeLeft = timeLeft - 0.1
-    end
-    
-    blueBtn.Text = "CHAIR"
-    blueBtn.BackgroundTransparency = 0
-    blueCooldown = false
-end)
+-- [ รันฟังก์ชันหลัก ]
+StartKraisornHub()
