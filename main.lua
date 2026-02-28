@@ -1,5 +1,5 @@
--- [[ KRAISORN HUB V.33: SMART NEAREST LOCK UPDATE ]]
--- OWNER: ไกรสร พิสิษฐ์ 🫡 (เน้นล็อคคนใกล้สุดที่มองเห็น)
+-- [[ KRAISORN HUB V.34: SUPER FLASH 0.3s EDITION ]]
+-- OWNER: ไกรสร พิสิษฐ์ 🫡 (วาร์ปไวขึ้น + ทุกอย่างอยู่ครบ)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -28,10 +28,10 @@ local function IsVisible(targetPart)
     raycastParams.FilterDescendantsInstances = {character, targetPart.Parent}
     raycastParams.FilterType = Enum.RaycastFilterType.Exclude
     local raycastResult = workspace:Raycast(origin, direction, raycastParams)
-    return raycastResult == nil -- ถ้าไม่โดนอะไรเลยคือเห็นตัว
+    return raycastResult == nil
 end
 
--- 2. วาร์ป 0.6s (Flash Warp)
+-- 2. วาร์ป 0.3s (Flash Warp - แก้ไขเวลาแล้ว)
 local function TriggerFlashWarp(btn)
     local char = LocalPlayer.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
@@ -45,17 +45,18 @@ local function TriggerFlashWarp(btn)
         end
     end
     if targetRoot then
-        btn.Text = "⚡ Flash Warp..."; btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        btn.Text = "⚡ Flash Warp (0.3s)..."; btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
         local originalPos = root.CFrame
         local startTime = tick()
         local connection
         connection = RunService.Heartbeat:Connect(function()
-            if tick() - startTime < 0.6 and targetRoot and targetRoot.Parent then
+            -- แก้ไขจาก 0.6 เป็น 0.3 ตรงนี้ครับ
+            if tick() - startTime < 0.3 and targetRoot and targetRoot.Parent then
                 root.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 2)
             else
                 root.CFrame = originalPos
                 connection:Disconnect()
-                btn.Text = "วาร์ป 0.6s (Flash)"; btn.BackgroundColor3 = Color3.fromRGB(255, 80, 255)
+                btn.Text = "วาร์ป 0.3s (Flash)"; btn.BackgroundColor3 = Color3.fromRGB(255, 80, 255)
             end
         end)
     end
@@ -78,31 +79,19 @@ RunService.Stepped:Connect(function()
         Lighting.ClockTime = 14; Lighting.Brightness = 3; Lighting.GlobalShadows = false
     end
     
-    -- [[ ระบบล็อคเป้าอัจฉริยะ: เน้นคนใกล้ที่สุดที่มองเห็น ]]
     if Toggle.VisibleLock and LocalPlayer.Character then
-        local target = nil
-        local shortestDistance = math.huge -- ตั้งค่าระยะเริ่มต้นให้มากที่สุด
-        
+        local target = nil; local shortestDistance = math.huge
         for _, p in pairs(Players:GetPlayers()) do
             if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
                 local root = p.Character.HumanoidRootPart
                 local _, onScreen = Camera:WorldToViewportPoint(root.Position)
-                
                 if onScreen and IsVisible(root) then
                     local dist = (root.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-                    -- ถ้าคนนี้ใกล้กว่าเป้าหมายเดิม ให้เปลี่ยนมาล็อคคนนี้
-                    if dist < shortestDistance then
-                        shortestDistance = dist
-                        target = root
-                    end
+                    if dist < shortestDistance then shortestDistance = dist; target = root end
                 end
             end
         end
-        
-        if target then
-            -- หันหน้าจอไปหาเป้าหมายที่ใกล้ที่สุดที่ผ่านเงื่อนไข
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position)
-        end
+        if target then Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position) end
     end
 end)
 
@@ -118,7 +107,7 @@ end)
 -- [ GUI Construction ]
 ---------------------------------------------------------
 local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-screenGui.Name = "KraisornV33"; screenGui.ResetOnSpawn = false
+screenGui.Name = "KraisornV34"; screenGui.ResetOnSpawn = false
 
 local mainBtn = Instance.new("TextButton", screenGui)
 mainBtn.Size = UDim2.new(0, 75, 0, 75); mainBtn.Position = UDim2.new(0.05, 0, 0.4, 0)
@@ -137,13 +126,13 @@ local function createBtn(txt, color, callback)
     local b = Instance.new("TextButton", scroll); b.Size = UDim2.new(0, 250, 0, 40); b.BackgroundColor3 = color; b.Text = txt; b.Font = "SourceSansBold"; b.TextSize = 16; Instance.new("UICorner", b); b.MouseButton1Click:Connect(function() callback(b) end)
 end
 
--- [ ปุ่มทั้งหมด ]
+-- [Buttons]
 createBtn("เสก Lucky Block", Color3.new(1,1,1), function(self)
     local r = ReplicatedStorage:FindFirstChild("SpawnLuckyBlock")
     if r then r:FireServer(); self.Text = "✅ เสกแล้ว"; task.wait(0.5); self.Text = "เสก Lucky Block" end
 end)
 
-createBtn("วาร์ป 0.6s (Flash)", Color3.fromRGB(255, 80, 255), function(self) TriggerFlashWarp(self) end)
+createBtn("วาร์ป 0.3s (Flash)", Color3.fromRGB(255, 80, 255), function(self) TriggerFlashWarp(self) end)
 
 createBtn("วาร์ปไปหาผู้เล่น (Teleport)", Color3.fromRGB(80, 255, 150), function()
     local tpFrame = Instance.new("Frame", screenGui); tpFrame.Size = UDim2.new(0, 200, 0, 300); tpFrame.Position = UDim2.new(0.5, -100, 0.5, -150); tpFrame.BackgroundColor3 = Color3.fromRGB(30,30,30); Instance.new("UICorner", tpFrame)
@@ -184,14 +173,10 @@ createBtn("ระบบบิน: ปิด", Color3.fromRGB(255, 120, 120), fun
         local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
         local root = char:WaitForChild("HumanoidRootPart")
         local hum = char:WaitForChild("Humanoid")
-        local bv = Instance.new("BodyVelocity", root)
-        local bg = Instance.new("BodyGyro", root)
+        local bv = Instance.new("BodyVelocity", root); local bg = Instance.new("BodyGyro", root)
         bv.MaxForce = Vector3.new(9e9, 9e9, 9e9); bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
         task.spawn(function()
-            while Toggle.Fly do
-                RunService.RenderStepped:Wait()
-                bg.CFrame = Camera.CFrame
-                hum.PlatformStand = true
+            while Toggle.Fly do RunService.RenderStepped:Wait(); bg.CFrame = Camera.CFrame; hum.PlatformStand = true
                 local dir = Vector3.new(0,0,0); local cam = Camera.CFrame
                 if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + cam.LookVector end
                 if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - cam.LookVector end
@@ -237,4 +222,4 @@ UserInputService.InputChanged:Connect(function(i)
         if menuFrame.Visible then menuFrame.Position = UDim2.new(mainBtn.Position.X.Scale, mainBtn.Position.X.Offset + 85, mainBtn.Position.Y.Scale, mainBtn.Position.Y.Offset) end
     end 
 end)
-UserInputService.InputEnded:Connect(function() d = false end)
+UserInputService.InputEnded:Connect(function() d = false end1000
