@@ -1,4 +1,4 @@
--- [[ KRAISORN HUB V.42: P-MENU ULTIMATE DODGE ]]
+-- [[ KRAISORN HUB V.43: P-MENU GOD DODGE ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 -- KEY: 1
 
@@ -34,19 +34,17 @@ submitBtn.Size = UDim2.new(0, 220, 0, 35); submitBtn.Position = UDim2.new(0.5, -
 local function BuildMainMenu()
     keyFrame:Destroy()
 
-    -- 1. ปุ่มเปิด P (ลากได้)
     local pBtn = Instance.new("TextButton", screenGui)
     pBtn.Size = UDim2.new(0, 70, 0, 70); pBtn.Position = UDim2.new(0.05, 0, 0.4, 0)
     pBtn.BackgroundColor3 = Color3.new(1,1,1); pBtn.Text = "P"; pBtn.Font = "SourceSansBold"; pBtn.TextSize = 40; pBtn.TextColor3 = Color3.new(0,0,0)
     Instance.new("UICorner", pBtn).CornerRadius = UDim.new(1,0)
 
-    -- 2. หน้าต่างเมนู
     local menuFrame = Instance.new("Frame", screenGui)
-    menuFrame.Size = UDim2.new(0, 250, 0, 380); menuFrame.Position = UDim2.new(0.12, 0, 0.4, 0)
+    menuFrame.Size = UDim2.new(0, 250, 0, 400); menuFrame.Position = UDim2.new(0.12, 0, 0.4, 0)
     menuFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25); menuFrame.Visible = false; Instance.new("UICorner", menuFrame)
     
     local scroll = Instance.new("ScrollingFrame", menuFrame)
-    scroll.Size = UDim2.new(1, 0, 1, -20); scroll.Position = UDim2.new(0, 0, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 500); scroll.ScrollBarThickness = 2
+    scroll.Size = UDim2.new(1, 0, 1, -20); scroll.Position = UDim2.new(0, 0, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 600); scroll.ScrollBarThickness = 2
     Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 10); scroll.UIListLayout.HorizontalAlignment = "Center"
 
     local function createMenuBtn(txt, color, callback)
@@ -56,8 +54,7 @@ local function BuildMainMenu()
         return b
     end
 
-    -- [ รายการปุ่มเดิม ]
-    
+    -- [ รายการปุ่ม ]
     local cd1 = false
     createMenuBtn("HIT 1 (Red)", Color3.fromRGB(255, 50, 50), function(b)
         if cd1 then return end; cd1 = true
@@ -93,60 +90,42 @@ local function BuildMainMenu()
         b.Text = "SLAP CRATE"; cd4 = false
     end)
 
-    -- [[ ฟังก์ชันใหม่: Ultimate Dodge G+Z+E+X (Pink) ]]
+    -- [[ ฟังก์ชันใหม่: God Dodge (G+Z+E+X+R+Q) สีชมพู ]]
     local dodgeEnabled = false
-    local dodgeBtn = createMenuBtn("Dodge G+Z+E+X: ปิด", Color3.fromRGB(255, 105, 180), function(b)
+    local dodgeBtn = createMenuBtn("God Dodge: ปิด", Color3.fromRGB(255, 105, 180), function(b)
         dodgeEnabled = not dodgeEnabled
         if dodgeEnabled then
-            b.Text = "Dodge: เปิด (GZEX)"; b.BackgroundColor3 = Color3.fromRGB(255, 20, 147)
+            b.Text = "God Dodge: เปิด (Full)"; b.BackgroundColor3 = Color3.fromRGB(255, 20, 147)
         else
-            b.Text = "Dodge G+Z+E+X: ปิด"; b.BackgroundColor3 = Color3.fromRGB(255, 105, 180)
+            b.Text = "God Dodge: ปิด"; b.BackgroundColor3 = Color3.fromRGB(255, 105, 180)
         end
     end)
 
-    -- Loop หลบอัตโนมัติ (รัน G, Z, E, X พร้อมกัน)
+    -- Ultimate Loop หลบ 6 ทิศทาง
     task.spawn(function()
         while true do
             if dodgeEnabled then
                 pcall(function()
                     local dodgeEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Dodge")
-                    dodgeEvent:FireServer("G")
-                    dodgeEvent:FireServer("Z")
-                    dodgeEvent:FireServer("E")
-                    dodgeEvent:FireServer("X")
+                    local keys = {"G", "Z", "E", "X", "R", "Q"}
+                    for _, k in pairs(keys) do
+                        dodgeEvent:FireServer(k)
+                    end
                 end)
             end
             task.wait(0.1)
         end
     end)
 
-    -- ระบบลากปุ่ม P และเปิดเมนู
+    -- [ ระบบลากและเปิดเมนู ]
     local dragging, dragStart, startPos
     pBtn.MouseButton1Click:Connect(function() 
         menuFrame.Visible = not menuFrame.Visible
         menuFrame.Position = UDim2.new(pBtn.Position.X.Scale, pBtn.Position.X.Offset + 80, pBtn.Position.Y.Scale, pBtn.Position.Y.Offset)
     end)
-    
-    pBtn.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true; dragStart = input.Position; startPos = pBtn.Position
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - dragStart
-            pBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-            if menuFrame.Visible then menuFrame.Position = UDim2.new(pBtn.Position.X.Scale, pBtn.Position.X.Offset + 80, pBtn.Position.Y.Scale, pBtn.Position.Y.Offset) end
-        end
-    end)
+    pBtn.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = true; dragStart = input.Position; startPos = pBtn.Position end end)
+    UserInputService.InputChanged:Connect(function(input) if dragging then local delta = input.Position - dragStart; pBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y); if menuFrame.Visible then menuFrame.Position = UDim2.new(pBtn.Position.X.Scale, pBtn.Position.X.Offset + 80, pBtn.Position.Y.Scale, pBtn.Position.Y.Offset) end end end)
     UserInputService.InputEnded:Connect(function() dragging = false end)
 end
 
--- ตรวจสอบคีย์
-submitBtn.MouseButton1Click:Connect(function()
-    if keyInput.Text == "1" then
-        BuildMainMenu()
-    else
-        submitBtn.Text = "คีย์ผิด!"; task.wait(1); submitBtn.Text = "ตรวจสอบ"
-    end
-end)
+submitBtn.MouseButton1Click:Connect(function() if keyInput.Text == "1" then BuildMainMenu() else submitBtn.Text = "คีย์ผิด!"; task.wait(1); submitBtn.Text = "ตรวจสอบ" end end)
