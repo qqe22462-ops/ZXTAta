@@ -1,5 +1,5 @@
--- [[ KRAISORN HUB V.30: THE FINAL COMPLETE VERSION ]]
--- OWNER: ไกรสร พิสิษฐ์ 🫡 (รวมทุกอย่างที่เคยมี ไม่หายแน่นอน!)
+-- [[ KRAISORN HUB V.31: EVERYTHING INCLUDED ]]
+-- OWNER: ไกรสร พิสิษฐ์ 🫡 (รวมทุกอย่าง + ระบบเลือกคนวาร์ป + 0.6s กดทีเดียว)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -10,22 +10,14 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
 -- [ State Configuration ]
-local Toggle = { 
-    Fly = false, 
-    NoClip = false, 
-    Speed = false, 
-    InfJump = false, 
-    ESP = false, 
-    FullBright = false, 
-    VisibleLock = false 
-}
+local Toggle = { Fly = false, NoClip = false, Speed = false, InfJump = false, ESP = false, FullBright = false, VisibleLock = false }
 local flySpeed, walkSpeedValue = 50, 100
 
 ---------------------------------------------------------
 -- [ Core Functions ]
 ---------------------------------------------------------
 
--- 1. วาร์ป 0.6s (กดทีเดียวจบ)
+-- 1. วาร์ป 0.6s (กดทีเดียว - Instant Flash)
 local function TriggerFlashWarp(btn)
     local char = LocalPlayer.Character
     local root = char and char:FindFirstChild("HumanoidRootPart")
@@ -39,7 +31,7 @@ local function TriggerFlashWarp(btn)
         end
     end
     if targetRoot then
-        btn.Text = "⚡ วาร์ปอยู่..."; btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+        btn.Text = "⚡ Flash Warp..."; btn.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
         local originalPos = root.CFrame
         local startTime = tick()
         local connection
@@ -55,7 +47,7 @@ local function TriggerFlashWarp(btn)
     end
 end
 
--- 2. ระบบบิน
+-- 2. ระบบบิน (Fly)
 local function HandleFly()
     local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     local root = char:WaitForChild("HumanoidRootPart")
@@ -79,33 +71,29 @@ local function HandleFly()
     end)
 end
 
--- 3. ESP
-local function updateESP()
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character then
-            local highlight = p.Character:FindFirstChild("KraisornESP") or Instance.new("Highlight", p.Character)
-            highlight.Name = "KraisornESP"; highlight.FillColor = Color3.fromRGB(255, 255, 255)
-            highlight.Enabled = Toggle.ESP; highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-        end
-    end
-end
-
 -- [ Main Loops ]
 RunService.Stepped:Connect(function()
     if Toggle.NoClip and LocalPlayer.Character then
         for _, v in pairs(LocalPlayer.Character:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false end end
     end
-    if Toggle.ESP then updateESP() end
+    if Toggle.ESP then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character then
+                local h = p.Character:FindFirstChild("KraisornESP") or Instance.new("Highlight", p.Character)
+                h.Name = "KraisornESP"; h.FillColor = Color3.new(1,1,1); h.Enabled = true
+            end
+        end
+    end
     if Toggle.FullBright then
-        Lighting.ClockTime = 14; Lighting.Brightness = 3; Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255); Lighting.Ambient = Color3.fromRGB(255, 255, 255); Lighting.GlobalShadows = false
+        Lighting.ClockTime = 14; Lighting.Brightness = 3; Lighting.GlobalShadows = false
     end
     if Toggle.VisibleLock and LocalPlayer.Character then
         local target = nil; local dist = math.huge
         for _, p in pairs(Players:GetPlayers()) do
             if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
                 local r = p.Character.HumanoidRootPart
-                local _, onScreen = Camera:WorldToViewportPoint(r.Position)
-                if onScreen then
+                local _, screen = Camera:WorldToViewportPoint(r.Position)
+                if screen then
                     local mag = (r.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
                     if mag < dist then dist = mag; target = r end
                 end
@@ -124,41 +112,63 @@ UserInputService.JumpRequest:Connect(function()
 end)
 
 ---------------------------------------------------------
--- [ GUI Construction ]
+-- [ GUI ]
 ---------------------------------------------------------
 local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-screenGui.Name = "KraisornFinal"; screenGui.ResetOnSpawn = false
+screenGui.Name = "KraisornV31"; screenGui.ResetOnSpawn = false
 
 local mainBtn = Instance.new("TextButton", screenGui)
 mainBtn.Size = UDim2.new(0, 75, 0, 75); mainBtn.Position = UDim2.new(0.05, 0, 0.4, 0)
-mainBtn.BackgroundColor3 = Color3.new(1, 1, 1); mainBtn.Text = "W"; mainBtn.Font = "SourceSansBold"; mainBtn.TextSize = 45; mainBtn.TextColor3 = Color3.new(0,0,0)
-Instance.new("UICorner", mainBtn).CornerRadius = UDim.new(1, 0)
+mainBtn.BackgroundColor3 = Color3.new(1,1,1); mainBtn.Text = "W"; mainBtn.Font = "SourceSansBold"; mainBtn.TextSize = 45; mainBtn.TextColor3 = Color3.new(0,0,0)
+Instance.new("UICorner", mainBtn).CornerRadius = UDim.new(1,0)
 
 local menuFrame = Instance.new("Frame", screenGui)
-menuFrame.Size = UDim2.new(0, 280, 0, 420); menuFrame.Position = UDim2.new(0.12, 0, 0.4, 0)
-menuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20); menuFrame.Visible = false; Instance.new("UICorner", menuFrame)
+menuFrame.Size = UDim2.new(0, 280, 0, 450); menuFrame.Position = UDim2.new(0.12, 0, 0.4, 0)
+menuFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25); menuFrame.Visible = false; Instance.new("UICorner", menuFrame)
 
 local nameLabel = Instance.new("TextLabel", menuFrame)
-nameLabel.Size = UDim2.new(1, 0, 0, 60); nameLabel.BackgroundTransparency = 1; nameLabel.Text = "ไกรสร พิสิษฐ์ 🫡"; nameLabel.Font = "SourceSansBold"; nameLabel.TextSize = 25
-task.spawn(function() while true do for i=0,1,0.005 do nameLabel.TextColor3 = Color3.fromHSV(i,0.8,1) task.wait() end end end)
+nameLabel.Size = UDim2.new(1, 0, 0, 50); nameLabel.BackgroundTransparency = 1; nameLabel.Text = "KRAISORN HUB 🫡"; nameLabel.Font = "SourceSansBold"; nameLabel.TextSize = 22; nameLabel.TextColor3 = Color3.new(1,1,1)
 
 local scroll = Instance.new("ScrollingFrame", menuFrame)
-scroll.Size = UDim2.new(1, 0, 1, -70); scroll.Position = UDim2.new(0, 0, 0, 70)
-scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 1000); scroll.ScrollBarThickness = 4
-Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 8); scroll.UIListLayout.HorizontalAlignment = "Center"
+scroll.Size = UDim2.new(1, 0, 1, -60); scroll.Position = UDim2.new(0, 0, 0, 55); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 1100); scroll.ScrollBarThickness = 3
+Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 5); scroll.UIListLayout.HorizontalAlignment = "Center"
 
 local function createBtn(txt, color, callback)
-    local b = Instance.new("TextButton", scroll); b.Size = UDim2.new(0, 250, 0, 45); b.BackgroundColor3 = color; b.Text = txt; b.TextColor3 = Color3.new(0,0,0); b.Font = "SourceSansBold"; b.TextSize = 18; Instance.new("UICorner", b); b.MouseButton1Click:Connect(function() callback(b) end)
+    local b = Instance.new("TextButton", scroll); b.Size = UDim2.new(0, 250, 0, 40); b.BackgroundColor3 = color; b.Text = txt; b.Font = "SourceSansBold"; b.TextSize = 16; Instance.new("UICorner", b); b.MouseButton1Click:Connect(function() callback(b) end)
 end
 
--- [[ ปุ่มทั้งหมด เรียงตามนี้ครับ ]]
-createBtn("เสก Lucky Block", Color3.new(1, 1, 1), function(self)
+-- [[ ฟังก์ชันเทเลพอตเลือกคน ]]
+local function OpenTeleportMenu()
+    local tpFrame = Instance.new("Frame", screenGui); tpFrame.Size = UDim2.new(0, 200, 0, 300); tpFrame.Position = UDim2.new(0.5, -100, 0.5, -150); tpFrame.BackgroundColor3 = Color3.fromRGB(30,30,30); Instance.new("UICorner", tpFrame)
+    local tpScroll = Instance.new("ScrollingFrame", tpFrame); tpScroll.Size = UDim2.new(1,0,1,-40); tpScroll.Position = UDim2.new(0,0,0,10); tpScroll.BackgroundTransparency = 1; tpScroll.CanvasSize = UDim2.new(0,0,0,1000)
+    Instance.new("UIListLayout", tpScroll)
+    local close = Instance.new("TextButton", tpFrame); close.Size = UDim2.new(1,0,0,30); close.Position = UDim2.new(0,0,1,-30); close.Text = "ปิด"; close.BackgroundColor3 = Color3.new(1,0,0); close.MouseButton1Click:Connect(function() tpFrame:Destroy() end)
+    
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            local b = Instance.new("TextButton", tpScroll); b.Size = UDim2.new(1,0,0,30); b.Text = p.Name; b.BackgroundColor3 = Color3.new(0.2,0.2,0.2); b.TextColor3 = Color3.new(1,1,1)
+            b.MouseButton1Click:Connect(function()
+                if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                    LocalPlayer.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame
+                    tpFrame:Destroy()
+                end
+            end)
+        end
+    end
+end
+
+-- [[ เรียงปุ่มตามสั่งครับคุณไกรสร ]]
+createBtn("เสก Lucky Block", Color3.new(1,1,1), function(self)
     local r = ReplicatedStorage:FindFirstChild("SpawnLuckyBlock")
     if r then r:FireServer(); self.Text = "✅ เสกแล้ว"; task.wait(0.5); self.Text = "เสก Lucky Block" end
 end)
 
 createBtn("วาร์ป 0.6s (Flash)", Color3.fromRGB(255, 80, 255), function(self)
     TriggerFlashWarp(self)
+end)
+
+createBtn("วาร์ปไปหาผู้เล่น (Teleport)", Color3.fromRGB(80, 255, 150), function()
+    OpenTeleportMenu()
 end)
 
 createBtn("ล็อคเป้าหน้าจอ: ปิด", Color3.fromRGB(255, 100, 100), function(self)
@@ -204,10 +214,10 @@ createBtn("กระโดด INF: ปิด", Color3.fromRGB(100, 220, 255), fu
     self.BackgroundColor3 = Toggle.InfJump and Color3.fromRGB(120, 255, 120) or Color3.fromRGB(100, 220, 255)
 end)
 
--- [ Drag & Menu Toggle ]
+-- [ Drag System สำหรับปุ่ม W ]
 mainBtn.MouseButton1Click:Connect(function() 
     menuFrame.Visible = not menuFrame.Visible 
-    menuFrame.Position = UDim2.new(mainBtn.Position.X.Scale, mainBtn.Position.X.Offset + 90, mainBtn.Position.Y.Scale, mainBtn.Position.Y.Offset)
+    menuFrame.Position = UDim2.new(mainBtn.Position.X.Scale, mainBtn.Position.X.Offset + 85, mainBtn.Position.Y.Scale, mainBtn.Position.Y.Offset)
 end)
 
 local d, ds, sp
@@ -216,9 +226,7 @@ UserInputService.InputChanged:Connect(function(i)
     if d and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then 
         local del = i.Position - ds
         mainBtn.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X, sp.Y.Scale, sp.Y.Offset + del.Y)
-        if menuFrame.Visible then
-            menuFrame.Position = UDim2.new(mainBtn.Position.X.Scale, mainBtn.Position.X.Offset + 90, mainBtn.Position.Y.Scale, mainBtn.Position.Y.Offset)
-        end
+        if menuFrame.Visible then menuFrame.Position = UDim2.new(mainBtn.Position.X.Scale, mainBtn.Position.X.Offset + 85, mainBtn.Position.Y.Scale, mainBtn.Position.Y.Offset) end
     end 
 end)
 UserInputService.InputEnded:Connect(function() d = false end)
