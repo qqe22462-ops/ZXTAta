@@ -1,4 +1,4 @@
--- [[ KRAISORN HUB V.45: P-MENU + CCTV CAMERA ]]
+-- [[ KRAISORN HUB V.46: P-MENU + FIXED CAMERA ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 -- KEY: 1
 
@@ -6,6 +6,7 @@ local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
 -- [ สร้าง GUI ]
 local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
@@ -34,11 +35,13 @@ submitBtn.Size = UDim2.new(0, 220, 0, 35); submitBtn.Position = UDim2.new(0.5, -
 local function BuildMainMenu()
     keyFrame:Destroy()
 
+    -- ปุ่ม P
     local pBtn = Instance.new("TextButton", screenGui)
     pBtn.Size = UDim2.new(0, 70, 0, 70); pBtn.Position = UDim2.new(0.05, 0, 0.4, 0)
     pBtn.BackgroundColor3 = Color3.new(1,1,1); pBtn.Text = "P"; pBtn.Font = "SourceSansBold"; pBtn.TextSize = 40; pBtn.TextColor3 = Color3.new(0,0,0)
     Instance.new("UICorner", pBtn).CornerRadius = UDim.new(1,0)
 
+    -- หน้าต่างเมนู
     local menuFrame = Instance.new("Frame", screenGui)
     menuFrame.Size = UDim2.new(0, 250, 0, 420); menuFrame.Position = UDim2.new(0.12, 0, 0.4, 0)
     menuFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25); menuFrame.Visible = false; Instance.new("UICorner", menuFrame)
@@ -54,24 +57,13 @@ local function BuildMainMenu()
         return b
     end
 
-    -- [ รายการปุ่มเดิม ]
-    createMenuBtn("HIT 1 (Red)", Color3.fromRGB(255, 50, 50), function(b) 
-        ReplicatedStorage.Events.Hit:FireServer(0.9791415333747864) 
-    end)
+    -- [ รายการฟังก์ชัน ]
+    createMenuBtn("HIT 1 (Red)", Color3.fromRGB(255, 50, 50), function() ReplicatedStorage.Events.Hit:FireServer(0.9791415333747864) end)
+    createMenuBtn("HIT 2 (5)", Color3.fromRGB(80, 255, 80), function() ReplicatedStorage.Events.Hit:FireServer(0.2337765097618103) end)
+    createMenuBtn("CHAIR CRATE", Color3.fromRGB(50, 100, 255), function() ReplicatedStorage.Events.CreateRE:FireServer("Chair Crate", "Rare", 6, Vector3.new(-83.8627, 1.2767, -10.0044)) end)
+    createMenuBtn("SLAP CRATE", Color3.fromRGB(255, 220, 50), function() ReplicatedStorage.Events.CreateRE:FireServer("Slap Crate", "Cammon", 5) end)
 
-    createMenuBtn("HIT 2 (5)", Color3.fromRGB(80, 255, 80), function(b) 
-        ReplicatedStorage.Events.Hit:FireServer(0.2337765097618103) 
-    end)
-
-    createMenuBtn("CHAIR CRATE", Color3.fromRGB(50, 100, 255), function(b) 
-        ReplicatedStorage.Events.CreateRE:FireServer("Chair Crate", "Rare", 6, Vector3.new(-83.8627, 1.2767, -10.0044)) 
-    end)
-
-    createMenuBtn("SLAP CRATE", Color3.fromRGB(255, 220, 50), function(b) 
-        ReplicatedStorage.Events.CreateRE:FireServer("Slap Crate", "Cammon", 5) 
-    end)
-
-    -- [[ Ultimate Dodge G+Z+E+X+R+Q+C (Pink) ]]
+    -- Ultimate Dodge (Pink)
     local dodgeEnabled = false
     local dodgeBtn = createMenuBtn("Ultimate Dodge: ปิด", Color3.fromRGB(255, 105, 180), function(b)
         dodgeEnabled = not dodgeEnabled
@@ -92,25 +84,22 @@ local function BuildMainMenu()
         end
     end)
 
-    -- [[ ฟังก์ชันใหม่: มุมกล้องแอบดู (Hack Camera Zoom) ]]
+    -- [[ ฟังก์ชัน: มุมกล้องแอบดู (เปิด-ปิด) ]]
     local cctvEnabled = false
     createMenuBtn("มุมกล้องแอบดู: ปิด", Color3.fromRGB(130, 130, 130), function(b)
         cctvEnabled = not cctvEnabled
         if cctvEnabled then
-            b.Text = "มุมกล้องแอบดู: เปิดอยู่"
+            b.Text = "มุมกล้องแอบดู: ล็อคหน้าจออยู่"
             b.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
-            -- แฮกปลดล็อคกล้อง
-            LocalPlayer.CameraMaxZoomDistance = 10000 -- ปลดล็อคให้ซูมออกได้หมื่นเมตร
-            LocalPlayer.CameraMinZoomDistance = 0.5
+            Camera.CameraType = Enum.CameraType.Scriptable -- ล็อคกล้อง
         else
             b.Text = "มุมกล้องแอบดู: ปิด"
             b.BackgroundColor3 = Color3.fromRGB(130, 130, 130)
-            -- คืนค่าเดิม (มาตรฐานเกมส่วนใหญ่คือ 12.8 หรือ 20)
-            LocalPlayer.CameraMaxZoomDistance = 20
+            Camera.CameraType = Enum.CameraType.Custom -- คืนค่ากล้องติดตามตัว
         end
     end)
 
-    -- [ ระบบลากและเปิดเมนู ]
+    -- [ ระบบลาก ]
     local dragging, dragStart, startPos
     pBtn.MouseButton1Click:Connect(function() 
         menuFrame.Visible = not menuFrame.Visible
