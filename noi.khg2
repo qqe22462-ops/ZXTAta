@@ -1,4 +1,4 @@
--- [[ KRAISORN HUB V.43: P-MENU GOD DODGE ]]
+-- [[ KRAISORN HUB V.44: P-MENU ULTIMATE GOD DODGE ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 -- KEY: 1
 
@@ -32,6 +32,7 @@ submitBtn.Size = UDim2.new(0, 220, 0, 35); submitBtn.Position = UDim2.new(0.5, -
 -- [ เมนูหลัก (หลังใส่คีย์) ]
 ---------------------------------------------------------
 local function BuildMainMenu()
+    if screenGui:FindFirstChild("KraisornKeyFrame") then screenGui.KraisornKeyFrame:Destroy() end
     keyFrame:Destroy()
 
     local pBtn = Instance.new("TextButton", screenGui)
@@ -44,7 +45,7 @@ local function BuildMainMenu()
     menuFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25); menuFrame.Visible = false; Instance.new("UICorner", menuFrame)
     
     local scroll = Instance.new("ScrollingFrame", menuFrame)
-    scroll.Size = UDim2.new(1, 0, 1, -20); scroll.Position = UDim2.new(0, 0, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 600); scroll.ScrollBarThickness = 2
+    scroll.Size = UDim2.new(1, 0, 1, -20); scroll.Position = UDim2.new(0, 0, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 650); scroll.ScrollBarThickness = 2
     Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 10); scroll.UIListLayout.HorizontalAlignment = "Center"
 
     local function createMenuBtn(txt, color, callback)
@@ -54,7 +55,7 @@ local function BuildMainMenu()
         return b
     end
 
-    -- [ รายการปุ่ม ]
+    -- [ ปุ่มเดิม ]
     local cd1 = false
     createMenuBtn("HIT 1 (Red)", Color3.fromRGB(255, 50, 50), function(b)
         if cd1 then return end; cd1 = true
@@ -90,24 +91,24 @@ local function BuildMainMenu()
         b.Text = "SLAP CRATE"; cd4 = false
     end)
 
-    -- [[ ฟังก์ชันใหม่: God Dodge (G+Z+E+X+R+Q) สีชมพู ]]
+    -- [[ ฟังก์ชันใหม่: Ultimate God Dodge (7 Keys) สีชมพู ]]
     local dodgeEnabled = false
-    local dodgeBtn = createMenuBtn("God Dodge: ปิด", Color3.fromRGB(255, 105, 180), function(b)
+    local dodgeBtn = createMenuBtn("Ultimate Dodge: ปิด", Color3.fromRGB(255, 105, 180), function(b)
         dodgeEnabled = not dodgeEnabled
         if dodgeEnabled then
-            b.Text = "God Dodge: เปิด (Full)"; b.BackgroundColor3 = Color3.fromRGB(255, 20, 147)
+            b.Text = "Dodge: เปิด (7 Keys)"; b.BackgroundColor3 = Color3.fromRGB(255, 20, 147)
         else
-            b.Text = "God Dodge: ปิด"; b.BackgroundColor3 = Color3.fromRGB(255, 105, 180)
+            b.Text = "Ultimate Dodge: ปิด"; b.BackgroundColor3 = Color3.fromRGB(255, 105, 180)
         end
     end)
 
-    -- Ultimate Loop หลบ 6 ทิศทาง
+    -- Loop หลบ 7 ทิศทาง (G, Z, E, X, R, Q, C)
     task.spawn(function()
         while true do
             if dodgeEnabled then
                 pcall(function()
                     local dodgeEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Dodge")
-                    local keys = {"G", "Z", "E", "X", "R", "Q"}
+                    local keys = {"G", "Z", "E", "X", "R", "Q", "C"}
                     for _, k in pairs(keys) do
                         dodgeEvent:FireServer(k)
                     end
@@ -117,7 +118,7 @@ local function BuildMainMenu()
         end
     end)
 
-    -- [ ระบบลากและเปิดเมนู ]
+    -- [ ระบบลากปุ่ม P และเปิดเมนู ]
     local dragging, dragStart, startPos
     pBtn.MouseButton1Click:Connect(function() 
         menuFrame.Visible = not menuFrame.Visible
