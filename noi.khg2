@@ -1,43 +1,27 @@
--- [[ KRAISORN DUAL HIT BUTTONS ]]
+-- [[ KRAISORN DUAL HIT: ADVANCED COOLDOWN ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
--- รวมปุ่มแดง (Hit 1) และ ปุ่มเขียว (Hit 2) ลากได้อิสระ
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
--- [ สร้าง GUI ]
 local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-screenGui.Name = "KraisornDualButtons"
+screenGui.Name = "KraisornCoolDownButtons"
 screenGui.ResetOnSpawn = false
 
 ---------------------------------------------------------
--- [ ฟังก์ชันทำให้ปุ่มลากได้ (Universal Drag Function) ]
+-- [ ฟังก์ชันลากปุ่ม ]
 ---------------------------------------------------------
 local function MakeDraggable(ui)
     local dragging, dragInput, dragStart, startPos
-    
     ui.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = ui.Position
-            
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
+            dragging = true; dragStart = input.Position; startPos = ui.Position
+            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
         end
     end)
-
-    ui.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-
+    ui.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end end)
     UserInputService.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
             local delta = input.Position - dragStart
@@ -47,49 +31,80 @@ local function MakeDraggable(ui)
 end
 
 ---------------------------------------------------------
--- [ ปุ่มที่ 1: สีแดง (Hit 0.979...) ]
+-- [ ปุ่มแดง: HIT 1 (Cooldown 5s) ]
 ---------------------------------------------------------
 local redBtn = Instance.new("TextButton", screenGui)
-redBtn.Size = UDim2.new(0, 70, 0, 70)
-redBtn.Position = UDim2.new(0.9, -40, 0.4, 0) -- ตำแหน่งเริ่มต้น
-redBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-redBtn.Text = "HIT 1"
+redBtn.Size = UDim2.new(0, 70, 0, 70); redBtn.Position = UDim2.new(0.9, -40, 0.4, 0)
+redBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50); redBtn.Text = "HIT 1"
 redBtn.Font = "SourceSansBold"; redBtn.TextSize = 20; redBtn.TextColor3 = Color3.new(1, 1, 1)
 Instance.new("UICorner", redBtn).CornerRadius = UDim.new(1, 0)
 Instance.new("UIStroke", redBtn).Thickness = 2
 MakeDraggable(redBtn)
 
+local redCooldown = false
+
 redBtn.MouseButton1Click:Connect(function()
-    local args = { [1] = 0.9791415333747864 }
-    local hitEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Hit")
-    if hitEvent then hitEvent:FireServer(unpack(args)) end
+    if redCooldown then return end
+    redCooldown = true
     
-    -- เอฟเฟกต์กระพริบ
-    redBtn.BackgroundColor3 = Color3.new(1, 1, 1)
-    task.wait(0.1)
-    redBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+    -- รัน Event
+    local hitEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Hit")
+    hitEvent:FireServer(0.9791415333747864)
+    
+    -- เริ่มคูลดาวน์ 5 วินาที
+    redBtn.BackgroundTransparency = 0.5
+    for i = 5, 1, -1 do
+        redBtn.Text = tostring(i)
+        task.wait(1)
+    end
+    
+    redBtn.Text = "HIT 1"
+    redBtn.BackgroundTransparency = 0
+    redCooldown = false
 end)
 
 ---------------------------------------------------------
--- [ ปุ่มที่ 2: สีเขียว (Hit 0.233...) ]
+-- [ ปุ่มเขียว: HIT 2 (5 Clicks -> Cooldown 4s) ]
 ---------------------------------------------------------
 local greenBtn = Instance.new("TextButton", screenGui)
-greenBtn.Size = UDim2.new(0, 70, 0, 70)
-greenBtn.Position = UDim2.new(0.9, -40, 0.6, 0) -- ตำแหน่งเริ่มต้น (อยู่ล่างปุ่มแดง)
-greenBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 80)
-greenBtn.Text = "HIT 2"
-greenBtn.Font = "SourceSansBold"; greenBtn.TextSize = 20; greenBtn.TextColor3 = Color3.new(0, 0, 0)
+greenBtn.Size = UDim2.new(0, 70, 0, 70); greenBtn.Position = UDim2.new(0.9, -40, 0.6, 0)
+greenBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 80); greenBtn.Text = "HIT 2\n(5)"
+greenBtn.Font = "SourceSansBold"; greenBtn.TextSize = 18; greenBtn.TextColor3 = Color3.new(0, 0, 0)
 Instance.new("UICorner", greenBtn).CornerRadius = UDim.new(1, 0)
 Instance.new("UIStroke", greenBtn).Thickness = 2
 MakeDraggable(greenBtn)
 
+local greenCooldown = false
+local greenClickCount = 0
+
 greenBtn.MouseButton1Click:Connect(function()
-    local args = { [1] = 0.2337765097618103 }
-    local hitEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Hit")
-    if hitEvent then hitEvent:FireServer(unpack(args)) end
+    if greenCooldown then return end
     
-    -- เอฟเฟกต์กระพริบ
-    greenBtn.BackgroundColor3 = Color3.new(1, 1, 1)
-    task.wait(0.1)
-    greenBtn.BackgroundColor3 = Color3.fromRGB(80, 255, 80)
+    -- รัน Event
+    local hitEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Hit")
+    hitEvent:FireServer(0.2337765097618103)
+    
+    greenClickCount = greenClickCount + 1
+    greenBtn.Text = "HIT 2\n(".. (5 - greenClickCount) ..")"
+    
+    -- เอฟเฟกต์กระพริบตอนกด
+    local oldColor = greenBtn.BackgroundColor3
+    greenBtn.BackgroundColor3 = Color3.new(1,1,1)
+    task.delay(0.1, function() greenBtn.BackgroundColor3 = oldColor end)
+
+    if greenClickCount >= 5 then
+        greenCooldown = true
+        greenBtn.BackgroundTransparency = 0.5
+        
+        -- เริ่มคูลดาวน์ 4 วินาที
+        for i = 4, 1, -1 do
+            greenBtn.Text = "WAIT\n"..tostring(i)
+            task.wait(1)
+        end
+        
+        greenClickCount = 0
+        greenBtn.Text = "HIT 2\n(5)"
+        greenBtn.BackgroundTransparency = 0
+        greenCooldown = false
+    end
 end)
