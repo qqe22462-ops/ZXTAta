@@ -1,4 +1,4 @@
--- [[ KRAISORN HUB V.38: KEY SYSTEM UPDATE ]]
+-- [[ KRAISORN HUB V.38: KEY SYSTEM UPDATE + AUTO EAT ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 -- KEY: PISIT112
 
@@ -12,7 +12,11 @@ local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
 local CORRECT_KEY = "PISIT112"
-local Toggle = { Fly = false, NoClip = false, Speed = false, InfJump = false, ESP = false, FullBright = false, VisibleLock = false, AutoClick = false }
+local Toggle = { 
+    Fly = false, NoClip = false, Speed = false, InfJump = false, 
+    ESP = false, FullBright = false, VisibleLock = false, 
+    AutoClick = false, AutoEat = false -- เพิ่ม AutoEat
+}
 local flySpeed, walkSpeedValue = 50, 100
 local ClickPoints = {}
 
@@ -62,6 +66,21 @@ local function TriggerFlashWarp(btn)
     end
 end
 
+-- [ ลูปกินอัตโนมัติ (ใหม่) ]
+task.spawn(function()
+    while true do
+        if Toggle.AutoEat then
+            pcall(function()
+                local args = {
+                    Vector3.new(-64.5, 6.063042640686035, -63.96592712402344)
+                }
+                ReplicatedStorage:WaitForChild("EatingHandler_holdFoodEvent"):FireServer(unpack(args))
+            end)
+        end
+        task.wait(0.1) -- รันทุก 0.1 วิ
+    end
+end)
+
 task.spawn(function()
     while true do
         task.wait(0.2)
@@ -103,7 +122,7 @@ submitBtn.Size = UDim2.new(0, 240, 0, 40); submitBtn.Position = UDim2.new(0.5, -
 submitBtn.Text = "ตรวจสอบคีย์"; submitBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 255); submitBtn.TextColor3 = Color3.new(1,1,1); submitBtn.Font = "SourceSansBold"; submitBtn.TextSize = 18
 Instance.new("UICorner", submitBtn)
 
--- [[ เมนูหลัก (หลังใส่คีย์ถูก) ]]
+-- [[ เมนูหลัก ]]
 local mainBtn = Instance.new("TextButton", screenGui)
 mainBtn.Size = UDim2.new(0, 75, 0, 75); mainBtn.Position = UDim2.new(0.05, 0, 0.4, 0)
 mainBtn.BackgroundColor3 = Color3.new(1,1,1); mainBtn.Text = "W"; mainBtn.Font = "SourceSansBold"; mainBtn.TextSize = 45; mainBtn.Visible = false
@@ -114,11 +133,12 @@ menuFrame.Size = UDim2.new(0, 280, 0, 480); menuFrame.Position = UDim2.new(0.12,
 menuFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25); menuFrame.Visible = false; Instance.new("UICorner", menuFrame)
 
 local scroll = Instance.new("ScrollingFrame", menuFrame)
-scroll.Size = UDim2.new(1, 0, 1, -20); scroll.Position = UDim2.new(0, 0, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 1150); scroll.ScrollBarThickness = 3
+scroll.Size = UDim2.new(1, 0, 1, -20); scroll.Position = UDim2.new(0, 0, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 1200); scroll.ScrollBarThickness = 3
 Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 5); scroll.UIListLayout.HorizontalAlignment = "Center"
 
 local function createBtn(txt, color, callback)
     local b = Instance.new("TextButton", scroll); b.Size = UDim2.new(0, 250, 0, 40); b.BackgroundColor3 = color; b.Text = txt; b.Font = "SourceSansBold"; b.TextSize = 16; Instance.new("UICorner", b); b.MouseButton1Click:Connect(function() callback(b) end)
+    return b
 end
 
 -- [ Setup Functions ]
@@ -128,13 +148,17 @@ local function Success()
 end
 
 submitBtn.MouseButton1Click:Connect(function()
-    if keyInput.Text == CORRECT_KEY then
-        Success()
-    else
+    if keyInput.Text == CORRECT_KEY then Success() else
         submitBtn.Text = "คีย์ไม่ถูกต้อง!"; submitBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
-        task.wait(1)
-        submitBtn.Text = "ตรวจสอบคีย์"; submitBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
+        task.wait(1); submitBtn.Text = "ตรวจสอบคีย์"; submitBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
     end
+end)
+
+-- [[ ฟังก์ชัน: กินอัตโนมัติ (ใหม่) ]]
+createBtn("กินอัตโนมัติ (Auto): ปิด", Color3.fromRGB(255, 100, 100), function(self)
+    Toggle.AutoEat = not Toggle.AutoEat
+    self.Text = Toggle.AutoEat and "กินอัตโนมัติ (Auto): เปิด" or "กินอัตโนมัติ (Auto): ปิด"
+    self.BackgroundColor3 = Toggle.AutoEat and Color3.fromRGB(120, 255, 120) or Color3.fromRGB(255, 100, 100)
 end)
 
 -- [[ Auto Clicker Section ]]
