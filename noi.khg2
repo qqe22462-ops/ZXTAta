@@ -1,4 +1,4 @@
--- [[ KRAISORN HUB V.40: P-MENU EDITION ]]
+-- [[ KRAISORN HUB V.41: P-MENU EDITION ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 -- KEY: 1
 
@@ -42,11 +42,11 @@ local function BuildMainMenu()
 
     -- 2. หน้าต่างเมนู
     local menuFrame = Instance.new("Frame", screenGui)
-    menuFrame.Size = UDim2.new(0, 250, 0, 320); menuFrame.Position = UDim2.new(0.12, 0, 0.4, 0)
+    menuFrame.Size = UDim2.new(0, 250, 0, 380); menuFrame.Position = UDim2.new(0.12, 0, 0.4, 0) -- เพิ่มความสูงหน้าต่าง
     menuFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25); menuFrame.Visible = false; Instance.new("UICorner", menuFrame)
     
     local scroll = Instance.new("ScrollingFrame", menuFrame)
-    scroll.Size = UDim2.new(1, 0, 1, -20); scroll.Position = UDim2.new(0, 0, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 400); scroll.ScrollBarThickness = 2
+    scroll.Size = UDim2.new(1, 0, 1, -20); scroll.Position = UDim2.new(0, 0, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 500); scroll.ScrollBarThickness = 2
     Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 10); scroll.UIListLayout.HorizontalAlignment = "Center"
 
     -- ฟังก์ชันสร้างปุ่มในเมนู
@@ -59,7 +59,7 @@ local function BuildMainMenu()
 
     -- [ รายการฟังก์ชัน ]
     
-    -- H1
+    -- HIT 1 (Red)
     local cd1 = false
     createMenuBtn("HIT 1 (Red)", Color3.fromRGB(255, 50, 50), function(b)
         if cd1 then return end; cd1 = true
@@ -68,9 +68,9 @@ local function BuildMainMenu()
         b.Text = "HIT 1 (Red)"; cd1 = false
     end)
 
-    -- H2
+    -- HIT 2 (Green)
     local cd2, clicks = false, 0
-    local b2 = createMenuBtn("HIT 2 (5)", Color3.fromRGB(80, 255, 80), function(b)
+    createMenuBtn("HIT 2 (5)", Color3.fromRGB(80, 255, 80), function(b)
         if cd2 then return end
         ReplicatedStorage.Events.Hit:FireServer(0.2337765097618103)
         clicks = clicks + 1; b.Text = "HIT 2 (".. 5-clicks ..")"
@@ -80,7 +80,7 @@ local function BuildMainMenu()
         end
     end)
 
-    -- CHAIR
+    -- CHAIR CRATE (Blue)
     local cd3 = false
     createMenuBtn("CHAIR CRATE", Color3.fromRGB(50, 100, 255), function(b)
         if cd3 then return end; cd3 = true
@@ -89,13 +89,38 @@ local function BuildMainMenu()
         b.Text = "CHAIR CRATE"; cd3 = false
     end)
 
-    -- SLAP
+    -- SLAP CRATE (Yellow)
     local cd4 = false
     createMenuBtn("SLAP CRATE", Color3.fromRGB(255, 220, 50), function(b)
         if cd4 then return end; cd4 = true
         ReplicatedStorage.Events.CreateRE:FireServer("Slap Crate", "Cammon", 5)
         b.Text = "CD: 1s"; task.wait(1)
         b.Text = "SLAP CRATE"; cd4 = false
+    end)
+
+    -- [[ ฟังก์ชันใหม่: Dodge G+Z (Pink) ]]
+    local dodgeEnabled = false
+    local dodgeBtn = createMenuBtn("Dodge G+Z: ปิด", Color3.fromRGB(255, 105, 180), function(b)
+        dodgeEnabled = not dodgeEnabled
+        if dodgeEnabled then
+            b.Text = "Dodge G+Z: เปิดอยู่"; b.BackgroundColor3 = Color3.fromRGB(255, 20, 147)
+        else
+            b.Text = "Dodge G+Z: ปิด"; b.BackgroundColor3 = Color3.fromRGB(255, 105, 180)
+        end
+    end)
+
+    -- Loop หลบอัตโนมัติ (รันเบื้องหลัง)
+    task.spawn(function()
+        while true do
+            if dodgeEnabled then
+                pcall(function()
+                    local dodgeEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Dodge")
+                    dodgeEvent:FireServer("G")
+                    dodgeEvent:FireServer("Z")
+                end)
+            end
+            task.wait(0.1) -- รันทุกๆ 0.1 วินาทีตามคำขอ
+        end
     end)
 
     -- ระบบลากปุ่ม P และเปิดเมนู
