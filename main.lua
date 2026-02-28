@@ -1,5 +1,5 @@
--- [[ KRAISORN HUB V.26: FLASH WARP UPDATE ]]
--- OWNER: ไกรสร พิสิษฐ์ 🫡
+-- [[ KRAISORN HUB V.27: THE ULTIMATE VERSION ]]
+-- OWNER: ไกรสร พิสิษฐ์ 🫡 (ระบบเดิมครบ + ฟังก์ชันใหม่)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -18,51 +18,9 @@ local Toggle = {
     ESP = false, 
     FullBright = false,
     VisibleLock = false,
-    FlashWarp = false -- ฟังก์ชันใหม่
+    FlashWarp = false 
 }
 local flySpeed, walkSpeedValue = 50, 100
-
----------------------------------------------------------
--- [ New Function: Flash Warp 0.6s ]
----------------------------------------------------------
-local function DoFlashWarp()
-    local char = LocalPlayer.Character
-    local root = char and char:FindFirstChild("HumanoidRootPart")
-    if not root then return end
-
-    -- 1. หาผู้เล่นที่ใกล้ที่สุด
-    local targetRoot = nil
-    local shortestDist = math.huge
-
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-            local dist = (root.Position - p.Character.HumanoidRootPart.Position).Magnitude
-            if dist < shortestDist then
-                shortestDist = dist
-                targetRoot = p.Character.HumanoidRootPart
-            end
-        end
-    end
-
-    -- 2. ถ้าเจอเป้าหมาย ให้ทำการวาร์ป
-    if targetRoot then
-        local originalPos = root.CFrame -- จำตำแหน่งเดิม
-        local startTime = tick()
-        
-        -- ใช้ Heartbeat เพื่อให้ติดตัวเป้าหมายตลอด 0.6 วิ แม้เป้าหมายจะขยับ
-        local connection
-        connection = RunService.Heartbeat:Connect(function()
-            if tick() - startTime < 0.6 and targetRoot and targetRoot.Parent then
-                -- วาร์ปไปตำแหน่งเป้าหมาย (บวกระยะห่างนิดหน่อยเพื่อให้ไม่ทับกันตาย)
-                root.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 2)
-            else
-                -- ครบ 0.6 วิ หรือเป้าหมายหายไป ให้ดึงกลับแล้วหยุด Loop
-                root.CFrame = originalPos
-                connection:Disconnect()
-            end
-        end)
-    end
-end
 
 ---------------------------------------------------------
 -- [ Core Functions ]
@@ -73,10 +31,10 @@ local function HandleFly()
     local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     local root = char:WaitForChild("HumanoidRootPart")
     local hum = char:WaitForChild("Humanoid")
-    local bv = root:FindFirstChild("KraisornFlyBV") or Instance.new("BodyVelocity", root)
-    local bg = root:FindFirstChild("KraisornFlyBG") or Instance.new("BodyGyro", root)
-    bv.Name = "KraisornFlyBV"; bg.Name = "KraisornFlyBG"
-    bv.MaxForce = Vector3.new(9e9, 9e9, 9e9); bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+    local bv = Instance.new("BodyVelocity", root)
+    local bg = Instance.new("BodyGyro", root)
+    bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+    bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
     task.spawn(function()
         while Toggle.Fly do
             RunService.RenderStepped:Wait()
@@ -107,10 +65,38 @@ local function updateESP()
     end
 end
 
----------------------------------------------------------
--- [ Main Loops ]
----------------------------------------------------------
-RunService.RenderStepped:Connect(function()
+-- 3. Flash Warp Logic (ใหม่)
+local function DoFlashWarp()
+    local char = LocalPlayer.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    if not root then return end
+
+    local targetRoot = nil
+    local shortestDist = math.huge
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            local dist = (root.Position - p.Character.HumanoidRootPart.Position).Magnitude
+            if dist < shortestDist then shortestDist = dist; targetRoot = p.Character.HumanoidRootPart end
+        end
+    end
+
+    if targetRoot then
+        local originalPos = root.CFrame
+        local startTime = tick()
+        local connection
+        connection = RunService.Heartbeat:Connect(function()
+            if tick() - startTime < 0.6 and targetRoot and targetRoot.Parent then
+                root.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 2)
+            else
+                root.CFrame = originalPos
+                connection:Disconnect()
+            end
+        end)
+    end
+end
+
+-- [ Connect Loops ]
+RunService.Stepped:Connect(function()
     if Toggle.NoClip and LocalPlayer.Character then
         for _, v in pairs(LocalPlayer.Character:GetDescendants()) do if v:IsA("BasePart") then v.CanCollide = false end end
     end
@@ -119,15 +105,14 @@ RunService.RenderStepped:Connect(function()
         Lighting.ClockTime = 14; Lighting.Brightness = 3; Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255); Lighting.Ambient = Color3.fromRGB(255, 255, 255); Lighting.GlobalShadows = false
     end
     if Toggle.VisibleLock and LocalPlayer.Character then
-        local target = nil
-        local dist = math.huge
+        local target = nil; local dist = math.huge
         for _, p in pairs(Players:GetPlayers()) do
             if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                local root = p.Character.HumanoidRootPart
-                local _, onScreen = Camera:WorldToViewportPoint(root.Position)
+                local r = p.Character.HumanoidRootPart
+                local _, onScreen = Camera:WorldToViewportPoint(r.Position)
                 if onScreen then
-                    local mag = (root.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-                    if mag < dist then dist = mag; target = root end
+                    local mag = (r.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                    if mag < dist then dist = mag; target = r end
                 end
             end
         end
@@ -147,8 +132,7 @@ end)
 -- [ GUI Construction ]
 ---------------------------------------------------------
 local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-screenGui.Name = "KraisornV26"
-screenGui.ResetOnSpawn = false
+screenGui.Name = "KraisornV27"; screenGui.ResetOnSpawn = false
 
 local mainBtn = Instance.new("TextButton", screenGui)
 mainBtn.Size = UDim2.new(0, 75, 0, 75); mainBtn.Position = UDim2.new(0.05, 0, 0.4, 0)
@@ -156,12 +140,17 @@ mainBtn.BackgroundColor3 = Color3.new(1, 1, 1); mainBtn.Text = "W"; mainBtn.Font
 Instance.new("UICorner", mainBtn).CornerRadius = UDim.new(1, 0)
 
 local menuFrame = Instance.new("Frame", mainBtn)
-menuFrame.Size = UDim2.new(0, 280, 0, 450); menuFrame.Position = UDim2.new(1, 20, 0, 0)
+menuFrame.Size = UDim2.new(0, 280, 0, 420); menuFrame.Position = UDim2.new(1, 20, 0, 0)
 menuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20); menuFrame.Visible = false
 Instance.new("UICorner", menuFrame)
 
+local nameLabel = Instance.new("TextLabel", menuFrame)
+nameLabel.Size = UDim2.new(1, 0, 0, 60); nameLabel.BackgroundTransparency = 1; nameLabel.Text = "ไกรสร พิสิษฐ์ 🫡"; nameLabel.Font = "SourceSansBold"; nameLabel.TextSize = 25
+task.spawn(function() while true do for i=0,1,0.005 do nameLabel.TextColor3 = Color3.fromHSV(i,0.8,1) task.wait() end end end)
+
 local scroll = Instance.new("ScrollingFrame", menuFrame)
-scroll.Size = UDim2.new(1, 0, 1, -20); scroll.Position = UDim2.new(0, 0, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 900)
+scroll.Size = UDim2.new(1, 0, 1, -70); scroll.Position = UDim2.new(0, 0, 0, 70)
+scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 950); scroll.ScrollBarThickness = 4
 Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 8); scroll.UIListLayout.HorizontalAlignment = "Center"
 
 local function createBtn(txt, color, callback)
@@ -169,18 +158,16 @@ local function createBtn(txt, color, callback)
 end
 
 -- [Buttons]
+createBtn("เสก Lucky Block", Color3.new(1, 1, 1), function(self)
+    local r = ReplicatedStorage:FindFirstChild("SpawnLuckyBlock")
+    if r then r:FireServer(); self.Text = "✅ เสกแล้ว"; task.wait(0.5); self.Text = "เสก Lucky Block" else self.Text = "❌ ไม่พบ Remote" end
+end)
+
 createBtn("วาร์ป 0.6s (Flash): ปิด", Color3.fromRGB(255, 80, 255), function(self)
     Toggle.FlashWarp = not Toggle.FlashWarp
     self.Text = Toggle.FlashWarp and "วาร์ป 0.6s (Flash): เปิด" or "วาร์ป 0.6s (Flash): ปิด"
     self.BackgroundColor3 = Toggle.FlashWarp and Color3.fromRGB(120, 255, 120) or Color3.fromRGB(255, 80, 255)
-    
-    -- ทำการรันลูปตรวจสอบการกดเพื่อวาร์ป
-    task.spawn(function()
-        while Toggle.FlashWarp do
-            DoFlashWarp()
-            task.wait(1) -- ระยะรีโหลดก่อนวาร์ปครั้งต่อไป
-        end
-    end)
+    task.spawn(function() while Toggle.FlashWarp do DoFlashWarp() task.wait(1.5) end end)
 end)
 
 createBtn("ล็อคเมื่อเห็นตัว: ปิด", Color3.fromRGB(255, 100, 100), function(self)
@@ -220,5 +207,9 @@ createBtn("สปีด 100: ปิด", Color3.fromRGB(255, 220, 100), function
     self.BackgroundColor3 = Toggle.Speed and Color3.fromRGB(120, 255, 120) or Color3.fromRGB(255, 220, 100)
 end)
 
--- [Toggle Menu]
+-- [[ DRAG SYSTEM & TOGGLE MENU ]] -- (กู้คืนส่วนที่คุณต้องการ)
 mainBtn.MouseButton1Click:Connect(function() menuFrame.Visible = not menuFrame.Visible end)
+local d, ds, sp
+mainBtn.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true; ds = i.Position; sp = mainBtn.Position end end)
+UserInputService.InputChanged:Connect(function(i) if d and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then local del = i.Position - ds; mainBtn.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X, sp.Y.Scale, sp.Y.Offset + del.Y) end end)
+UserInputService.InputEnded:Connect(function() d = false end)
