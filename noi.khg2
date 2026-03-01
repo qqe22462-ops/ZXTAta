@@ -1,14 +1,15 @@
--- [[ ᴘɪꜱɪᴛ  𝟢𝟢𝟣ꜰʀᴇᴇ - ANTI SPAM ]]
+-- [[ ᴘɪꜱɪᴛ  𝟢𝟢𝟣ꜰʀᴇᴇ - SECURITY UPDATE ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 -- KEY: 1
 
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
-local _K = tostring(math.floor(100/100)) -- KEY: 1
+local _K = "1"
+local SystemReady = false -- สถานะปลดล็อคระบบตบ
+local IsUnlocking = false -- สถานะกำลังนับถอยหลัง 10 วิ
 
 if LocalPlayer.PlayerGui:FindFirstChild("Pisit001FreeMenu") then
     LocalPlayer.PlayerGui.Pisit001FreeMenu:Destroy()
@@ -18,11 +19,11 @@ local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
 screenGui.Name = "Pisit001FreeMenu"
 screenGui.ResetOnSpawn = false
 
-local Toggle = { AutoSlap = false, Dodge = false, BackDetect = false }
+local Toggle = { Dodge = false, BackDetect = false }
 local Cooldowns = { Slap1 = false, Slap2 = false, Global = false }
 
 ---------------------------------------------------------
--- [ ระบบลากปุ่ม P (Drag System) ]
+-- [ ฟังก์ชันลากปุ่ม P ]
 ---------------------------------------------------------
 local function DragSystem(frame, menu)
     local dragging, dragInput, dragStart, startPos
@@ -35,7 +36,7 @@ local function DragSystem(frame, menu)
     frame.InputChanged:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
     end)
-    UserInputService.InputChanged:Connect(function(input)
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
         if input == dragInput and dragging then
             local delta = input.Position - dragStart
             frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
@@ -45,62 +46,77 @@ local function DragSystem(frame, menu)
 end
 
 ---------------------------------------------------------
--- [ ฟังก์ชันสร้างปุ่มตบ (พร้อมระบบบล็อกการกดพร้อมกัน) ]
----------------------------------------------------------
-local function createSlapButton(txt, color, cdKey, eventArg, scroll)
-    local b = Instance.new("TextButton", scroll)
-    b.Size = UDim2.new(0.95, 0, 0, 45); b.BackgroundColor3 = color; b.Text = txt
-    b.Font = "SourceSansBold"; b.TextSize = 16; b.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", b)
-    
-    b.MouseButton1Click:Connect(function()
-        -- ตรวจสอบทั้ง Cooldown ตัวเอง และ Cooldown รวม (Global)
-        if not Cooldowns[cdKey] and not Cooldowns.Global then
-            Cooldowns[cdKey] = true
-            Cooldowns.Global = true -- บล็อกปุ่มอื่น 0.5 วิ
-            
-            ReplicatedStorage.Events.Hit:FireServer(eventArg)
-            
-            task.spawn(function()
-                task.wait(0.5)
-                Cooldowns.Global = false -- ปลดล็อค Global
-            end)
-
-            task.spawn(function()
-                local originalText = txt
-                local originalColor = color
-                b.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-                
-                for i = 20, 1, -1 do
-                    b.Text = string.format("รอสักครู่.. (%.1f)", i/10)
-                    task.wait(0.1)
-                end
-                
-                b.Text = originalText
-                b.BackgroundColor3 = originalColor
-                Cooldowns[cdKey] = false
-            end)
-        end
-    end)
-end
-
----------------------------------------------------------
 -- [ สร้างเมนูหลัก ]
 ---------------------------------------------------------
 local function BuildMainMenu()
     local pBtn = Instance.new("TextButton", screenGui); pBtn.Size = UDim2.new(0, 70, 0, 70); pBtn.Position = UDim2.new(0.05, 0, 0.4, 0); pBtn.BackgroundColor3 = Color3.new(1,1,1); pBtn.Text = "P"; pBtn.Font = "SourceSansBold"; pBtn.TextSize = 40; pBtn.TextColor3 = Color3.new(0,0,0); Instance.new("UICorner", pBtn).CornerRadius = UDim.new(1,0)
-    local menuFrame = Instance.new("Frame", screenGui); menuFrame.Size = UDim2.new(0, 255, 0, 460); menuFrame.Position = UDim2.new(0.12, 0, 0.4, 0); menuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20); menuFrame.Visible = false; Instance.new("UICorner", menuFrame)
-    local scroll = Instance.new("ScrollingFrame", menuFrame); scroll.Size = UDim2.new(1, -10, 1, -20); scroll.Position = UDim2.new(0, 5, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 680); scroll.ScrollBarThickness = 2
+    local menuFrame = Instance.new("Frame", screenGui); menuFrame.Size = UDim2.new(0, 255, 0, 480); menuFrame.Position = UDim2.new(0.12, 0, 0.4, 0); menuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20); menuFrame.Visible = false; Instance.new("UICorner", menuFrame)
+    local scroll = Instance.new("ScrollingFrame", menuFrame); scroll.Size = UDim2.new(1, -10, 1, -20); scroll.Position = UDim2.new(0, 5, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 720); scroll.ScrollBarThickness = 2
     Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 10); scroll.UIListLayout.HorizontalAlignment = "Center"
 
     DragSystem(pBtn, menuFrame)
 
-    -- ปุ่มตบพร้อมระบบป้องกันการกดพร้อมกัน
-    createSlapButton("( ตบทีเดียว )", Color3.fromRGB(255, 50, 50), "Slap1", 0.9791415333747864, scroll)
-    createSlapButton("( ตบเบาๆ )", Color3.fromRGB(80, 255, 80), "Slap2", 0.2337765097618103, scroll)
+    -- [ 1. ปุ่มเริ่มระบบแย่งตบ (ต้องกดก่อน) ]
+    local startBtn = Instance.new("TextButton", scroll)
+    startBtn.Size = UDim2.new(0.95, 0, 0, 50); startBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255); startBtn.Text = "เริ่มระบบแย่งตบ (Unlock)"; startBtn.Font = "SourceSansBold"; startBtn.TextSize = 14; startBtn.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", startBtn)
 
+    -- [ 2. ปุ่มตบ (จะทำงานเมื่อ SystemReady = true) ]
+    local function createSlapButton(txt, color, cdKey, eventArg)
+        local b = Instance.new("TextButton", scroll)
+        b.Size = UDim2.new(0.95, 0, 0, 45); b.BackgroundColor3 = Color3.fromRGB(50, 50, 50); b.Text = txt .. " (Locked)"; b.Font = "SourceSansBold"; b.TextSize = 14; b.TextColor3 = Color3.new(0.6, 0.6, 0.6); Instance.new("UICorner", b)
+        
+        b.MouseButton1Click:Connect(function()
+            if not SystemReady then
+                b.Text = "ต้องเริ่มระบบแย่งตบก่อน!"
+                task.wait(1); b.Text = txt .. " (Locked)"
+                return
+            end
+            if not Cooldowns[cdKey] and not Cooldowns.Global then
+                Cooldowns[cdKey] = true; Cooldowns.Global = true
+                ReplicatedStorage.Events.Hit:FireServer(eventArg)
+                task.spawn(function() task.wait(0.5); Cooldowns.Global = false end)
+                task.spawn(function()
+                    local oldC = color; b.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+                    for i = 20, 1, -1 do b.Text = string.format("Cooling.. %.1f", i/10); task.wait(0.1) end
+                    b.Text = txt; b.BackgroundColor3 = oldC; Cooldowns[cdKey] = false
+                end)
+            end
+        end)
+        return b
+    end
+
+    local slap1 = createSlapButton("( ตบทีเดียว )", Color3.fromRGB(255, 50, 50), "Slap1", 0.9791415333747864)
+    local slap2 = createSlapButton("( ตบเบาๆ )", Color3.fromRGB(80, 255, 80), "Slap2", 0.2337765097618103)
+
+    -- Logic การปลดล็อคเมื่อกด "เริ่มระบบแย่งตบ"
+    startBtn.MouseButton1Click:Connect(function()
+        if IsUnlocking or SystemReady then return end
+        IsUnlocking = true
+        startBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+        
+        -- ส่ง Event แย่งตบ 1 ครั้งตามที่คุณสั่ง (กดเอง)
+        pcall(function() ReplicatedStorage.Events.Slap:FireServer() end)
+
+        -- นับถอยหลัง 10 วิเพื่อปลดล็อคปุ่มตบ
+        for i = 10, 1, -1 do
+            startBtn.Text = "กำลังเตรียมระบบ.. (" .. i .. " วิ)"
+            task.wait(1)
+        end
+        
+        SystemReady = true
+        startBtn.Text = "ระบบพร้อมใช้งานแล้ว ✅"; startBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+        
+        -- เปลี่ยนสีและข้อความปุ่มตบให้ดูพร้อมใช้งาน
+        slap1.Text = "( ตบทีเดียว )"; slap1.BackgroundColor3 = Color3.fromRGB(255, 50, 50); slap1.TextColor3 = Color3.new(1,1,1)
+        slap2.Text = "( ตบเบาๆ )"; slap2.BackgroundColor3 = Color3.fromRGB(80, 255, 80); slap2.TextColor3 = Color3.new(1,1,1)
+    end)
+
+    ---------------------------------------------------------
+    -- [ ฟังก์ชันเสริมอื่นๆ ]
+    ---------------------------------------------------------
     local function createToggle(txt, toggleKey)
         local row = Instance.new("Frame", scroll); row.Size = UDim2.new(0.95, 0, 0, 45); row.BackgroundColor3 = Color3.fromRGB(35, 35, 35); Instance.new("UICorner", row)
-        local label = Instance.new("TextLabel", row); label.Size = UDim2.new(0.65, 0, 1, 0); label.Position = UDim2.new(0, 10, 0, 0); label.Text = txt; label.TextColor3 = Color3.new(1,1,1); label.BackgroundTransparency = 1; label.TextXAlignment = "Left"; label.Font = "SourceSansBold"; label.TextSize = 13; label.TextWrapped = true
+        local label = Instance.new("TextLabel", row); label.Size = UDim2.new(0.65, 0, 1, 0); label.Position = UDim2.new(0, 10, 0, 0); label.Text = txt; label.TextColor3 = Color3.new(1,1,1); label.BackgroundTransparency = 1; label.TextXAlignment = "Left"; label.Font = "SourceSansBold"; label.TextSize = 13
         local btn = Instance.new("TextButton", row); btn.Size = UDim2.new(0, 55, 0, 28); btn.Position = UDim2.new(1, -65, 0.5, -14); btn.Text = "OFF"; btn.BackgroundColor3 = Color3.fromRGB(200, 50, 50); btn.TextColor3 = Color3.new(1,1,1); btn.Font = "SourceSansBold"; Instance.new("UICorner", btn)
         btn.MouseButton1Click:Connect(function()
             Toggle[toggleKey] = not Toggle[toggleKey]
@@ -110,11 +126,10 @@ local function BuildMainMenu()
         end)
     end
 
-    createToggle("ออโต้แย่งตบ", "AutoSlap")
     createToggle("มองด้านหลัง (ซูมชัด)", "BackDetect")
     
     local function createAction(txt, color, cb)
-        local b = Instance.new("TextButton", scroll); b.Size = UDim2.new(0.95, 0, 0, 45); b.BackgroundColor3 = color; b.Text = txt; b.Font = "SourceSansBold"; b.TextSize = 14; b.TextColor3 = Color3.new(1,1,1); b.TextWrapped = true; Instance.new("UICorner", b)
+        local b = Instance.new("TextButton", scroll); b.Size = UDim2.new(0.95, 0, 0, 45); b.BackgroundColor3 = color; b.Text = txt; b.Font = "SourceSansBold"; b.TextSize = 14; b.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", b)
         b.MouseButton1Click:Connect(cb)
     end
 
@@ -129,19 +144,17 @@ end
 -- [ หน้าล็อกอิน ]
 ---------------------------------------------------------
 local keyFrame = Instance.new("Frame", screenGui); keyFrame.Size = UDim2.new(0, 280, 0, 160); keyFrame.Position = UDim2.new(0.5, -140, 0.5, -80); keyFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30); Instance.new("UICorner", keyFrame)
-local keyInput = Instance.new("TextBox", keyFrame); keyInput.Size = UDim2.new(0, 220, 0, 35); keyInput.Position = UDim2.new(0.5, -110, 0.45, 0); keyInput.PlaceholderText = "รหัสคืออะไรนะ..."; keyInput.BackgroundColor3 = Color3.fromRGB(45, 45, 45); keyInput.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", keyInput)
+local keyInput = Instance.new("TextBox", keyFrame); keyInput.Size = UDim2.new(0, 220, 0, 35); keyInput.Position = UDim2.new(0.5, -110, 0.45, 0); keyInput.PlaceholderText = "คีย์คือ 1"; keyInput.BackgroundColor3 = Color3.fromRGB(45, 45, 45); keyInput.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", keyInput)
 local submitBtn = Instance.new("TextButton", keyFrame); submitBtn.Size = UDim2.new(0, 220, 0, 35); submitBtn.Position = UDim2.new(0.5, -110, 0.75, 0); submitBtn.Text = "เข้าสู่ระบบ"; submitBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 255); submitBtn.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", submitBtn)
-
 submitBtn.MouseButton1Click:Connect(function() if keyInput.Text == _K then keyFrame:Destroy(); BuildMainMenu() end end)
 
 ---------------------------------------------------------
--- [ UI ส่องหลัง & Logic ]
+-- [ UI ส่องหลัง (เหมือนเดิม) ]
 ---------------------------------------------------------
 local backFrame = Instance.new("Frame", screenGui); backFrame.Name = "BackFrame"; backFrame.Size = UDim2.new(0, 160, 0, 180); backFrame.Position = UDim2.new(0.5, -80, 0.08, 0); backFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0); backFrame.BackgroundTransparency = 0.4; backFrame.Visible = false; Instance.new("UICorner", backFrame)
 local viewPort = Instance.new("ViewportFrame", backFrame); viewPort.Size = UDim2.new(1, 0, 1, 0); viewPort.BackgroundTransparency = 1; local vCamera = Instance.new("Camera"); viewPort.CurrentCamera = vCamera; vCamera.Parent = viewPort
 local nameLabel = Instance.new("TextLabel", backFrame); nameLabel.Size = UDim2.new(1, 0, 0, 25); nameLabel.Position = UDim2.new(0, 0, 1, -25); nameLabel.BackgroundColor3 = Color3.new(0,0,0); nameLabel.BackgroundTransparency = 0.5; nameLabel.TextColor3 = Color3.new(1, 1, 1); nameLabel.Font = "SourceSansBold"; nameLabel.TextSize = 14; nameLabel.TextScaled = true
 
-local currentClone = nil
 RunService.RenderStepped:Connect(function()
     if Toggle.BackDetect and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local myRoot = LocalPlayer.Character.HumanoidRootPart; local closest = nil; local minDist = 60
@@ -156,19 +169,16 @@ RunService.RenderStepped:Connect(function()
         end
         if closest then
             backFrame.Visible = true; nameLabel.Text = closest.Name .. " (" .. math.floor(minDist) .. "m)"
-            if not currentClone or currentClone.Name ~= closest.Name then
-                viewPort:ClearAllChildren(); closest.Character.Archivable = true
-                currentClone = closest.Character:Clone(); currentClone.Parent = viewPort
-                local hrp = currentClone:FindFirstChild("HumanoidRootPart")
-                if hrp then vCamera.CFrame = CFrame.new(hrp.Position + (hrp.CFrame.LookVector * 2.5) + Vector3.new(0, 1.5, 0), hrp.Position + Vector3.new(0, 1.5, 0)) end
-            end
-        else backFrame.Visible = false; viewPort:ClearAllChildren(); currentClone = nil end
-    else backFrame.Visible = false end
+            viewPort:ClearAllChildren(); closest.Character.Archivable = true
+            local clone = closest.Character:Clone(); clone.Parent = viewPort
+            local hrp = clone:FindFirstChild("HumanoidRootPart")
+            if hrp then vCamera.CFrame = CFrame.new(hrp.Position + (hrp.CFrame.LookVector * 2.5) + Vector3.new(0, 1.5, 0), hrp.Position + Vector3.new(0, 1.5, 0)) end
+        else backFrame.Visible = false end
+    end
 end)
 
 task.spawn(function()
     while true do
-        if Toggle.AutoSlap then pcall(function() ReplicatedStorage.Events.Slap:FireServer() end) end
         if Toggle.Dodge then pcall(function() for _, k in pairs({"G", "Z", "E", "X", "R", "Q", "C"}) do ReplicatedStorage.Events.Dodge:FireServer(k) end end) end
         task.wait(0.1)
     end
