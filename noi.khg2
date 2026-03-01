@@ -1,6 +1,6 @@
--- [[ ᴘɪꜱɪᴛ  𝟢𝟢𝟣ꜰʀᴇᴇ - ULTIMATE ]]
+-- [[ ᴘɪꜱɪᴛ  𝟢𝟢𝟣ꜰʀᴇᴇ - ULTIMATE FIX ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
--- SECRET KEY IS IN THE CODE (Hidden for Video)
+-- KEY: Hidden (Check below)
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -8,8 +8,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
--- [ รหัสผ่านลับ (ซ่อนจากการมองเห็นในคลิป) ]
-local _K = tostring(math.floor(2/2)) -- นี่คือเลข 1 แบบเนียนๆ ครับ
+-- [ รหัสผ่านลับ ]
+local _K = tostring(math.floor(5/5)) -- นี่คือเลข 1
 
 if LocalPlayer.PlayerGui:FindFirstChild("Pisit001FreeMenu") then
     LocalPlayer.PlayerGui.Pisit001FreeMenu:Destroy()
@@ -22,28 +22,44 @@ screenGui.ResetOnSpawn = false
 local Toggle = { AutoSlap = false, Dodge = false, BackDetect = false }
 
 ---------------------------------------------------------
--- [ ระบบลาก (Smooth Drag Function) ]
+-- [ ฟังก์ชันลากที่เสถียรที่สุด (Drag Logic v3) ]
 ---------------------------------------------------------
-local function MakeDraggable(gui, parentFrame)
-	local dragging, dragInput, dragStart, startPos
-	gui.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-			dragging = true; dragStart = input.Position; startPos = gui.Position
-			input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
-		end
-	end)
-	gui.InputChanged:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
-	end)
-	UserInputService.InputChanged:Connect(function(input)
-		if input == dragInput and dragging then
-			local delta = input.Position - dragStart
-			gui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-			if parentFrame and parentFrame.Visible then
-				parentFrame.Position = UDim2.new(gui.Position.X.Scale, gui.Position.X.Offset + 80, gui.Position.Y.Scale, gui.Position.Y.Offset)
-			end
-		end
-	end)
+local function DragSystem(frame, menu)
+    local dragging, dragInput, dragStart, startPos
+    
+    local function update(input)
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        if menu.Visible then
+            menu.Position = UDim2.new(frame.Position.X.Scale, frame.Position.X.Offset + 80, frame.Position.Y.Scale, frame.Position.Y.Offset)
+        end
+    end
+
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
 end
 
 ---------------------------------------------------------
@@ -72,7 +88,8 @@ local function BuildMainMenu()
     local scroll = Instance.new("ScrollingFrame", menuFrame); scroll.Size = UDim2.new(1, -10, 1, -20); scroll.Position = UDim2.new(0, 5, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 680); scroll.ScrollBarThickness = 2
     Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 10); scroll.UIListLayout.HorizontalAlignment = "Center"
 
-    MakeDraggable(pBtn, menuFrame) -- เรียกใช้ฟังก์ชันลากที่แก้ใหม่
+    -- เรียกใช้ระบบลากที่เขียนใหม่
+    DragSystem(pBtn, menuFrame)
 
     local function createToggle(txt, toggleKey, hasConfirm)
         local row = Instance.new("Frame", scroll); row.Size = UDim2.new(0.95, 0, 0, 45); row.BackgroundColor3 = Color3.fromRGB(35, 35, 35); Instance.new("UICorner", row)
@@ -97,7 +114,7 @@ local function BuildMainMenu()
     createAction("( สุ่มที่ตบมือ - เสียเงิน )", Color3.fromRGB(255, 220, 50), true, function() ReplicatedStorage.Events.CreateRE:FireServer("Slap Crate", "Cammon", 5) end)
     createToggle("(หลบอัตโนมัติ)", "Dodge", true)
 
-    pBtn.MouseButton1Click:Connect(function() menuFrame.Visible = not menuFrame.Visible end)
+    pBtn.MouseButton1Click:Connect(function() menuFrame.Visible = not menuFrame.Visible; menuFrame.Position = UDim2.new(pBtn.Position.X.Scale, pBtn.Position.X.Offset + 80, pBtn.Position.Y.Scale, pBtn.Position.Y.Offset) end)
 end
 
 ---------------------------------------------------------
@@ -108,7 +125,7 @@ local keyInput = Instance.new("TextBox", keyFrame); keyInput.Size = UDim2.new(0,
 local submitBtn = Instance.new("TextButton", keyFrame); submitBtn.Size = UDim2.new(0, 220, 0, 35); submitBtn.Position = UDim2.new(0.5, -110, 0.75, 0); submitBtn.Text = "เข้าสู่ระบบ"; submitBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 255); submitBtn.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", submitBtn)
 
 submitBtn.MouseButton1Click:Connect(function()
-    if keyInput.Text == _K then -- ตรวจสอบกับรหัสที่ซ่อนไว้
+    if keyInput.Text == _K then
         keyFrame:Destroy(); BuildMainMenu()
     else
         submitBtn.Text = "รหัสผิด!"; task.wait(1); submitBtn.Text = "เข้าสู่ระบบ"
