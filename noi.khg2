@@ -11,6 +11,10 @@ local _K = "1"
 local IsUnlocked = false 
 local TimeLeft = 0 
 
+-- เพิ่มตัวนับในโค้ดเดิมเพื่อให้ระบบรู้ว่ากดครบหรือยัง
+local UsedSlap1 = 0
+local UsedSlap2 = 0
+
 if LocalPlayer.PlayerGui:FindFirstChild("Pisit001FreeMenu") then
     LocalPlayer.PlayerGui.Pisit001FreeMenu:Destroy()
 end
@@ -35,6 +39,8 @@ rawMetatable.__namecall = newcclosure(function(self, ...)
     if self == SlapEvent and method == "FireServer" then
         IsUnlocked = true
         TimeLeft = 10 
+        UsedSlap1 = 0 -- รีเซ็ตตัวนับเมื่อตบใหม่
+        UsedSlap2 = 0
     end
     return oldNamecall(self, ...)
 end)
@@ -67,52 +73,40 @@ end
 ---------------------------------------------------------
 local function BuildMainMenu()
     local pBtn = Instance.new("TextButton", screenGui); pBtn.Size = UDim2.new(0, 70, 0, 70); pBtn.Position = UDim2.new(0.05, 0, 0.4, 0); pBtn.BackgroundColor3 = Color3.new(1,1,1); pBtn.Text = "P"; pBtn.Font = "SourceSansBold"; pBtn.TextSize = 40; pBtn.TextColor3 = Color3.new(0,0,0); Instance.new("UICorner", pBtn).CornerRadius = UDim.new(1,0)
-    
-    -- ขยายเมนูให้ยาวขึ้น (Size Y = 550)
     local menuFrame = Instance.new("Frame", screenGui); menuFrame.Size = UDim2.new(0, 255, 0, 550); menuFrame.Position = UDim2.new(0.12, 0, 0.3, 0); menuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20); menuFrame.Visible = false; Instance.new("UICorner", menuFrame)
-    
-    -- ขยายพื้นที่เลื่อนให้เยอะขึ้น (CanvasSize Y = 900)
     local scroll = Instance.new("ScrollingFrame", menuFrame); scroll.Size = UDim2.new(1, -10, 1, -20); scroll.Position = UDim2.new(0, 5, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 950); scroll.ScrollBarThickness = 4
     Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 10); scroll.UIListLayout.HorizontalAlignment = "Center"
 
     DragSystem(pBtn, menuFrame)
 
-    -- [ 1. กลุ่มปุ่มสุ่มของ (เอาไว้บนสุด กดได้ตลอด) ]
     local function createNormalAction(txt, color, cb)
         local b = Instance.new("TextButton", scroll); b.Size = UDim2.new(0.95, 0, 0, 50); b.BackgroundColor3 = color; b.Text = txt; b.Font = "SourceSansBold"; b.TextSize = 15; b.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", b)
         b.MouseButton1Click:Connect(cb)
     end
 
-    createNormalAction("🛋️ สุ่มเก้าอี้ฟรี", Color3.fromRGB(50, 120, 255), function() 
-        ReplicatedStorage.Events.CreateRE:FireServer("Chair Crate", "Rare", 6, Vector3.new(-83.8627, 1.2767, -10.0044)) 
-    end)
+    createNormalAction("🛋️ สุ่มเก้าอี้ฟรี", Color3.fromRGB(50, 120, 255), function() ReplicatedStorage.Events.CreateRE:FireServer("Chair Crate", "Rare", 6, Vector3.new(-83.8627, 1.2767, -10.0044)) end)
+    createNormalAction("👏 สุ่มที่ตบมือ (เสียเงิน)", Color3.fromRGB(200, 160, 0), function() ReplicatedStorage.Events.CreateRE:FireServer("Slap Crate", "Cammon", 5) end)
 
-    createNormalAction("👏 สุ่มที่ตบมือ (เสียเงิน)", Color3.fromRGB(200, 160, 0), function() 
-        ReplicatedStorage.Events.CreateRE:FireServer("Slap Crate", "Cammon", 5) 
-    end)
-
-    -- เส้นคั่น
     local line = Instance.new("Frame", scroll); line.Size = UDim2.new(0.9, 0, 0, 2); line.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 
-    -- [ 2. ระบบสถานะการปลดล็อค ]
     local statusLabel = Instance.new("TextLabel", scroll)
     statusLabel.Size = UDim2.new(0.95, 0, 0, 40); statusLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40); statusLabel.TextColor3 = Color3.fromRGB(200, 50, 50); statusLabel.Text = "สถานะ: ยังไม่ตบ (Locked)"; statusLabel.Font = "SourceSansBold"; statusLabel.TextSize = 13; Instance.new("UICorner", statusLabel)
 
-    -- [ 3. ปุ่มตบพิเศษ (ต้อง Unlock) ]
-    local function createSlapButton(txt, color, cdKey, eventArg)
+    -- [ แก้ไข Logic การตบตรงนี้ ]
+    local function createSlapButton(txt, color, cdKey, eventArg, limit)
         local b = Instance.new("TextButton", scroll)
         b.Size = UDim2.new(0.95, 0, 0, 45); b.BackgroundColor3 = Color3.fromRGB(60, 60, 60); b.Text = txt; b.Font = "SourceSansBold"; b.TextSize = 14; b.TextColor3 = Color3.new(0.4, 0.4, 0.4); Instance.new("UICorner", b)
         b.MouseButton1Click:Connect(function()
-            if not IsUnlocked then return end
-            if not Cooldowns[cdKey] and not Cooldowns.Global then
-                Cooldowns[cdKey] = true; Cooldowns.Global = true
+            if not IsUnlocked or TimeLeft <= 0 then return end
+            
+            if cdKey == "Slap1" then
+                UsedSlap1 = UsedSlap1 + 1
                 ReplicatedStorage.Events.Hit:FireServer(eventArg)
-                task.spawn(function() task.wait(0.5); Cooldowns.Global = false end)
-                task.spawn(function()
-                    local oldC = color; b.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-                    for i = 20, 1, -1 do b.Text = string.format("Cool.. %.1f", i/10); task.wait(0.1) end
-                    b.Text = txt; b.BackgroundColor3 = oldC; Cooldowns[cdKey] = false
-                end)
+                if UsedSlap1 >= 1 then TimeLeft = 0 end -- ตบทีเดียวแล้วเวลาหมดทันที
+            elseif cdKey == "Slap2" then
+                UsedSlap2 = UsedSlap2 + 1
+                ReplicatedStorage.Events.Hit:FireServer(eventArg)
+                if UsedSlap2 >= 3 then TimeLeft = 0 end -- ตบเบาครบ 3 ครั้งแล้วเวลาหมดทันที
             end
         end)
         return b
@@ -121,7 +115,6 @@ local function BuildMainMenu()
     local slap1 = createSlapButton("( ตบทีเดียว )", Color3.fromRGB(255, 50, 50), "Slap1", 0.9791415333747864)
     local slap2 = createSlapButton("( ตบเบาๆ )", Color3.fromRGB(80, 255, 80), "Slap2", 0.2337765097618103)
 
-    -- [ 4. ฟังก์ชันเปิด/ปิดเสริม ]
     local function createToggle(txt, toggleKey)
         local row = Instance.new("Frame", scroll); row.Size = UDim2.new(0.95, 0, 0, 45); row.BackgroundColor3 = Color3.fromRGB(35, 35, 35); Instance.new("UICorner", row)
         local label = Instance.new("TextLabel", row); label.Size = UDim2.new(0.65, 0, 1, 0); label.Position = UDim2.new(0, 10, 0, 0); label.Text = txt; label.TextColor3 = Color3.new(1,1,1); label.BackgroundTransparency = 1; label.TextXAlignment = "Left"; label.Font = "SourceSansBold"; label.TextSize = 13
@@ -137,7 +130,6 @@ local function BuildMainMenu()
     createToggle("มองด้านหลัง (ซูมชัด)", "BackDetect")
     createToggle("(หลบอัตโนมัติ)", "Dodge")
 
-    -- ระบบ Loop สถานะ
     task.spawn(function()
         while true do
             if IsUnlocked then
