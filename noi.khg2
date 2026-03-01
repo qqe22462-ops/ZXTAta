@@ -15,7 +15,6 @@ screenGui.ResetOnSpawn = false
 
 local Toggle = {
     AutoSlap = false,
-    HitRed = false,
     Dodge = false
 }
 
@@ -59,7 +58,7 @@ local function BuildMainMenu()
     scroll.Size = UDim2.new(1, -10, 1, -20); scroll.Position = UDim2.new(0, 5, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 1000); scroll.ScrollBarThickness = 2
     Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 8); scroll.UIListLayout.HorizontalAlignment = "Center"
 
-    -- [[ ฟังก์ชันสร้างแถบเปิด/ปิด (On/Off ขวาสุด) ]]
+    -- [[ Helper สำหรับสร้างปุ่ม Toggle (ON/OFF) ]]
     local function createToggleRow(txt, toggleKey)
         local row = Instance.new("Frame", scroll); row.Size = UDim2.new(1, 0, 0, 42); row.BackgroundColor3 = Color3.fromRGB(35, 35, 35); Instance.new("UICorner", row)
         local label = Instance.new("TextLabel", row); label.Size = UDim2.new(0.6, 0, 1, 0); label.Position = UDim2.new(0, 10, 0, 0); label.Text = txt; label.TextColor3 = Color3.new(1,1,1); label.BackgroundTransparency = 1; label.TextXAlignment = "Left"; label.Font = "SourceSansBold"; label.TextSize = 14
@@ -72,6 +71,7 @@ local function BuildMainMenu()
         end)
     end
 
+    -- [[ Helper สำหรับสร้างปุ่ม Action (กดทีเดียวรัน) ]]
     local function createActionBtn(txt, color, callback)
         local b = Instance.new("TextButton", scroll); b.Size = UDim2.new(1, 0, 0, 42); b.BackgroundColor3 = color; b.Text = txt; b.Font = "SourceSansBold"; b.TextSize = 15; b.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", b)
         b.MouseButton1Click:Connect(function() callback(b) end)
@@ -81,10 +81,15 @@ local function BuildMainMenu()
     -- [ รายการเมนู ]
     ---------------------------------------------------------
 
-    -- แยกเป็น 2 ฟังก์ชันตามที่คุณต้องการ
-    createToggleRow("Auto Slap (0.1s)", "AutoSlap")
-    createToggleRow("Auto HIT 1 (Red)", "HitRed")
+    -- 1. HIT 1 (แดง) - กดทีเดียวเหมือนเดิม
+    createActionBtn("HIT 1 (Red)", Color3.fromRGB(255, 50, 50), function() 
+        ReplicatedStorage.Events.Hit:FireServer(0.9791415333747864) 
+    end)
 
+    -- 2. ออโต้แย่งตบ - ระบบเปิดปิดวนลูป
+    createToggleRow("ออโต้แย่งตบ", "AutoSlap")
+
+    -- 3. ฟังชั่นอื่นๆ
     createActionBtn("HIT 2 (Green)", Color3.fromRGB(80, 255, 80), function() 
         ReplicatedStorage.Events.Hit:FireServer(0.2337765097618103) 
     end)
@@ -100,27 +105,15 @@ local function BuildMainMenu()
     createToggleRow("Dodge (7 Keys)", "Dodge")
 
     ---------------------------------------------------------
-    -- [ Separate Loops ]
+    -- [ Loops ระบบ ]
     ---------------------------------------------------------
 
-    -- ลูป Slap แยกต่างหาก
+    -- ลูป "ออโต้แย่งตบ"
     task.spawn(function()
         while true do
             if Toggle.AutoSlap then
                 pcall(function()
                     ReplicatedStorage:WaitForChild("Events"):WaitForChild("Slap"):FireServer()
-                end)
-            end
-            task.wait(0.1)
-        end
-    end)
-
-    -- ลูป Hit Red แยกต่างหาก
-    task.spawn(function()
-        while true do
-            if Toggle.HitRed then
-                pcall(function()
-                    ReplicatedStorage.Events.Hit:FireServer(0.9791415333747864)
                 end)
             end
             task.wait(0.1)
