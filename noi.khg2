@@ -1,6 +1,6 @@
--- [[ ᴘɪꜱɪᴛ  𝟢𝟢𝟣ꜰʀᴇᴇ - CUSTOM NAME & CONFIRM ]]
+-- [[ ᴘɪꜱɪᴛ  𝟢𝟢𝟣ꜰʀᴇᴇ - ULTIMATE ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
--- KEY: 1
+-- SECRET KEY IS IN THE CODE (Hidden for Video)
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -8,7 +8,9 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
--- [ ลบ UI เก่าป้องกันบั๊ก ]
+-- [ รหัสผ่านลับ (ซ่อนจากการมองเห็นในคลิป) ]
+local _K = tostring(math.floor(2/2)) -- นี่คือเลข 1 แบบเนียนๆ ครับ
+
 if LocalPlayer.PlayerGui:FindFirstChild("Pisit001FreeMenu") then
     LocalPlayer.PlayerGui.Pisit001FreeMenu:Destroy()
 end
@@ -20,116 +22,106 @@ screenGui.ResetOnSpawn = false
 local Toggle = { AutoSlap = false, Dodge = false, BackDetect = false }
 
 ---------------------------------------------------------
--- [ ระบบหน้าต่างยืนยัน (Confirmation Custom) ]
+-- [ ระบบลาก (Smooth Drag Function) ]
 ---------------------------------------------------------
-local function AskConfirm(title, desc, onConfirm)
-    local confirmFrame = Instance.new("Frame", screenGui)
-    confirmFrame.Size = UDim2.new(0, 260, 0, 140); confirmFrame.Position = UDim2.new(0.5, -130, 0.4, 0)
-    confirmFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40); confirmFrame.ZIndex = 10; Instance.new("UICorner", confirmFrame)
-    
-    local t = Instance.new("TextLabel", confirmFrame)
-    t.Size = UDim2.new(1, 0, 0, 40); t.Text = title; t.TextColor3 = Color3.new(1,1,1); t.Font = "SourceSansBold"; t.TextSize = 18; t.BackgroundTransparency = 1; t.ZIndex = 11
-
-    local d = Instance.new("TextLabel", confirmFrame)
-    d.Size = UDim2.new(1, -20, 0, 40); d.Position = UDim2.new(0, 10, 0, 40); d.Text = desc; d.TextColor3 = Color3.fromRGB(200, 200, 200); d.TextWrapped = true; d.Font = "SourceSans"; d.TextSize = 14; d.BackgroundTransparency = 1; d.ZIndex = 11
-
-    local yes = Instance.new("TextButton", confirmFrame)
-    yes.Size = UDim2.new(0, 100, 0, 35); yes.Position = UDim2.new(0.1, 0, 0.7, 0); yes.Text = "ยืนยัน"; yes.BackgroundColor3 = Color3.fromRGB(50, 180, 50); yes.TextColor3 = Color3.new(1,1,1); yes.ZIndex = 11; Instance.new("UICorner", yes)
-    
-    local no = Instance.new("TextButton", confirmFrame)
-    no.Size = UDim2.new(0, 100, 0, 35); no.Position = UDim2.new(0.6, 0, 0.7, 0); no.Text = "ยกเลิก"; no.BackgroundColor3 = Color3.fromRGB(180, 50, 50); no.TextColor3 = Color3.new(1,1,1); no.ZIndex = 11; Instance.new("UICorner", no)
-
-    yes.MouseButton1Click:Connect(function() onConfirm(); confirmFrame:Destroy() end)
-    no.MouseButton1Click:Connect(function() confirmFrame:Destroy() end)
+local function MakeDraggable(gui, parentFrame)
+	local dragging, dragInput, dragStart, startPos
+	gui.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+			dragging = true; dragStart = input.Position; startPos = gui.Position
+			input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
+		end
+	end)
+	gui.InputChanged:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
+	end)
+	UserInputService.InputChanged:Connect(function(input)
+		if input == dragInput and dragging then
+			local delta = input.Position - dragStart
+			gui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+			if parentFrame and parentFrame.Visible then
+				parentFrame.Position = UDim2.new(gui.Position.X.Scale, gui.Position.X.Offset + 80, gui.Position.Y.Scale, gui.Position.Y.Offset)
+			end
+		end
+	end)
 end
 
 ---------------------------------------------------------
--- [ UI ส่องด้านหลัง (Zoomed) ]
+-- [ UI ยืนยัน / ส่องหลัง ]
 ---------------------------------------------------------
-local backFrame = Instance.new("Frame", screenGui)
-backFrame.Size = UDim2.new(0, 160, 0, 180); backFrame.Position = UDim2.new(0.5, -80, 0.08, 0)
-backFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0); backFrame.BackgroundTransparency = 0.4; backFrame.Visible = false; Instance.new("UICorner", backFrame)
-local viewPort = Instance.new("ViewportFrame", backFrame); viewPort.Size = UDim2.new(1, 0, 1, 0); viewPort.BackgroundTransparency = 1
-local vCamera = Instance.new("Camera"); viewPort.CurrentCamera = vCamera; vCamera.Parent = viewPort
+local function AskConfirm(title, desc, onConfirm)
+    local cf = Instance.new("Frame", screenGui); cf.Size = UDim2.new(0, 260, 0, 140); cf.Position = UDim2.new(0.5, -130, 0.4, 0); cf.BackgroundColor3 = Color3.fromRGB(40, 40, 40); cf.ZIndex = 20; Instance.new("UICorner", cf)
+    local t = Instance.new("TextLabel", cf); t.Size = UDim2.new(1, 0, 0, 40); t.Text = title; t.TextColor3 = Color3.new(1,1,1); t.Font = "SourceSansBold"; t.TextSize = 18; t.BackgroundTransparency = 1; t.ZIndex = 21
+    local d = Instance.new("TextLabel", cf); d.Size = UDim2.new(1, -20, 0, 40); d.Position = UDim2.new(0, 10, 0, 40); d.Text = desc; d.TextColor3 = Color3.fromRGB(200, 200, 200); d.TextWrapped = true; d.Font = "SourceSans"; d.TextSize = 14; d.BackgroundTransparency = 1; d.ZIndex = 21
+    local yes = Instance.new("TextButton", cf); yes.Size = UDim2.new(0, 100, 0, 35); yes.Position = UDim2.new(0.1, 0, 0.7, 0); yes.Text = "ยืนยัน"; yes.BackgroundColor3 = Color3.fromRGB(50, 180, 50); yes.TextColor3 = Color3.new(1,1,1); yes.ZIndex = 21; Instance.new("UICorner", yes)
+    local no = Instance.new("TextButton", cf); no.Size = UDim2.new(0, 100, 0, 35); no.Position = UDim2.new(0.6, 0, 0.7, 0); no.Text = "ยกเลิก"; no.BackgroundColor3 = Color3.fromRGB(180, 50, 50); no.TextColor3 = Color3.new(1,1,1); no.ZIndex = 21; Instance.new("UICorner", no)
+    yes.MouseButton1Click:Connect(function() onConfirm(); cf:Destroy() end)
+    no.MouseButton1Click:Connect(function() cf:Destroy() end)
+end
+
+local backFrame = Instance.new("Frame", screenGui); backFrame.Size = UDim2.new(0, 160, 0, 180); backFrame.Position = UDim2.new(0.5, -80, 0.08, 0); backFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0); backFrame.BackgroundTransparency = 0.4; backFrame.Visible = false; Instance.new("UICorner", backFrame)
+local viewPort = Instance.new("ViewportFrame", backFrame); viewPort.Size = UDim2.new(1, 0, 1, 0); viewPort.BackgroundTransparency = 1; local vCamera = Instance.new("Camera"); viewPort.CurrentCamera = vCamera; vCamera.Parent = viewPort
 local nameLabel = Instance.new("TextLabel", backFrame); nameLabel.Size = UDim2.new(1, 0, 0, 25); nameLabel.Position = UDim2.new(0, 0, 1, -25); nameLabel.BackgroundColor3 = Color3.new(0,0,0); nameLabel.BackgroundTransparency = 0.5; nameLabel.TextColor3 = Color3.new(1, 1, 1); nameLabel.Font = "SourceSansBold"; nameLabel.TextSize = 14; nameLabel.TextScaled = true
 
 ---------------------------------------------------------
--- [ เมนูหลัก ]
+-- [ สร้างเมนูหลัก ]
 ---------------------------------------------------------
 local function BuildMainMenu()
     local pBtn = Instance.new("TextButton", screenGui); pBtn.Size = UDim2.new(0, 70, 0, 70); pBtn.Position = UDim2.new(0.05, 0, 0.4, 0); pBtn.BackgroundColor3 = Color3.new(1,1,1); pBtn.Text = "P"; pBtn.Font = "SourceSansBold"; pBtn.TextSize = 40; pBtn.TextColor3 = Color3.new(0,0,0); Instance.new("UICorner", pBtn).CornerRadius = UDim.new(1,0)
-    local menuFrame = Instance.new("Frame", screenGui); menuFrame.Size = UDim2.new(0, 260, 0, 480); menuFrame.Position = UDim2.new(0.12, 0, 0.4, 0); menuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20); menuFrame.Visible = false; Instance.new("UICorner", menuFrame)
-    local scroll = Instance.new("ScrollingFrame", menuFrame); scroll.Size = UDim2.new(1, -10, 1, -20); scroll.Position = UDim2.new(0, 5, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 700); scroll.ScrollBarThickness = 2
+    local menuFrame = Instance.new("Frame", screenGui); menuFrame.Size = UDim2.new(0, 255, 0, 460); menuFrame.Position = UDim2.new(0.12, 0, 0.4, 0); menuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20); menuFrame.Visible = false; Instance.new("UICorner", menuFrame)
+    local scroll = Instance.new("ScrollingFrame", menuFrame); scroll.Size = UDim2.new(1, -10, 1, -20); scroll.Position = UDim2.new(0, 5, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 680); scroll.ScrollBarThickness = 2
     Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 10); scroll.UIListLayout.HorizontalAlignment = "Center"
+
+    MakeDraggable(pBtn, menuFrame) -- เรียกใช้ฟังก์ชันลากที่แก้ใหม่
 
     local function createToggle(txt, toggleKey, hasConfirm)
         local row = Instance.new("Frame", scroll); row.Size = UDim2.new(0.95, 0, 0, 45); row.BackgroundColor3 = Color3.fromRGB(35, 35, 35); Instance.new("UICorner", row)
         local label = Instance.new("TextLabel", row); label.Size = UDim2.new(0.65, 0, 1, 0); label.Position = UDim2.new(0, 10, 0, 0); label.Text = txt; label.TextColor3 = Color3.new(1,1,1); label.BackgroundTransparency = 1; label.TextXAlignment = "Left"; label.Font = "SourceSansBold"; label.TextSize = 13; label.TextWrapped = true
         local btn = Instance.new("TextButton", row); btn.Size = UDim2.new(0, 55, 0, 28); btn.Position = UDim2.new(1, -65, 0.5, -14); btn.Text = "OFF"; btn.BackgroundColor3 = Color3.fromRGB(200, 50, 50); btn.TextColor3 = Color3.new(1,1,1); btn.Font = "SourceSansBold"; Instance.new("UICorner", btn)
-        
         btn.MouseButton1Click:Connect(function()
-            local function doAction()
-                Toggle[toggleKey] = not Toggle[toggleKey]
-                btn.Text = Toggle[toggleKey] and "ON" or "OFF"
-                btn.BackgroundColor3 = Toggle[toggleKey] and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
-                if toggleKey == "BackDetect" then backFrame.Visible = Toggle[toggleKey] end
-            end
-            if hasConfirm and not Toggle[toggleKey] then
-                AskConfirm("แจ้งเตือน", "คุณต้องการเปิดฟังก์ชัน: " .. txt .. " ใช่หรือไม่?", doAction)
-            else
-                doAction()
-            end
+            local function act() Toggle[toggleKey] = not Toggle[toggleKey]; btn.Text = Toggle[toggleKey] and "ON" or "OFF"; btn.BackgroundColor3 = Toggle[toggleKey] and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50); if toggleKey == "BackDetect" then backFrame.Visible = Toggle[toggleKey] end end
+            if hasConfirm and not Toggle[toggleKey] then AskConfirm("แจ้งเตือน", "ต้องการเปิด: " .. txt .. "?", act) else act() end
         end)
     end
 
     local function createAction(txt, color, hasConfirm, cb)
         local b = Instance.new("TextButton", scroll); b.Size = UDim2.new(0.95, 0, 0, 45); b.BackgroundColor3 = color; b.Text = txt; b.Font = "SourceSansBold"; b.TextSize = 14; b.TextColor3 = Color3.new(1,1,1); b.TextWrapped = true; Instance.new("UICorner", b)
-        b.MouseButton1Click:Connect(function()
-            if hasConfirm then
-                AskConfirm("ยืนยันการใช้จ่าย/เปิด", txt .. "\n(คุณแน่ใจนะ?)", cb)
-            else
-                cb()
-            end
-        end)
+        b.MouseButton1Click:Connect(function() if hasConfirm then AskConfirm("ยืนยัน", txt, cb) else cb() end end)
     end
 
-    ---------------------------------------------------------
-    -- [ เปลี่ยนชื่อปุ่มตามสั่ง ]
-    ---------------------------------------------------------
     createAction("( ตบทีเดียว )", Color3.fromRGB(255, 50, 50), false, function() ReplicatedStorage.Events.Hit:FireServer(0.9791415333747864) end)
     createAction("( ตบเบาๆ )", Color3.fromRGB(80, 255, 80), false, function() ReplicatedStorage.Events.Hit:FireServer(0.2337765097618103) end)
-    
     createToggle("ออโต้แย่งตบ", "AutoSlap", false)
     createToggle("มองด้านหลัง (ซูมชัด)", "BackDetect", false)
-
     createAction("( สุ่มเก้าอี้ฟรี )", Color3.fromRGB(50, 100, 255), false, function() ReplicatedStorage.Events.CreateRE:FireServer("Chair Crate", "Rare", 6, Vector3.new(-83.8627, 1.2767, -10.0044)) end)
     createAction("( สุ่มที่ตบมือ - เสียเงิน )", Color3.fromRGB(255, 220, 50), true, function() ReplicatedStorage.Events.CreateRE:FireServer("Slap Crate", "Cammon", 5) end)
-    
     createToggle("(หลบอัตโนมัติ)", "Dodge", true)
 
-    -- ลากปุ่ม P
-    local dragging, dStart, sPos; pBtn.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true; dStart = i.Position; sPos = pBtn.Position end end)
-    UserInputService.InputChanged:Connect(function(i) if dragging then local dl = i.Position-dStart; pBtn.Position = UDim2.new(sPos.X.Scale, sPos.X.Offset+dl.X, sPos.Y.Scale, sPos.Y.Offset+dl.Y); if menuFrame.Visible then menuFrame.Position = UDim2.new(pBtn.Position.X.Scale, pBtn.Position.X.Offset+80, pBtn.Position.Y.Scale, pBtn.Position.Y.Offset) end end end)
-    UserInputService.InputEnded:Connect(function() dragging = false end)
-    pBtn.MouseButton1Click:Connect(function() menuFrame.Visible = not menuFrame.Visible; menuFrame.Position = UDim2.new(pBtn.Position.X.Scale, pBtn.Position.X.Offset + 80, pBtn.Position.Y.Scale, pBtn.Position.Y.Offset) end)
+    pBtn.MouseButton1Click:Connect(function() menuFrame.Visible = not menuFrame.Visible end)
 end
 
 ---------------------------------------------------------
--- [ ระบบคีย์ ]
+-- [ หน้าล็อกอิน ]
 ---------------------------------------------------------
 local keyFrame = Instance.new("Frame", screenGui); keyFrame.Size = UDim2.new(0, 280, 0, 160); keyFrame.Position = UDim2.new(0.5, -140, 0.5, -80); keyFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30); Instance.new("UICorner", keyFrame)
-local keyInput = Instance.new("TextBox", keyFrame); keyInput.Size = UDim2.new(0, 220, 0, 35); keyInput.Position = UDim2.new(0.5, -110, 0.45, 0); keyInput.PlaceholderText = "คีย์คือ 1"; keyInput.BackgroundColor3 = Color3.fromRGB(45, 45, 45); keyInput.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", keyInput)
+local keyInput = Instance.new("TextBox", keyFrame); keyInput.Size = UDim2.new(0, 220, 0, 35); keyInput.Position = UDim2.new(0.5, -110, 0.45, 0); keyInput.PlaceholderText = "ใส่รหัสลับ..."; keyInput.BackgroundColor3 = Color3.fromRGB(45, 45, 45); keyInput.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", keyInput)
 local submitBtn = Instance.new("TextButton", keyFrame); submitBtn.Size = UDim2.new(0, 220, 0, 35); submitBtn.Position = UDim2.new(0.5, -110, 0.75, 0); submitBtn.Text = "เข้าสู่ระบบ"; submitBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 255); submitBtn.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", submitBtn)
-submitBtn.MouseButton1Click:Connect(function() if keyInput.Text == "1" then keyFrame:Destroy(); BuildMainMenu() end end)
+
+submitBtn.MouseButton1Click:Connect(function()
+    if keyInput.Text == _K then -- ตรวจสอบกับรหัสที่ซ่อนไว้
+        keyFrame:Destroy(); BuildMainMenu()
+    else
+        submitBtn.Text = "รหัสผิด!"; task.wait(1); submitBtn.Text = "เข้าสู่ระบบ"
+    end
+end)
 
 ---------------------------------------------------------
--- [ ระบบ Loops และส่องหลัง ]
+-- [ ระบบส่องหลัง & Loops ]
 ---------------------------------------------------------
 local currentClone = nil
 RunService.RenderStepped:Connect(function()
     if Toggle.BackDetect and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local myRoot = LocalPlayer.Character.HumanoidRootPart
-        local closest = nil; local minDist = 60
+        local myRoot = LocalPlayer.Character.HumanoidRootPart; local closest = nil; local minDist = 60
         for _, p in pairs(Players:GetPlayers()) do
             if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
                 local tRoot = p.Character.HumanoidRootPart
