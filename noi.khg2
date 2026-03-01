@@ -1,4 +1,4 @@
--- [[ ᴘɪꜱɪᴛ  𝟢𝟢𝟣ꜰʀᴇᴇ ]]
+-- [[ ᴘɪꜱɪᴛ  𝟢𝟢𝟣ꜰʀᴇᴇ - FIXED ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 -- KEY: 1
 
@@ -8,62 +8,71 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- [ สร้าง GUI ]
+-- ลบ UI เก่าทิ้งก่อนรันใหม่ (ป้องกันหน้าจอดำค้าง)
+if LocalPlayer.PlayerGui:FindFirstChild("Pisit001FreeMenu") then
+    LocalPlayer.PlayerGui.Pisit001FreeMenu:Destroy()
+end
+
 local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
 screenGui.Name = "Pisit001FreeMenu"
 screenGui.ResetOnSpawn = false
 
-local Toggle = {
-    AutoSlap = false,
-    Dodge = false
-}
+local Toggle = { AutoSlap = false, Dodge = false }
 
 ---------------------------------------------------------
 -- [ หน้าต่างใส่คีย์ ]
 ---------------------------------------------------------
 local keyFrame = Instance.new("Frame", screenGui)
-keyFrame.Size = UDim2.new(0, 280, 0, 160); keyFrame.Position = UDim2.new(0.5, -140, 0.5, -80)
-keyFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30); Instance.new("UICorner", keyFrame)
-
-local closeKeyBtn = Instance.new("TextButton", keyFrame)
-closeKeyBtn.Size = UDim2.new(0, 30, 0, 30); closeKeyBtn.Position = UDim2.new(1, -35, 0, 5)
-closeKeyBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50); closeKeyBtn.Text = "X"; closeKeyBtn.TextColor3 = Color3.new(1,1,1)
-Instance.new("UICorner", closeKeyBtn); closeKeyBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
+keyFrame.Size = UDim2.new(0, 280, 0, 160)
+keyFrame.Position = UDim2.new(0.5, -140, 0.5, -80)
+keyFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+keyFrame.BorderSizePixel = 0
+Instance.new("UICorner", keyFrame)
 
 local keyTitle = Instance.new("TextLabel", keyFrame)
-keyTitle.Size = UDim2.new(1, 0, 0, 45); keyTitle.Text = "ᴘɪꜱɪᴛ  𝟢𝟢𝟣ꜰʀᴇᴇ"; keyTitle.TextColor3 = Color3.new(1,1,1); keyTitle.BackgroundTransparency = 1; keyTitle.Font = "SourceSansBold"; keyTitle.TextSize = 22
+keyTitle.Size = UDim2.new(1, 0, 0, 45)
+keyTitle.Text = "ᴘɪꜱɪᴛ  𝟢𝟢𝟣ꜰʀᴇᴇ"; keyTitle.TextColor3 = Color3.new(1,1,1)
+keyTitle.BackgroundTransparency = 1; keyTitle.Font = "SourceSansBold"; keyTitle.TextSize = 22
 
 local keyInput = Instance.new("TextBox", keyFrame)
-keyInput.Size = UDim2.new(0, 220, 0, 35); keyInput.Position = UDim2.new(0.5, -110, 0.45, 0); keyInput.PlaceholderText = "ใส่รหัสคีย์..."; keyInput.BackgroundColor3 = Color3.fromRGB(45, 45, 45); keyInput.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", keyInput)
+keyInput.Size = UDim2.new(0, 220, 0, 35); keyInput.Position = UDim2.new(0.5, -110, 0.45, 0)
+keyInput.PlaceholderText = "ใส่รหัสคีย์..."; keyInput.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+keyInput.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", keyInput)
 
 local submitBtn = Instance.new("TextButton", keyFrame)
-submitBtn.Size = UDim2.new(0, 220, 0, 35); submitBtn.Position = UDim2.new(0.5, -110, 0.75, 0); submitBtn.Text = "ตรวจสอบ"; submitBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 255); submitBtn.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", submitBtn)
+submitBtn.Size = UDim2.new(0, 220, 0, 35); submitBtn.Position = UDim2.new(0.5, -110, 0.75, 0)
+submitBtn.Text = "ตรวจสอบ"; submitBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 255)
+submitBtn.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", submitBtn)
 
 ---------------------------------------------------------
--- [ เมนูหลัก (Main Menu) ]
+-- [ เมนูหลัก (จะสร้างก็ต่อเมื่อใส่คีย์ถูก) ]
 ---------------------------------------------------------
 local function BuildMainMenu()
-    keyFrame:Destroy()
+    keyFrame.Visible = false -- ปิดหน้าต่างคีย์แทนการทำลายทิ้งเพื่อลด Error
 
+    -- ปุ่ม P (ปุ่มหลัก)
     local pBtn = Instance.new("TextButton", screenGui)
+    pBtn.Name = "MainToggleButton"
     pBtn.Size = UDim2.new(0, 70, 0, 70); pBtn.Position = UDim2.new(0.05, 0, 0.4, 0)
-    pBtn.BackgroundColor3 = Color3.new(1,1,1); pBtn.Text = "P"; pBtn.Font = "SourceSansBold"; pBtn.TextSize = 40; pBtn.TextColor3 = Color3.new(0,0,0)
+    pBtn.BackgroundColor3 = Color3.new(1,1,1); pBtn.Text = "P"; pBtn.Font = "SourceSansBold"
+    pBtn.TextSize = 40; pBtn.TextColor3 = Color3.new(0,0,0)
     Instance.new("UICorner", pBtn).CornerRadius = UDim.new(1,0)
 
+    -- หน้าต่างเมนู
     local menuFrame = Instance.new("Frame", screenGui)
-    menuFrame.Size = UDim2.new(0, 260, 0, 480); menuFrame.Position = UDim2.new(0.12, 0, 0.4, 0)
+    menuFrame.Size = UDim2.new(0, 260, 0, 400); menuFrame.Position = UDim2.new(0.12, 0, 0.4, 0)
     menuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20); menuFrame.Visible = false; Instance.new("UICorner", menuFrame)
     
     local scroll = Instance.new("ScrollingFrame", menuFrame)
-    scroll.Size = UDim2.new(1, -10, 1, -20); scroll.Position = UDim2.new(0, 5, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 1000); scroll.ScrollBarThickness = 2
-    Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 8); scroll.UIListLayout.HorizontalAlignment = "Center"
+    scroll.Size = UDim2.new(1, -10, 1, -20); scroll.Position = UDim2.new(0, 5, 0, 10)
+    scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 600); scroll.ScrollBarThickness = 2
+    local list = Instance.new("UIListLayout", scroll); list.Padding = UDim.new(0, 8); list.HorizontalAlignment = "Center"
 
-    -- [[ Helper สำหรับสร้างปุ่ม Toggle (ON/OFF) ]]
+    -- ฟังก์ชันสร้างปุ่มในเมนู
     local function createToggleRow(txt, toggleKey)
         local row = Instance.new("Frame", scroll); row.Size = UDim2.new(1, 0, 0, 42); row.BackgroundColor3 = Color3.fromRGB(35, 35, 35); Instance.new("UICorner", row)
         local label = Instance.new("TextLabel", row); label.Size = UDim2.new(0.6, 0, 1, 0); label.Position = UDim2.new(0, 10, 0, 0); label.Text = txt; label.TextColor3 = Color3.new(1,1,1); label.BackgroundTransparency = 1; label.TextXAlignment = "Left"; label.Font = "SourceSansBold"; label.TextSize = 14
         local btn = Instance.new("TextButton", row); btn.Size = UDim2.new(0, 60, 0, 24); btn.Position = UDim2.new(1, -70, 0.5, -12); btn.Text = "OFF"; btn.BackgroundColor3 = Color3.fromRGB(200, 50, 50); btn.TextColor3 = Color3.new(1,1,1); btn.Font = "SourceSansBold"; Instance.new("UICorner", btn)
-        
         btn.MouseButton1Click:Connect(function()
             Toggle[toggleKey] = not Toggle[toggleKey]
             btn.Text = Toggle[toggleKey] and "ON" or "OFF"
@@ -71,75 +80,65 @@ local function BuildMainMenu()
         end)
     end
 
-    -- [[ Helper สำหรับสร้างปุ่ม Action (กดทีเดียวรัน) ]]
     local function createActionBtn(txt, color, callback)
         local b = Instance.new("TextButton", scroll); b.Size = UDim2.new(1, 0, 0, 42); b.BackgroundColor3 = color; b.Text = txt; b.Font = "SourceSansBold"; b.TextSize = 15; b.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", b)
-        b.MouseButton1Click:Connect(function() callback(b) end)
+        b.MouseButton1Click:Connect(function() callback() end)
     end
 
     ---------------------------------------------------------
-    -- [ รายการเมนู ]
+    -- [ ใส่ปุ่มที่ต้องการ ]
     ---------------------------------------------------------
-
-    -- 1. HIT 1 (แดง) - กดทีเดียวเหมือนเดิม
     createActionBtn("HIT 1 (Red)", Color3.fromRGB(255, 50, 50), function() 
         ReplicatedStorage.Events.Hit:FireServer(0.9791415333747864) 
     end)
 
-    -- 2. ออโต้แย่งตบ - ระบบเปิดปิดวนลูป
     createToggleRow("ออโต้แย่งตบ", "AutoSlap")
-
-    -- 3. ฟังชั่นอื่นๆ
-    createActionBtn("HIT 2 (Green)", Color3.fromRGB(80, 255, 80), function() 
-        ReplicatedStorage.Events.Hit:FireServer(0.2337765097618103) 
-    end)
 
     createActionBtn("CHAIR CRATE", Color3.fromRGB(50, 100, 255), function() 
         ReplicatedStorage.Events.CreateRE:FireServer("Chair Crate", "Rare", 6, Vector3.new(-83.8627, 1.2767, -10.0044)) 
     end)
 
-    createActionBtn("SLAP CRATE", Color3.fromRGB(255, 220, 50), function() 
-        ReplicatedStorage.Events.CreateRE:FireServer("Slap Crate", "Cammon", 5) 
-    end)
-
     createToggleRow("Dodge (7 Keys)", "Dodge")
 
     ---------------------------------------------------------
-    -- [ Loops ระบบ ]
+    -- [ ระบบลากและเปิดปิด ]
     ---------------------------------------------------------
-
-    -- ลูป "ออโต้แย่งตบ"
-    task.spawn(function()
-        while true do
-            if Toggle.AutoSlap then
-                pcall(function()
-                    ReplicatedStorage:WaitForChild("Events"):WaitForChild("Slap"):FireServer()
-                end)
-            end
-            task.wait(0.1)
-        end
+    pBtn.MouseButton1Click:Connect(function()
+        menuFrame.Visible = not menuFrame.Visible
+        menuFrame.Position = UDim2.new(pBtn.Position.X.Scale, pBtn.Position.X.Offset + 80, pBtn.Position.Y.Scale, pBtn.Position.Y.Offset)
     end)
 
-    -- ลูป Dodge
-    task.spawn(function()
-        while true do
-            if Toggle.Dodge then
-                pcall(function()
-                    local d = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Dodge")
-                    local keys = {"G", "Z", "E", "X", "R", "Q", "C"}
-                    for _, k in pairs(keys) do d:FireServer(k) end
-                end)
-            end
-            task.wait(0.1)
-        end
-    end)
-
-    -- ระบบลากปุ่ม P
+    -- ลากปุ่ม P
     local dragging, dragStart, startPos
-    pBtn.MouseButton1Click:Connect(function() menuFrame.Visible = not menuFrame.Visible; menuFrame.Position = UDim2.new(pBtn.Position.X.Scale, pBtn.Position.X.Offset + 80, pBtn.Position.Y.Scale, pBtn.Position.Y.Offset) end)
     pBtn.InputBegan:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = true; dragStart = input.Position; startPos = pBtn.Position end end)
     UserInputService.InputChanged:Connect(function(input) if dragging then local delta = input.Position - dragStart; pBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y); if menuFrame.Visible then menuFrame.Position = UDim2.new(pBtn.Position.X.Scale, pBtn.Position.X.Offset + 80, pBtn.Position.Y.Scale, pBtn.Position.Y.Offset) end end end)
     UserInputService.InputEnded:Connect(function() dragging = false end)
 end
 
-submitBtn.MouseButton1Click:Connect(function() if keyInput.Text == "1" then BuildMainMenu() else submitBtn.Text = "คีย์ผิด!"; task.wait(1); submitBtn.Text = "ตรวจสอบ" end end)
+-- ตรวจสอบคีย์
+submitBtn.MouseButton1Click:Connect(function()
+    if keyInput.Text == "1" then
+        BuildMainMenu()
+    else
+        submitBtn.Text = "คีย์ผิด!"; task.wait(1); submitBtn.Text = "ตรวจสอบ"
+    end
+end)
+
+---------------------------------------------------------
+-- [ Loops สำหรับ Toggle ]
+---------------------------------------------------------
+task.spawn(function()
+    while true do
+        if Toggle.AutoSlap then
+            pcall(function() ReplicatedStorage:WaitForChild("Events"):WaitForChild("Slap"):FireServer() end)
+        end
+        if Toggle.Dodge then
+            pcall(function()
+                local d = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Dodge")
+                local keys = {"G", "Z", "E", "X", "R", "Q", "C"}
+                for _, k in pairs(keys) do d:FireServer(k) end
+            end)
+        end
+        task.wait(0.1)
+    end
+end)
