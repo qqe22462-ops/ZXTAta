@@ -14,6 +14,7 @@ screenGui.Name = "Pisit001FreeMenu"
 screenGui.ResetOnSpawn = false
 
 local Toggle = {
+    AutoSlap = false,
     HitRed = false,
     Dodge = false
 }
@@ -55,11 +56,11 @@ local function BuildMainMenu()
     menuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20); menuFrame.Visible = false; Instance.new("UICorner", menuFrame)
     
     local scroll = Instance.new("ScrollingFrame", menuFrame)
-    scroll.Size = UDim2.new(1, -10, 1, -20); scroll.Position = UDim2.new(0, 5, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 900); scroll.ScrollBarThickness = 2
+    scroll.Size = UDim2.new(1, -10, 1, -20); scroll.Position = UDim2.new(0, 5, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 1000); scroll.ScrollBarThickness = 2
     Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 8); scroll.UIListLayout.HorizontalAlignment = "Center"
 
     -- [[ ฟังก์ชันสร้างแถบเปิด/ปิด (On/Off ขวาสุด) ]]
-    local function createToggleRow(txt, toggleKey, callback)
+    local function createToggleRow(txt, toggleKey)
         local row = Instance.new("Frame", scroll); row.Size = UDim2.new(1, 0, 0, 42); row.BackgroundColor3 = Color3.fromRGB(35, 35, 35); Instance.new("UICorner", row)
         local label = Instance.new("TextLabel", row); label.Size = UDim2.new(0.6, 0, 1, 0); label.Position = UDim2.new(0, 10, 0, 0); label.Text = txt; label.TextColor3 = Color3.new(1,1,1); label.BackgroundTransparency = 1; label.TextXAlignment = "Left"; label.Font = "SourceSansBold"; label.TextSize = 14
         local btn = Instance.new("TextButton", row); btn.Size = UDim2.new(0, 60, 0, 24); btn.Position = UDim2.new(1, -70, 0.5, -12); btn.Text = "OFF"; btn.BackgroundColor3 = Color3.fromRGB(200, 50, 50); btn.TextColor3 = Color3.new(1,1,1); btn.Font = "SourceSansBold"; Instance.new("UICorner", btn)
@@ -68,11 +69,9 @@ local function BuildMainMenu()
             Toggle[toggleKey] = not Toggle[toggleKey]
             btn.Text = Toggle[toggleKey] and "ON" or "OFF"
             btn.BackgroundColor3 = Toggle[toggleKey] and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
-            if callback then callback(Toggle[toggleKey]) end
         end)
     end
 
-    -- [[ ฟังก์ชันสร้างปุ่มกดปกติ ]]
     local function createActionBtn(txt, color, callback)
         local b = Instance.new("TextButton", scroll); b.Size = UDim2.new(1, 0, 0, 42); b.BackgroundColor3 = color; b.Text = txt; b.Font = "SourceSansBold"; b.TextSize = 15; b.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", b)
         b.MouseButton1Click:Connect(function() callback(b) end)
@@ -82,50 +81,49 @@ local function BuildMainMenu()
     -- [ รายการเมนู ]
     ---------------------------------------------------------
 
-    -- 1. ฟังก์ชัน HIT 1 (แดง) + Slap (0.1s Loop)
-    createToggleRow("HIT 1 (Red) + Auto Slap", "HitRed")
+    -- แยกเป็น 2 ฟังก์ชันตามที่คุณต้องการ
+    createToggleRow("Auto Slap (0.1s)", "AutoSlap")
+    createToggleRow("Auto HIT 1 (Red)", "HitRed")
 
-    -- 2. HIT 2 (เขียว) แบบกดปกติ
     createActionBtn("HIT 2 (Green)", Color3.fromRGB(80, 255, 80), function() 
         ReplicatedStorage.Events.Hit:FireServer(0.2337765097618103) 
     end)
 
-    -- 3. เสกของ
     createActionBtn("CHAIR CRATE", Color3.fromRGB(50, 100, 255), function() 
         ReplicatedStorage.Events.CreateRE:FireServer("Chair Crate", "Rare", 6, Vector3.new(-83.8627, 1.2767, -10.0044)) 
     end)
+
     createActionBtn("SLAP CRATE", Color3.fromRGB(255, 220, 50), function() 
         ReplicatedStorage.Events.CreateRE:FireServer("Slap Crate", "Cammon", 5) 
     end)
 
-    -- 4. ระบบ Dodge (7 Keys)
     createToggleRow("Dodge (7 Keys)", "Dodge")
 
-    -- 5. มุมกล้องแอบดู
-    local cctv = false
-    createActionBtn("มุมกล้องแอบดู", Color3.fromRGB(100, 100, 100), function(b)
-        cctv = not cctv
-        Camera.CameraType = cctv and Enum.CameraType.Scriptable or Enum.CameraType.Custom
-        b.Text = cctv and "มุมกล้อง: ล็อคแล้ว" or "มุมกล้องแอบดู"
-        b.BackgroundColor3 = cctv and Color3.fromRGB(0, 255, 255) or Color3.fromRGB(100, 100, 100)
+    ---------------------------------------------------------
+    -- [ Separate Loops ]
+    ---------------------------------------------------------
+
+    -- ลูป Slap แยกต่างหาก
+    task.spawn(function()
+        while true do
+            if Toggle.AutoSlap then
+                pcall(function()
+                    ReplicatedStorage:WaitForChild("Events"):WaitForChild("Slap"):FireServer()
+                end)
+            end
+            task.wait(0.1)
+        end
     end)
 
-    ---------------------------------------------------------
-    -- [ Loops ระบบ ]
-    ---------------------------------------------------------
-
-    -- ลูป Combo (Slap + Hit Red)
+    -- ลูป Hit Red แยกต่างหาก
     task.spawn(function()
         while true do
             if Toggle.HitRed then
                 pcall(function()
-                    -- รัน Slap ก่อน
-                    ReplicatedStorage:WaitForChild("Events"):WaitForChild("Slap"):FireServer()
-                    -- รัน Hit Red ต่อทันที
                     ReplicatedStorage.Events.Hit:FireServer(0.9791415333747864)
                 end)
             end
-            task.wait(0.1) -- หน่วงเวลา 0.1 วิ ตามสั่ง
+            task.wait(0.1)
         end
     end)
 
