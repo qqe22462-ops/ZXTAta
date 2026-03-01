@@ -1,4 +1,4 @@
--- [[ ᴘɪꜱɪᴛ  𝟢𝟢𝟣ꜰʀᴇᴇ - QUOTA SYSTEM ]]
+-- [[ ᴘɪꜱɪᴛ  𝟢𝟢𝟣ꜰʀᴇᴇ - FINAL FIX ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 -- KEY: 1
 
@@ -11,11 +11,19 @@ local _K = "1"
 local IsUnlocked = false 
 local TimeLeft = 0 
 
--- ตัวนับโควต้า
-local Quota = { Slap1 = 0, Slap2 = 0 }
+if LocalPlayer.PlayerGui:FindFirstChild("Pisit001FreeMenu") then
+    LocalPlayer.PlayerGui.Pisit001FreeMenu:Destroy()
+end
+
+local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+screenGui.Name = "Pisit001FreeMenu"
+screenGui.ResetOnSpawn = false
+
+local Toggle = { Dodge = false, BackDetect = false }
+local Cooldowns = { Slap1 = false, Slap2 = false, Global = false }
 
 ---------------------------------------------------------
--- [ ระบบดักจับการตบจริง เพื่อ Reset โควต้า ]
+-- [ ระบบดักจับการตบจริง ]
 ---------------------------------------------------------
 local SlapEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Slap")
 local rawMetatable = getrawmetatable(game)
@@ -27,9 +35,6 @@ rawMetatable.__namecall = newcclosure(function(self, ...)
     if self == SlapEvent and method == "FireServer" then
         IsUnlocked = true
         TimeLeft = 10 
-        -- Reset โควต้าใหม่ทุกครั้งที่ตบจริง
-        Quota.Slap1 = 1
-        Quota.Slap2 = 3
     end
     return oldNamecall(self, ...)
 end)
@@ -62,49 +67,61 @@ end
 ---------------------------------------------------------
 local function BuildMainMenu()
     local pBtn = Instance.new("TextButton", screenGui); pBtn.Size = UDim2.new(0, 70, 0, 70); pBtn.Position = UDim2.new(0.05, 0, 0.4, 0); pBtn.BackgroundColor3 = Color3.new(1,1,1); pBtn.Text = "P"; pBtn.Font = "SourceSansBold"; pBtn.TextSize = 40; pBtn.TextColor3 = Color3.new(0,0,0); Instance.new("UICorner", pBtn).CornerRadius = UDim.new(1,0)
+    
+    -- ขยายเมนูให้ยาวขึ้น (Size Y = 550)
     local menuFrame = Instance.new("Frame", screenGui); menuFrame.Size = UDim2.new(0, 255, 0, 550); menuFrame.Position = UDim2.new(0.12, 0, 0.3, 0); menuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20); menuFrame.Visible = false; Instance.new("UICorner", menuFrame)
+    
+    -- ขยายพื้นที่เลื่อนให้เยอะขึ้น (CanvasSize Y = 900)
     local scroll = Instance.new("ScrollingFrame", menuFrame); scroll.Size = UDim2.new(1, -10, 1, -20); scroll.Position = UDim2.new(0, 5, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 950); scroll.ScrollBarThickness = 4
     Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 10); scroll.UIListLayout.HorizontalAlignment = "Center"
 
     DragSystem(pBtn, menuFrame)
 
-    -- [ 1. กลุ่มสุ่มของ (กดได้ตลอด) ]
+    -- [ 1. กลุ่มปุ่มสุ่มของ (เอาไว้บนสุด กดได้ตลอด) ]
     local function createNormalAction(txt, color, cb)
         local b = Instance.new("TextButton", scroll); b.Size = UDim2.new(0.95, 0, 0, 50); b.BackgroundColor3 = color; b.Text = txt; b.Font = "SourceSansBold"; b.TextSize = 15; b.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", b)
         b.MouseButton1Click:Connect(cb)
     end
 
-    createNormalAction("🛋️ สุ่มเก้าอี้ฟรี", Color3.fromRGB(50, 120, 255), function() ReplicatedStorage.Events.CreateRE:FireServer("Chair Crate", "Rare", 6, Vector3.new(-83.8627, 1.2767, -10.0044)) end)
-    createNormalAction("👏 สุ่มที่ตบมือ (เสียเงิน)", Color3.fromRGB(200, 160, 0), function() ReplicatedStorage.Events.CreateRE:FireServer("Slap Crate", "Cammon", 5) end)
+    createNormalAction("🛋️ สุ่มเก้าอี้ฟรี", Color3.fromRGB(50, 120, 255), function() 
+        ReplicatedStorage.Events.CreateRE:FireServer("Chair Crate", "Rare", 6, Vector3.new(-83.8627, 1.2767, -10.0044)) 
+    end)
 
-    -- [ 2. สถานะระบบ ]
+    createNormalAction("👏 สุ่มที่ตบมือ (เสียเงิน)", Color3.fromRGB(200, 160, 0), function() 
+        ReplicatedStorage.Events.CreateRE:FireServer("Slap Crate", "Cammon", 5) 
+    end)
+
+    -- เส้นคั่น
+    local line = Instance.new("Frame", scroll); line.Size = UDim2.new(0.9, 0, 0, 2); line.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+
+    -- [ 2. ระบบสถานะการปลดล็อค ]
     local statusLabel = Instance.new("TextLabel", scroll)
-    statusLabel.Size = UDim2.new(0.95, 0, 0, 45); statusLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40); statusLabel.TextColor3 = Color3.fromRGB(200, 50, 50); statusLabel.Text = "กรุณาตบจริงเพื่อปลดล็อค"; statusLabel.Font = "SourceSansBold"; statusLabel.TextSize = 12; statusLabel.TextWrapped = true; Instance.new("UICorner", statusLabel)
+    statusLabel.Size = UDim2.new(0.95, 0, 0, 40); statusLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40); statusLabel.TextColor3 = Color3.fromRGB(200, 50, 50); statusLabel.Text = "สถานะ: ยังไม่ตบ (Locked)"; statusLabel.Font = "SourceSansBold"; statusLabel.TextSize = 13; Instance.new("UICorner", statusLabel)
 
-    -- [ 3. ปุ่มตบโควต้า ]
-    local function createQuotaButton(txt, color, quotaKey, eventArg)
+    -- [ 3. ปุ่มตบพิเศษ (ต้อง Unlock) ]
+    local function createSlapButton(txt, color, cdKey, eventArg)
         local b = Instance.new("TextButton", scroll)
         b.Size = UDim2.new(0.95, 0, 0, 45); b.BackgroundColor3 = Color3.fromRGB(60, 60, 60); b.Text = txt; b.Font = "SourceSansBold"; b.TextSize = 14; b.TextColor3 = Color3.new(0.4, 0.4, 0.4); Instance.new("UICorner", b)
-        
         b.MouseButton1Click:Connect(function()
-            if IsUnlocked and Quota[quotaKey] > 0 then
-                Quota[quotaKey] = Quota[quotaKey] - 1
+            if not IsUnlocked then return end
+            if not Cooldowns[cdKey] and not Cooldowns.Global then
+                Cooldowns[cdKey] = true; Cooldowns.Global = true
                 ReplicatedStorage.Events.Hit:FireServer(eventArg)
-                
-                -- ถ้าโควต้าหมดให้ล็อคปุ่มทันที
-                if Quota[quotaKey] <= 0 then
-                    b.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-                    b.TextColor3 = Color3.new(0.4, 0.4, 0.4)
-                end
+                task.spawn(function() task.wait(0.5); Cooldowns.Global = false end)
+                task.spawn(function()
+                    local oldC = color; b.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+                    for i = 20, 1, -1 do b.Text = string.format("Cool.. %.1f", i/10); task.wait(0.1) end
+                    b.Text = txt; b.BackgroundColor3 = oldC; Cooldowns[cdKey] = false
+                end)
             end
         end)
         return b
     end
 
-    local slap1 = createQuotaButton("( ตบทีเดียว )", Color3.fromRGB(255, 50, 50), "Slap1", 0.9791415333747864)
-    local slap2 = createQuotaButton("( ตบเบาๆ )", Color3.fromRGB(80, 255, 80), "Slap2", 0.2337765097618103)
+    local slap1 = createSlapButton("( ตบทีเดียว )", Color3.fromRGB(255, 50, 50), "Slap1", 0.9791415333747864)
+    local slap2 = createSlapButton("( ตบเบาๆ )", Color3.fromRGB(80, 255, 80), "Slap2", 0.2337765097618103)
 
-    -- [ 4. ตั้งค่าเสริม ]
+    -- [ 4. ฟังก์ชันเปิด/ปิดเสริม ]
     local function createToggle(txt, toggleKey)
         local row = Instance.new("Frame", scroll); row.Size = UDim2.new(0.95, 0, 0, 45); row.BackgroundColor3 = Color3.fromRGB(35, 35, 35); Instance.new("UICorner", row)
         local label = Instance.new("TextLabel", row); label.Size = UDim2.new(0.65, 0, 1, 0); label.Position = UDim2.new(0, 10, 0, 0); label.Text = txt; label.TextColor3 = Color3.new(1,1,1); label.BackgroundTransparency = 1; label.TextXAlignment = "Left"; label.Font = "SourceSansBold"; label.TextSize = 13
@@ -117,33 +134,23 @@ local function BuildMainMenu()
         end)
     end
 
-    createToggle("มองด้านหลัง", "BackDetect")
-    createToggle("หลบอัตโนมัติ", "Dodge")
+    createToggle("มองด้านหลัง (ซูมชัด)", "BackDetect")
+    createToggle("(หลบอัตโนมัติ)", "Dodge")
 
-    -- ระบบ Loop อัปเดต UI และโควต้า
+    -- ระบบ Loop สถานะ
     task.spawn(function()
         while true do
             if IsUnlocked then
-                statusLabel.TextColor3 = Color3.fromRGB(50, 200, 50)
-                statusLabel.Text = string.format("ปลดล็อค! (%d วิ)\nตบหนัก: %d | ตบเบา: %d", math.ceil(TimeLeft), Quota.Slap1, Quota.Slap2)
-                
-                -- อัปเดตสีปุ่มตามโควต้าที่เหลือ
-                slap1.BackgroundColor3 = Quota.Slap1 > 0 and Color3.fromRGB(255, 50, 50) or Color3.fromRGB(40, 40, 40)
-                slap1.TextColor3 = Quota.Slap1 > 0 and Color3.new(1,1,1) or Color3.new(0.4, 0.4, 0.4)
-                
-                slap2.BackgroundColor3 = Quota.Slap2 > 0 and Color3.fromRGB(80, 255, 80) or Color3.fromRGB(40, 40, 40)
-                slap2.TextColor3 = Quota.Slap2 > 0 and Color3.new(1,1,1) or Color3.new(0.4, 0.4, 0.4)
-
+                statusLabel.TextColor3 = Color3.fromRGB(50, 200, 50); statusLabel.Text = "ปลดล็อคแล้ว! (" .. math.ceil(TimeLeft) .. " วิ)"
+                slap1.TextColor3 = Color3.new(1,1,1); slap1.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+                slap2.TextColor3 = Color3.new(1,1,1); slap2.BackgroundColor3 = Color3.fromRGB(80, 255, 80)
                 TimeLeft = TimeLeft - 0.1
-                if TimeLeft <= 0 or (Quota.Slap1 <= 0 and Quota.Slap2 <= 0) then
+                if TimeLeft <= 0 then
                     IsUnlocked = false
-                    TimeLeft = 0
+                    statusLabel.TextColor3 = Color3.fromRGB(200, 50, 50); statusLabel.Text = "หมดเวลา! ตบใหม่ (Locked)"
+                    slap1.TextColor3 = Color3.new(0.4, 0.4, 0.4); slap1.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+                    slap2.TextColor3 = Color3.new(0.4, 0.4, 0.4); slap2.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
                 end
-            else
-                statusLabel.TextColor3 = Color3.fromRGB(200, 50, 50)
-                statusLabel.Text = "ระบบล็อคอยู่: ตบคนในเกมเพื่อเปิด"
-                slap1.BackgroundColor3 = Color3.fromRGB(40, 40, 40); slap1.TextColor3 = Color3.new(0.4, 0.4, 0.4)
-                slap2.BackgroundColor3 = Color3.fromRGB(40, 40, 40); slap2.TextColor3 = Color3.new(0.4, 0.4, 0.4)
             end
             task.wait(0.1)
         end
@@ -155,14 +162,13 @@ end
 ---------------------------------------------------------
 -- [ หน้าล็อกอิน ]
 ---------------------------------------------------------
-local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui); screenGui.Name = "Pisit001FreeMenu"; screenGui.ResetOnSpawn = false
 local keyFrame = Instance.new("Frame", screenGui); keyFrame.Size = UDim2.new(0, 280, 0, 160); keyFrame.Position = UDim2.new(0.5, -140, 0.5, -80); keyFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30); Instance.new("UICorner", keyFrame)
 local keyInput = Instance.new("TextBox", keyFrame); keyInput.Size = UDim2.new(0, 220, 0, 35); keyInput.Position = UDim2.new(0.5, -110, 0.45, 0); keyInput.PlaceholderText = "คีย์คือ 1"; keyInput.BackgroundColor3 = Color3.fromRGB(45, 45, 45); keyInput.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", keyInput)
 local submitBtn = Instance.new("TextButton", keyFrame); submitBtn.Size = UDim2.new(0, 220, 0, 35); submitBtn.Position = UDim2.new(0.5, -110, 0.75, 0); submitBtn.Text = "เข้าสู่ระบบ"; submitBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 255); submitBtn.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", submitBtn)
 submitBtn.MouseButton1Click:Connect(function() if keyInput.Text == _K then keyFrame:Destroy(); BuildMainMenu() end end)
 
 ---------------------------------------------------------
--- [ UI ส่องหลัง (เหมือนเดิม) ]
+-- [ UI ส่องหลัง ]
 ---------------------------------------------------------
 local backFrame = Instance.new("Frame", screenGui); backFrame.Name = "BackFrame"; backFrame.Size = UDim2.new(0, 160, 0, 180); backFrame.Position = UDim2.new(0.5, -80, 0.08, 0); backFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0); backFrame.BackgroundTransparency = 0.4; backFrame.Visible = false; Instance.new("UICorner", backFrame)
 local viewPort = Instance.new("ViewportFrame", backFrame); viewPort.Size = UDim2.new(1, 0, 1, 0); viewPort.BackgroundTransparency = 1; local vCamera = Instance.new("Camera"); viewPort.CurrentCamera = vCamera; vCamera.Parent = viewPort
