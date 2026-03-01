@@ -1,4 +1,4 @@
--- [[ ᴘɪꜱɪᴛ  𝟢𝟢𝟣ꜰʀᴇᴇ - SECURITY UPDATE ]]
+-- [[ ᴘɪꜱɪᴛ  𝟢𝟢𝟣ꜰʀᴇᴇ - EVENT DETECTOR ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 -- KEY: 1
 
@@ -8,8 +8,8 @@ local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
 local _K = "1"
-local SystemReady = false -- สถานะปลดล็อคระบบตบ
-local IsUnlocking = false -- สถานะกำลังนับถอยหลัง 10 วิ
+local IsUnlocked = false -- สถานะการปลดล็อค
+local TimeLeft = 0 -- เวลานับถอยหลังการปลดล็อค
 
 if LocalPlayer.PlayerGui:FindFirstChild("Pisit001FreeMenu") then
     LocalPlayer.PlayerGui.Pisit001FreeMenu:Destroy()
@@ -23,7 +23,32 @@ local Toggle = { Dodge = false, BackDetect = false }
 local Cooldowns = { Slap1 = false, Slap2 = false, Global = false }
 
 ---------------------------------------------------------
--- [ ฟังก์ชันลากปุ่ม P ]
+-- [ ระบบตรวจจับการตบจริง (Hook Event) ]
+---------------------------------------------------------
+-- เมื่อมีการเรียกใช้ Slap Event (จากการที่คุณกดตบในเกม)
+local SlapEvent = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Slap")
+
+-- สร้างส่วนจำลองเพื่อดักจับการส่งข้อมูล
+local rawMetatable = getrawmetatable(game)
+setreadonly(rawMetatable, false)
+local oldNamecall = rawMetatable.__namecall
+
+rawMetatable.__namecall = newcclosure(function(self, ...)
+    local method = getnamecallmethod()
+    if self == SlapEvent and method == "FireServer" then
+        -- ถ้ามีการตบเกิดขึ้น ปลดล็อคระบบ 10 วินาที!
+        if not IsUnlocked then
+            IsUnlocked = true
+            TimeLeft = 10
+        else
+            TimeLeft = 10 -- รีเซ็ตเวลาเป็น 10 วิใหม่ถ้าตบซ้ำ
+        end
+    end
+    return oldNamecall(self, ...)
+end)
+
+---------------------------------------------------------
+-- [ ระบบลากปุ่ม P ]
 ---------------------------------------------------------
 local function DragSystem(frame, menu)
     local dragging, dragInput, dragStart, startPos
@@ -56,20 +81,19 @@ local function BuildMainMenu()
 
     DragSystem(pBtn, menuFrame)
 
-    -- [ 1. ปุ่มเริ่มระบบแย่งตบ (ต้องกดก่อน) ]
-    local startBtn = Instance.new("TextButton", scroll)
-    startBtn.Size = UDim2.new(0.95, 0, 0, 50); startBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 255); startBtn.Text = "เริ่มระบบแย่งตบ (Unlock)"; startBtn.Font = "SourceSansBold"; startBtn.TextSize = 14; startBtn.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", startBtn)
+    -- สถานะระบบ (โชว์ว่าปลดล็อคหรือยัง)
+    local statusLabel = Instance.new("TextLabel", scroll)
+    statusLabel.Size = UDim2.new(0.95, 0, 0, 40); statusLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40); statusLabel.TextColor3 = Color3.fromRGB(200, 50, 50); statusLabel.Text = "สถานะ: ยังไม่ตบ (Locked)"; statusLabel.Font = "SourceSansBold"; statusLabel.TextSize = 14; Instance.new("UICorner", statusLabel)
 
-    -- [ 2. ปุ่มตบ (จะทำงานเมื่อ SystemReady = true) ]
+    -- ปุ่มตบพิเศษ
     local function createSlapButton(txt, color, cdKey, eventArg)
         local b = Instance.new("TextButton", scroll)
-        b.Size = UDim2.new(0.95, 0, 0, 45); b.BackgroundColor3 = Color3.fromRGB(50, 50, 50); b.Text = txt .. " (Locked)"; b.Font = "SourceSansBold"; b.TextSize = 14; b.TextColor3 = Color3.new(0.6, 0.6, 0.6); Instance.new("UICorner", b)
+        b.Size = UDim2.new(0.95, 0, 0, 45); b.BackgroundColor3 = Color3.fromRGB(60, 60, 60); b.Text = txt; b.Font = "SourceSansBold"; b.TextSize = 14; b.TextColor3 = Color3.new(0.4, 0.4, 0.4); Instance.new("UICorner", b)
         
         b.MouseButton1Click:Connect(function()
-            if not SystemReady then
-                b.Text = "ต้องเริ่มระบบแย่งตบก่อน!"
-                task.wait(1); b.Text = txt .. " (Locked)"
-                return
+            if not IsUnlocked then 
+                statusLabel.Text = "กรุณาตบคนในเกมก่อน!"; task.wait(1) 
+                return 
             end
             if not Cooldowns[cdKey] and not Cooldowns.Global then
                 Cooldowns[cdKey] = true; Cooldowns.Global = true
@@ -77,7 +101,7 @@ local function BuildMainMenu()
                 task.spawn(function() task.wait(0.5); Cooldowns.Global = false end)
                 task.spawn(function()
                     local oldC = color; b.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-                    for i = 20, 1, -1 do b.Text = string.format("Cooling.. %.1f", i/10); task.wait(0.1) end
+                    for i = 20, 1, -1 do b.Text = string.format("รอสาย.. %.1f", i/10); task.wait(0.1) end
                     b.Text = txt; b.BackgroundColor3 = oldC; Cooldowns[cdKey] = false
                 end)
             end
@@ -88,31 +112,30 @@ local function BuildMainMenu()
     local slap1 = createSlapButton("( ตบทีเดียว )", Color3.fromRGB(255, 50, 50), "Slap1", 0.9791415333747864)
     local slap2 = createSlapButton("( ตบเบาๆ )", Color3.fromRGB(80, 255, 80), "Slap2", 0.2337765097618103)
 
-    -- Logic การปลดล็อคเมื่อกด "เริ่มระบบแย่งตบ"
-    startBtn.MouseButton1Click:Connect(function()
-        if IsUnlocking or SystemReady then return end
-        IsUnlocking = true
-        startBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-        
-        -- ส่ง Event แย่งตบ 1 ครั้งตามที่คุณสั่ง (กดเอง)
-        pcall(function() ReplicatedStorage.Events.Slap:FireServer() end)
-
-        -- นับถอยหลัง 10 วิเพื่อปลดล็อคปุ่มตบ
-        for i = 10, 1, -1 do
-            startBtn.Text = "กำลังเตรียมระบบ.. (" .. i .. " วิ)"
-            task.wait(1)
+    -- ระบบนับถอยหลัง 10 วิ (Loop ตรวจสอบสถานะ)
+    task.spawn(function()
+        while true do
+            if IsUnlocked then
+                statusLabel.TextColor3 = Color3.fromRGB(50, 200, 50)
+                statusLabel.Text = "ปลดล็อคแล้ว! เหลือเวลา: " .. math.ceil(TimeLeft) .. " วิ"
+                slap1.TextColor3 = Color3.new(1,1,1); slap1.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+                slap2.TextColor3 = Color3.new(1,1,1); slap2.BackgroundColor3 = Color3.fromRGB(80, 255, 80)
+                
+                TimeLeft = TimeLeft - 0.1
+                if TimeLeft <= 0 then
+                    IsUnlocked = false
+                    statusLabel.TextColor3 = Color3.fromRGB(200, 50, 50)
+                    statusLabel.Text = "หมดเวลา! กรุณาตบใหม่ (Locked)"
+                    slap1.TextColor3 = Color3.new(0.4, 0.4, 0.4); slap1.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+                    slap2.TextColor3 = Color3.new(0.4, 0.4, 0.4); slap2.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+                end
+            end
+            task.wait(0.1)
         end
-        
-        SystemReady = true
-        startBtn.Text = "ระบบพร้อมใช้งานแล้ว ✅"; startBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
-        
-        -- เปลี่ยนสีและข้อความปุ่มตบให้ดูพร้อมใช้งาน
-        slap1.Text = "( ตบทีเดียว )"; slap1.BackgroundColor3 = Color3.fromRGB(255, 50, 50); slap1.TextColor3 = Color3.new(1,1,1)
-        slap2.Text = "( ตบเบาๆ )"; slap2.BackgroundColor3 = Color3.fromRGB(80, 255, 80); slap2.TextColor3 = Color3.new(1,1,1)
     end)
 
     ---------------------------------------------------------
-    -- [ ฟังก์ชันเสริมอื่นๆ ]
+    -- [ ส่วนอื่นๆ ]
     ---------------------------------------------------------
     local function createToggle(txt, toggleKey)
         local row = Instance.new("Frame", scroll); row.Size = UDim2.new(0.95, 0, 0, 45); row.BackgroundColor3 = Color3.fromRGB(35, 35, 35); Instance.new("UICorner", row)
@@ -125,23 +148,14 @@ local function BuildMainMenu()
             if toggleKey == "BackDetect" then screenGui.BackFrame.Visible = Toggle[toggleKey] end
         end)
     end
-
     createToggle("มองด้านหลัง (ซูมชัด)", "BackDetect")
-    
-    local function createAction(txt, color, cb)
-        local b = Instance.new("TextButton", scroll); b.Size = UDim2.new(0.95, 0, 0, 45); b.BackgroundColor3 = color; b.Text = txt; b.Font = "SourceSansBold"; b.TextSize = 14; b.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", b)
-        b.MouseButton1Click:Connect(cb)
-    end
-
-    createAction("( สุ่มเก้าอี้ฟรี )", Color3.fromRGB(50, 100, 255), function() ReplicatedStorage.Events.CreateRE:FireServer("Chair Crate", "Rare", 6, Vector3.new(-83.8627, 1.2767, -10.0044)) end)
-    createAction("( สุ่มที่ตบมือ - เสียเงิน )", Color3.fromRGB(255, 220, 50), function() ReplicatedStorage.Events.CreateRE:FireServer("Slap Crate", "Cammon", 5) end)
     createToggle("(หลบอัตโนมัติ)", "Dodge")
 
     pBtn.MouseButton1Click:Connect(function() menuFrame.Visible = not menuFrame.Visible end)
 end
 
 ---------------------------------------------------------
--- [ หน้าล็อกอิน ]
+-- [ ระบบล็อกอิน ]
 ---------------------------------------------------------
 local keyFrame = Instance.new("Frame", screenGui); keyFrame.Size = UDim2.new(0, 280, 0, 160); keyFrame.Position = UDim2.new(0.5, -140, 0.5, -80); keyFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30); Instance.new("UICorner", keyFrame)
 local keyInput = Instance.new("TextBox", keyFrame); keyInput.Size = UDim2.new(0, 220, 0, 35); keyInput.Position = UDim2.new(0.5, -110, 0.45, 0); keyInput.PlaceholderText = "คีย์คือ 1"; keyInput.BackgroundColor3 = Color3.fromRGB(45, 45, 45); keyInput.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", keyInput)
