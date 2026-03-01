@@ -1,4 +1,4 @@
--- [[ ᴘɪꜱɪᴛ ꜰᴘꜱ ʙᴏᴏꜱᴛᴇʀ - POTATO V2 ]]
+-- [[ ᴘɪꜱɪᴛ ꜰᴘꜱ ʙᴏᴏꜱᴛᴇʀ - DRAG FIXED ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 
 local Players = game:GetService("Players")
@@ -16,13 +16,14 @@ local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
 screenGui.Name = "PisitPotatoUI"
 screenGui.ResetOnSpawn = false
 
--- ตัวกลุ่มหลัก (เอาไว้ลาก)
+-- ตัวกลุ่มหลัก (Parent ของทั้งสองปุ่ม)
 local MainFrame = Instance.new("Frame", screenGui)
 MainFrame.Size = UDim2.new(0, 110, 0, 50)
 MainFrame.Position = UDim2.new(0.8, 0, 0.5, 0)
 MainFrame.BackgroundTransparency = 1
+MainFrame.Active = true -- ทำให้รับ Input ได้
 
--- ปุ่มกลมด้านซ้าย (ตัวกดหลัก)
+-- ปุ่มกลมด้านซ้าย (FPS)
 local mainBtn = Instance.new("TextButton", MainFrame)
 mainBtn.Size = UDim2.new(0, 50, 0, 50)
 mainBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
@@ -33,7 +34,7 @@ mainBtn.TextColor3 = Color3.new(1, 1, 1)
 Instance.new("UICorner", mainBtn).CornerRadius = UDim.new(1, 0)
 local stroke = Instance.new("UIStroke", mainBtn); stroke.Thickness = 2; stroke.Color = Color3.new(1,1,1)
 
--- ปุ่มสถานะด้านขวา (ON/OFF)
+-- ปุ่มสถานะด้านขวา (OFF/ON)
 local toggleBtn = Instance.new("TextButton", MainFrame)
 toggleBtn.Size = UDim2.new(0, 50, 0, 30)
 toggleBtn.Position = UDim2.new(0, 55, 0.5, -15)
@@ -44,23 +45,47 @@ toggleBtn.TextSize = 14
 toggleBtn.TextColor3 = Color3.new(1, 1, 1)
 Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 8)
 
--- ระบบลาก (Drag System)
+---------------------------------------------------------
+-- [ ระบบลากใหม่ (ลื่นกว่าเดิม และกดได้ปกติ) ]
+---------------------------------------------------------
 local dragging, dragInput, dragStart, startPos
-MainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true; dragStart = input.Position; startPos = MainFrame.Position
-    end
-end)
-MainFrame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
-end)
+
+local function update(input)
+    local delta = input.Position - dragStart
+    MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+
+-- ฟังก์ชันดักจับการเริ่มลากจากทุุกปุ่มในกลุ่ม
+local function setupDrag(obj)
+    obj.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = MainFrame.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    obj.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+end
+
+setupDrag(mainBtn)
+setupDrag(toggleBtn)
+
 UserInputService.InputChanged:Connect(function(input)
     if input == dragInput and dragging then
-        local delta = input.Position - dragStart
-        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        update(input)
     end
 end)
-UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end end)
 
 ---------------------------------------------------------
 -- [ ฟังก์ชันปรับภาพดินน้ำมัน ]
@@ -73,16 +98,18 @@ local function SetPotato(state)
         toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
         stroke.Color = Color3.fromRGB(50, 200, 50)
         
-        -- เริ่มการปรับภาพ
+        -- ปรับ Material ทั้งแมพ (ดินน้ำมัน)
         for _, v in pairs(game:GetDescendants()) do
-            if v:IsA("Part") or v:IsA("UnionOperation") or v:IsA("MeshPart") then
-                v.Material = Enum.Material.SmoothPlastic
-                v.Reflectance = 0
-            elseif v:IsA("Decal") or v:IsA("Texture") then
-                v.Transparency = 1
-            elseif v:IsA("ParticleEmitter") or v:IsA("Trail") then
-                v.Enabled = false
-            end
+            pcall(function()
+                if v:IsA("Part") or v:IsA("UnionOperation") or v:IsA("MeshPart") then
+                    v.Material = Enum.Material.SmoothPlastic
+                    v.Reflectance = 0
+                elseif v:IsA("Decal") or v:IsA("Texture") then
+                    v.Transparency = 1
+                elseif v:IsA("ParticleEmitter") or v:IsA("Trail") then
+                    v.Enabled = false
+                end
+            end)
         end
         Lighting.GlobalShadows = false
         settings().Rendering.QualityLevel = 1
@@ -91,15 +118,21 @@ local function SetPotato(state)
         toggleBtn.Text = "OFF"
         toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
         stroke.Color = Color3.new(1,1,1)
-        -- (ปกติภาพดินน้ำมันถ้ารีเซ็ตต้องโหลดแมพใหม่ แต่เบื้องต้นคือปิดระบบแก้แลค)
+        -- หมายเหตุ: การแก้ภาพกลับอาจต้องใช้ทรัพยากรมาก ส่วนใหญ่จะเน้นเปิดแล้วยาวเลย
     end
 end
 
--- กดปุ่มไหนก็ได้เพื่อสลับ
-local function toggle()
-    isPotato = not isPotato
-    SetPotato(isPotato)
-end
+-- ระบบคลิก (แยกออกจากลาก)
+mainBtn.MouseButton1Up:Connect(function()
+    if not dragging then -- ป้องกันการเปลี่ยนสถานะขณะกำลังลาก
+        isPotato = not isPotato
+        SetPotato(isPotato)
+    end
+end)
 
-mainBtn.MouseButton1Click:Connect(toggle)
-toggleBtn.MouseButton1Click:Connect(toggle)
+toggleBtn.MouseButton1Up:Connect(function()
+    if not dragging then
+        isPotato = not isPotato
+        SetPotato(isPotato)
+    end
+end)
