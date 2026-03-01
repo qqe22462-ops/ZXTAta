@@ -13,28 +13,28 @@ local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
 screenGui.Name = "Pisit001FreeMenu"
 screenGui.ResetOnSpawn = false
 
+local Toggle = {
+    HitRed = false,
+    Dodge = false
+}
+
 ---------------------------------------------------------
--- [ หน้าต่างใส่คีย์ (Key UI) ]
+-- [ หน้าต่างใส่คีย์ ]
 ---------------------------------------------------------
 local keyFrame = Instance.new("Frame", screenGui)
 keyFrame.Size = UDim2.new(0, 280, 0, 160); keyFrame.Position = UDim2.new(0.5, -140, 0.5, -80)
 keyFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30); Instance.new("UICorner", keyFrame)
 
--- [[ เพิ่มปุ่มกากบาท [X] ]]
 local closeKeyBtn = Instance.new("TextButton", keyFrame)
 closeKeyBtn.Size = UDim2.new(0, 30, 0, 30); closeKeyBtn.Position = UDim2.new(1, -35, 0, 5)
 closeKeyBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50); closeKeyBtn.Text = "X"; closeKeyBtn.TextColor3 = Color3.new(1,1,1)
-closeKeyBtn.Font = "SourceSansBold"; closeKeyBtn.TextSize = 18; Instance.new("UICorner", closeKeyBtn)
-
-closeKeyBtn.MouseButton1Click:Connect(function()
-    screenGui:Destroy() -- ปิดทิ้งทั้งระบบถ้าไม่อยากใส่คีย์
-end)
+Instance.new("UICorner", closeKeyBtn); closeKeyBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
 
 local keyTitle = Instance.new("TextLabel", keyFrame)
 keyTitle.Size = UDim2.new(1, 0, 0, 45); keyTitle.Text = "ᴘɪꜱɪᴛ  𝟢𝟢𝟣ꜰʀᴇᴇ"; keyTitle.TextColor3 = Color3.new(1,1,1); keyTitle.BackgroundTransparency = 1; keyTitle.Font = "SourceSansBold"; keyTitle.TextSize = 22
 
 local keyInput = Instance.new("TextBox", keyFrame)
-keyInput.Size = UDim2.new(0, 220, 0, 35); keyInput.Position = UDim2.new(0.5, -110, 0.45, 0); keyInput.PlaceholderText = "ใส่รหัสคีย์..."; keyInput.Text = ""; keyInput.BackgroundColor3 = Color3.fromRGB(45, 45, 45); keyInput.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", keyInput)
+keyInput.Size = UDim2.new(0, 220, 0, 35); keyInput.Position = UDim2.new(0.5, -110, 0.45, 0); keyInput.PlaceholderText = "ใส่รหัสคีย์..."; keyInput.BackgroundColor3 = Color3.fromRGB(45, 45, 45); keyInput.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", keyInput)
 
 local submitBtn = Instance.new("TextButton", keyFrame)
 submitBtn.Size = UDim2.new(0, 220, 0, 35); submitBtn.Position = UDim2.new(0.5, -110, 0.75, 0); submitBtn.Text = "ตรวจสอบ"; submitBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 255); submitBtn.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", submitBtn)
@@ -51,39 +51,88 @@ local function BuildMainMenu()
     Instance.new("UICorner", pBtn).CornerRadius = UDim.new(1,0)
 
     local menuFrame = Instance.new("Frame", screenGui)
-    menuFrame.Size = UDim2.new(0, 250, 0, 450); menuFrame.Position = UDim2.new(0.12, 0, 0.4, 0)
+    menuFrame.Size = UDim2.new(0, 260, 0, 480); menuFrame.Position = UDim2.new(0.12, 0, 0.4, 0)
     menuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20); menuFrame.Visible = false; Instance.new("UICorner", menuFrame)
     
     local scroll = Instance.new("ScrollingFrame", menuFrame)
-    scroll.Size = UDim2.new(1, 0, 1, -45); scroll.Position = UDim2.new(0, 0, 0, 35); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 800); scroll.ScrollBarThickness = 2
-    Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 10); scroll.UIListLayout.HorizontalAlignment = "Center"
+    scroll.Size = UDim2.new(1, -10, 1, -20); scroll.Position = UDim2.new(0, 5, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 900); scroll.ScrollBarThickness = 2
+    Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 8); scroll.UIListLayout.HorizontalAlignment = "Center"
 
-    local function createMenuBtn(txt, color, callback)
-        local b = Instance.new("TextButton", scroll); b.Size = UDim2.new(0, 220, 0, 45); b.BackgroundColor3 = color; b.Text = txt; b.Font = "SourceSansBold"; b.TextSize = 16; b.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", b)
-        b.MouseButton1Click:Connect(function() callback(b) end)
-        return b
+    -- [[ ฟังก์ชันสร้างแถบเปิด/ปิด (On/Off ขวาสุด) ]]
+    local function createToggleRow(txt, toggleKey, callback)
+        local row = Instance.new("Frame", scroll); row.Size = UDim2.new(1, 0, 0, 42); row.BackgroundColor3 = Color3.fromRGB(35, 35, 35); Instance.new("UICorner", row)
+        local label = Instance.new("TextLabel", row); label.Size = UDim2.new(0.6, 0, 1, 0); label.Position = UDim2.new(0, 10, 0, 0); label.Text = txt; label.TextColor3 = Color3.new(1,1,1); label.BackgroundTransparency = 1; label.TextXAlignment = "Left"; label.Font = "SourceSansBold"; label.TextSize = 14
+        local btn = Instance.new("TextButton", row); btn.Size = UDim2.new(0, 60, 0, 24); btn.Position = UDim2.new(1, -70, 0.5, -12); btn.Text = "OFF"; btn.BackgroundColor3 = Color3.fromRGB(200, 50, 50); btn.TextColor3 = Color3.new(1,1,1); btn.Font = "SourceSansBold"; Instance.new("UICorner", btn)
+        
+        btn.MouseButton1Click:Connect(function()
+            Toggle[toggleKey] = not Toggle[toggleKey]
+            btn.Text = Toggle[toggleKey] and "ON" or "OFF"
+            btn.BackgroundColor3 = Toggle[toggleKey] and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
+            if callback then callback(Toggle[toggleKey]) end
+        end)
     end
 
-    -- [ ฟังชั่นพร้อมคูลดาวน์ 0.5s ]
-    local cd = false
-    local function useAbility(cb) if not cd then cd = true; cb(); task.wait(0.5); cd = false end end
+    -- [[ ฟังก์ชันสร้างปุ่มกดปกติ ]]
+    local function createActionBtn(txt, color, callback)
+        local b = Instance.new("TextButton", scroll); b.Size = UDim2.new(1, 0, 0, 42); b.BackgroundColor3 = color; b.Text = txt; b.Font = "SourceSansBold"; b.TextSize = 15; b.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", b)
+        b.MouseButton1Click:Connect(function() callback(b) end)
+    end
 
-    createMenuBtn("HIT 1 (Red)", Color3.fromRGB(255, 50, 50), function() useAbility(function() ReplicatedStorage.Events.Hit:FireServer(0.9791415333747864) end) end)
-    createMenuBtn("HIT 2 (Green)", Color3.fromRGB(80, 255, 80), function() useAbility(function() ReplicatedStorage.Events.Hit:FireServer(0.2337765097618103) end) end)
-    createMenuBtn("CHAIR CRATE", Color3.fromRGB(50, 100, 255), function() useAbility(function() ReplicatedStorage.Events.CreateRE:FireServer("Chair Crate", "Rare", 6, Vector3.new(-83.8627, 1.2767, -10.0044)) end) end)
-    createMenuBtn("SLAP CRATE", Color3.fromRGB(255, 220, 50), function() useAbility(function() ReplicatedStorage.Events.CreateRE:FireServer("Slap Crate", "Cammon", 5) end) end)
+    ---------------------------------------------------------
+    -- [ รายการเมนู ]
+    ---------------------------------------------------------
 
-    -- [ Dodge 7 Keys ]
-    local dodgeEnabled = false
-    createMenuBtn("Dodge (7 Keys): ปิด", Color3.fromRGB(255, 105, 180), function(b)
-        dodgeEnabled = not dodgeEnabled
-        b.Text = dodgeEnabled and "Dodge: เปิดอยู่" or "Dodge (7 Keys): ปิด"
-        b.BackgroundColor3 = dodgeEnabled and Color3.fromRGB(255, 20, 147) or Color3.fromRGB(255, 105, 180)
+    -- 1. ฟังก์ชัน HIT 1 (แดง) + Slap (0.1s Loop)
+    createToggleRow("HIT 1 (Red) + Auto Slap", "HitRed")
+
+    -- 2. HIT 2 (เขียว) แบบกดปกติ
+    createActionBtn("HIT 2 (Green)", Color3.fromRGB(80, 255, 80), function() 
+        ReplicatedStorage.Events.Hit:FireServer(0.2337765097618103) 
     end)
 
+    -- 3. เสกของ
+    createActionBtn("CHAIR CRATE", Color3.fromRGB(50, 100, 255), function() 
+        ReplicatedStorage.Events.CreateRE:FireServer("Chair Crate", "Rare", 6, Vector3.new(-83.8627, 1.2767, -10.0044)) 
+    end)
+    createActionBtn("SLAP CRATE", Color3.fromRGB(255, 220, 50), function() 
+        ReplicatedStorage.Events.CreateRE:FireServer("Slap Crate", "Cammon", 5) 
+    end)
+
+    -- 4. ระบบ Dodge (7 Keys)
+    createToggleRow("Dodge (7 Keys)", "Dodge")
+
+    -- 5. มุมกล้องแอบดู
+    local cctv = false
+    createActionBtn("มุมกล้องแอบดู", Color3.fromRGB(100, 100, 100), function(b)
+        cctv = not cctv
+        Camera.CameraType = cctv and Enum.CameraType.Scriptable or Enum.CameraType.Custom
+        b.Text = cctv and "มุมกล้อง: ล็อคแล้ว" or "มุมกล้องแอบดู"
+        b.BackgroundColor3 = cctv and Color3.fromRGB(0, 255, 255) or Color3.fromRGB(100, 100, 100)
+    end)
+
+    ---------------------------------------------------------
+    -- [ Loops ระบบ ]
+    ---------------------------------------------------------
+
+    -- ลูป Combo (Slap + Hit Red)
     task.spawn(function()
         while true do
-            if dodgeEnabled then
+            if Toggle.HitRed then
+                pcall(function()
+                    -- รัน Slap ก่อน
+                    ReplicatedStorage:WaitForChild("Events"):WaitForChild("Slap"):FireServer()
+                    -- รัน Hit Red ต่อทันที
+                    ReplicatedStorage.Events.Hit:FireServer(0.9791415333747864)
+                end)
+            end
+            task.wait(0.1) -- หน่วงเวลา 0.1 วิ ตามสั่ง
+        end
+    end)
+
+    -- ลูป Dodge
+    task.spawn(function()
+        while true do
+            if Toggle.Dodge then
                 pcall(function()
                     local d = ReplicatedStorage:WaitForChild("Events"):WaitForChild("Dodge")
                     local keys = {"G", "Z", "E", "X", "R", "Q", "C"}
@@ -91,19 +140,6 @@ local function BuildMainMenu()
                 end)
             end
             task.wait(0.1)
-        end
-    end)
-
-    -- [ มุมกล้องแอบดู ]
-    local cctvEnabled = false
-    createMenuBtn("มุมกล้องแอบดู: ปิด", Color3.fromRGB(100, 100, 100), function(b)
-        cctvEnabled = not cctvEnabled
-        if cctvEnabled then
-            b.Text = "มุมกล้องแอบดู: ล็อคหน้าจอแล้ว"; b.BackgroundColor3 = Color3.fromRGB(0, 255, 255)
-            Camera.CameraType = Enum.CameraType.Scriptable
-        else
-            b.Text = "มุมกล้องแอบดู: ปิด"; b.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-            Camera.CameraType = Enum.CameraType.Custom
         end
     end)
 
