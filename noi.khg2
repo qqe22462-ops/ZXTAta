@@ -1,4 +1,4 @@
--- [[ ᴘɪꜱɪᴛ  𝟢𝟢𝟣ꜰʀᴇᴇ - FULL OPTION ]]
+-- [[ ᴘɪꜱɪᴛ  𝟢𝟢𝟣ꜰʀᴇᴇ - FINAL FIX ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 -- KEY: 1
 
@@ -63,33 +63,42 @@ local function DragSystem(frame, menu)
 end
 
 ---------------------------------------------------------
--- [ หน้าต่างยืนยันสำหรับปุ่มเสียเงิน ]
----------------------------------------------------------
-local function AskConfirm(title, desc, onConfirm)
-    local cf = Instance.new("Frame", screenGui); cf.Size = UDim2.new(0, 260, 0, 140); cf.Position = UDim2.new(0.5, -130, 0.4, 0); cf.BackgroundColor3 = Color3.fromRGB(40, 40, 40); cf.ZIndex = 20; Instance.new("UICorner", cf)
-    local t = Instance.new("TextLabel", cf); t.Size = UDim2.new(1, 0, 0, 40); t.Text = title; t.TextColor3 = Color3.new(1,1,1); t.Font = "SourceSansBold"; t.TextSize = 18; t.BackgroundTransparency = 1; t.ZIndex = 21
-    local d = Instance.new("TextLabel", cf); d.Size = UDim2.new(1, -20, 0, 40); d.Position = UDim2.new(0, 10, 0, 40); d.Text = desc; d.TextColor3 = Color3.fromRGB(200, 200, 200); d.TextWrapped = true; d.Font = "SourceSans"; d.TextSize = 14; d.BackgroundTransparency = 1; d.ZIndex = 21
-    local yes = Instance.new("TextButton", cf); yes.Size = UDim2.new(0, 100, 0, 35); yes.Position = UDim2.new(0.1, 0, 0.7, 0); yes.Text = "ยืนยัน"; yes.BackgroundColor3 = Color3.fromRGB(50, 180, 50); yes.TextColor3 = Color3.new(1,1,1); yes.ZIndex = 21; Instance.new("UICorner", yes)
-    local no = Instance.new("TextButton", cf); no.Size = UDim2.new(0, 100, 0, 35); no.Position = UDim2.new(0.6, 0, 0.7, 0); no.Text = "ยกเลิก"; no.BackgroundColor3 = Color3.fromRGB(180, 50, 50); no.TextColor3 = Color3.new(1,1,1); no.ZIndex = 21; Instance.new("UICorner", no)
-    yes.MouseButton1Click:Connect(function() onConfirm(); cf:Destroy() end)
-    no.MouseButton1Click:Connect(function() cf:Destroy() end)
-end
-
----------------------------------------------------------
 -- [ สร้างเมนูหลัก ]
 ---------------------------------------------------------
 local function BuildMainMenu()
     local pBtn = Instance.new("TextButton", screenGui); pBtn.Size = UDim2.new(0, 70, 0, 70); pBtn.Position = UDim2.new(0.05, 0, 0.4, 0); pBtn.BackgroundColor3 = Color3.new(1,1,1); pBtn.Text = "P"; pBtn.Font = "SourceSansBold"; pBtn.TextSize = 40; pBtn.TextColor3 = Color3.new(0,0,0); Instance.new("UICorner", pBtn).CornerRadius = UDim.new(1,0)
-    local menuFrame = Instance.new("Frame", screenGui); menuFrame.Size = UDim2.new(0, 255, 0, 520); menuFrame.Position = UDim2.new(0.12, 0, 0.4, 0); menuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20); menuFrame.Visible = false; Instance.new("UICorner", menuFrame)
-    local scroll = Instance.new("ScrollingFrame", menuFrame); scroll.Size = UDim2.new(1, -10, 1, -20); scroll.Position = UDim2.new(0, 5, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 800); scroll.ScrollBarThickness = 2
+    
+    -- ขยายเมนูให้ยาวขึ้น (Size Y = 550)
+    local menuFrame = Instance.new("Frame", screenGui); menuFrame.Size = UDim2.new(0, 255, 0, 550); menuFrame.Position = UDim2.new(0.12, 0, 0.3, 0); menuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20); menuFrame.Visible = false; Instance.new("UICorner", menuFrame)
+    
+    -- ขยายพื้นที่เลื่อนให้เยอะขึ้น (CanvasSize Y = 900)
+    local scroll = Instance.new("ScrollingFrame", menuFrame); scroll.Size = UDim2.new(1, -10, 1, -20); scroll.Position = UDim2.new(0, 5, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 950); scroll.ScrollBarThickness = 4
     Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 10); scroll.UIListLayout.HorizontalAlignment = "Center"
 
     DragSystem(pBtn, menuFrame)
 
+    -- [ 1. กลุ่มปุ่มสุ่มของ (เอาไว้บนสุด กดได้ตลอด) ]
+    local function createNormalAction(txt, color, cb)
+        local b = Instance.new("TextButton", scroll); b.Size = UDim2.new(0.95, 0, 0, 50); b.BackgroundColor3 = color; b.Text = txt; b.Font = "SourceSansBold"; b.TextSize = 15; b.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", b)
+        b.MouseButton1Click:Connect(cb)
+    end
+
+    createNormalAction("🛋️ สุ่มเก้าอี้ฟรี", Color3.fromRGB(50, 120, 255), function() 
+        ReplicatedStorage.Events.CreateRE:FireServer("Chair Crate", "Rare", 6, Vector3.new(-83.8627, 1.2767, -10.0044)) 
+    end)
+
+    createNormalAction("👏 สุ่มที่ตบมือ (เสียเงิน)", Color3.fromRGB(200, 160, 0), function() 
+        ReplicatedStorage.Events.CreateRE:FireServer("Slap Crate", "Cammon", 5) 
+    end)
+
+    -- เส้นคั่น
+    local line = Instance.new("Frame", scroll); line.Size = UDim2.new(0.9, 0, 0, 2); line.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+
+    -- [ 2. ระบบสถานะการปลดล็อค ]
     local statusLabel = Instance.new("TextLabel", scroll)
     statusLabel.Size = UDim2.new(0.95, 0, 0, 40); statusLabel.BackgroundColor3 = Color3.fromRGB(40, 40, 40); statusLabel.TextColor3 = Color3.fromRGB(200, 50, 50); statusLabel.Text = "สถานะ: ยังไม่ตบ (Locked)"; statusLabel.Font = "SourceSansBold"; statusLabel.TextSize = 13; Instance.new("UICorner", statusLabel)
 
-    -- [ ฟังก์ชันตบ (มีเงื่อนไข Unlock + Cooldown) ]
+    -- [ 3. ปุ่มตบพิเศษ (ต้อง Unlock) ]
     local function createSlapButton(txt, color, cdKey, eventArg)
         local b = Instance.new("TextButton", scroll)
         b.Size = UDim2.new(0.95, 0, 0, 45); b.BackgroundColor3 = Color3.fromRGB(60, 60, 60); b.Text = txt; b.Font = "SourceSansBold"; b.TextSize = 14; b.TextColor3 = Color3.new(0.4, 0.4, 0.4); Instance.new("UICorner", b)
@@ -112,54 +121,33 @@ local function BuildMainMenu()
     local slap1 = createSlapButton("( ตบทีเดียว )", Color3.fromRGB(255, 50, 50), "Slap1", 0.9791415333747864)
     local slap2 = createSlapButton("( ตบเบาๆ )", Color3.fromRGB(80, 255, 80), "Slap2", 0.2337765097618103)
 
-    -- [ ฟังก์ชันสุ่มของ (กดได้เลย ไม่ต้อง Unlock / ไม่มี CD) ]
-    local function createNormalAction(txt, color, cb, hasConfirm)
-        local b = Instance.new("TextButton", scroll); b.Size = UDim2.new(0.95, 0, 0, 45); b.BackgroundColor3 = color; b.Text = txt; b.Font = "SourceSansBold"; b.TextSize = 14; b.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", b)
-        b.MouseButton1Click:Connect(function()
-            if hasConfirm then AskConfirm("ยืนยัน", txt, cb) else cb() end
-        end)
-    end
-
-    createNormalAction("( สุ่มเก้าอี้ฟรี )", Color3.fromRGB(50, 100, 255), function() 
-        ReplicatedStorage.Events.CreateRE:FireServer("Chair Crate", "Rare", 6, Vector3.new(-83.8627, 1.2767, -10.0044)) 
-    end, false)
-
-    createNormalAction("(สุ่มที่ตบมือ (เสียเงิน)", Color3.fromRGB(255, 220, 50), function() 
-        ReplicatedStorage.Events.CreateRE:FireServer("Slap Crate", "Cammon", 5) 
-    end, true)
-
-    -- [ ฟังก์ชันเปิด/ปิด ]
-    local function createToggle(txt, toggleKey, hasConfirm)
+    -- [ 4. ฟังก์ชันเปิด/ปิดเสริม ]
+    local function createToggle(txt, toggleKey)
         local row = Instance.new("Frame", scroll); row.Size = UDim2.new(0.95, 0, 0, 45); row.BackgroundColor3 = Color3.fromRGB(35, 35, 35); Instance.new("UICorner", row)
         local label = Instance.new("TextLabel", row); label.Size = UDim2.new(0.65, 0, 1, 0); label.Position = UDim2.new(0, 10, 0, 0); label.Text = txt; label.TextColor3 = Color3.new(1,1,1); label.BackgroundTransparency = 1; label.TextXAlignment = "Left"; label.Font = "SourceSansBold"; label.TextSize = 13
         local btn = Instance.new("TextButton", row); btn.Size = UDim2.new(0, 55, 0, 28); btn.Position = UDim2.new(1, -65, 0.5, -14); btn.Text = "OFF"; btn.BackgroundColor3 = Color3.fromRGB(200, 50, 50); btn.TextColor3 = Color3.new(1,1,1); btn.Font = "SourceSansBold"; Instance.new("UICorner", btn)
         btn.MouseButton1Click:Connect(function()
-            local function act()
-                Toggle[toggleKey] = not Toggle[toggleKey]
-                btn.Text = Toggle[toggleKey] and "ON" or "OFF"
-                btn.BackgroundColor3 = Toggle[toggleKey] and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
-                if toggleKey == "BackDetect" then screenGui.BackFrame.Visible = Toggle[toggleKey] end
-            end
-            if hasConfirm and not Toggle[toggleKey] then AskConfirm("ยืนยัน", "เปิด "..txt.."?", act) else act() end
+            Toggle[toggleKey] = not Toggle[toggleKey]
+            btn.Text = Toggle[toggleKey] and "ON" or "OFF"
+            btn.BackgroundColor3 = Toggle[toggleKey] and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
+            if toggleKey == "BackDetect" then screenGui.BackFrame.Visible = Toggle[toggleKey] end
         end)
     end
 
-    createToggle("มองด้านหลัง (ซูมชัด)", "BackDetect", false)
-    createToggle("(หลบอัตโนมัติ)", "Dodge", true)
+    createToggle("มองด้านหลัง (ซูมชัด)", "BackDetect")
+    createToggle("(หลบอัตโนมัติ)", "Dodge")
 
-    -- Loop นับถอยหลังระบบล็อค
+    -- ระบบ Loop สถานะ
     task.spawn(function()
         while true do
             if IsUnlocked then
-                statusLabel.TextColor3 = Color3.fromRGB(50, 200, 50)
-                statusLabel.Text = "ปลดล็อคแล้ว! เหลือเวลา: " .. math.ceil(TimeLeft) .. " วิ"
+                statusLabel.TextColor3 = Color3.fromRGB(50, 200, 50); statusLabel.Text = "ปลดล็อคแล้ว! (" .. math.ceil(TimeLeft) .. " วิ)"
                 slap1.TextColor3 = Color3.new(1,1,1); slap1.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
                 slap2.TextColor3 = Color3.new(1,1,1); slap2.BackgroundColor3 = Color3.fromRGB(80, 255, 80)
                 TimeLeft = TimeLeft - 0.1
                 if TimeLeft <= 0 then
                     IsUnlocked = false
-                    statusLabel.TextColor3 = Color3.fromRGB(200, 50, 50)
-                    statusLabel.Text = "หมดเวลา! กรุณาตบใหม่ (Locked)"
+                    statusLabel.TextColor3 = Color3.fromRGB(200, 50, 50); statusLabel.Text = "หมดเวลา! ตบใหม่ (Locked)"
                     slap1.TextColor3 = Color3.new(0.4, 0.4, 0.4); slap1.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
                     slap2.TextColor3 = Color3.new(0.4, 0.4, 0.4); slap2.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
                 end
