@@ -1,4 +1,4 @@
--- [[ ᴘɪꜱɪᴛ  𝟢𝟢𝟣ꜰʀᴇᴇ - SENSOR ]]
+-- [[ ᴘɪꜱɪᴛ  𝟢𝟢𝟣ꜰʀᴇᴇ - AVATAR SENSOR ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 -- KEY: 1
 
@@ -9,7 +9,7 @@ local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
 
--- ลบ UI เก่าป้องกันบั๊กหน้าจอดำ
+-- ลบ UI เก่าป้องกันบั๊ก
 if LocalPlayer.PlayerGui:FindFirstChild("Pisit001FreeMenu") then
     LocalPlayer.PlayerGui.Pisit001FreeMenu:Destroy()
 end
@@ -21,20 +21,36 @@ screenGui.ResetOnSpawn = false
 local Toggle = { AutoSlap = false, Dodge = false, BackDetect = false }
 
 ---------------------------------------------------------
--- [ UI เตือนมองด้านหลัง ]
+-- [ UI มองด้านหลังแบบมีตัวละคร ]
 ---------------------------------------------------------
-local backWarn = Instance.new("TextLabel", screenGui)
-backWarn.Size = UDim2.new(0, 300, 0, 40)
-backWarn.Position = UDim2.new(0.5, -150, 0.2, 0)
-backWarn.BackgroundTransparency = 1
-backWarn.TextColor3 = Color3.fromRGB(255, 50, 50) -- สีแดงเตือนภัย
-backWarn.Font = "SourceSansBold"
-backWarn.TextSize = 24
-backWarn.Text = "" -- ว่างไว้ก่อน
-backWarn.Visible = false
+local backFrame = Instance.new("Frame", screenGui)
+backFrame.Size = UDim2.new(0, 150, 0, 180)
+backFrame.Position = UDim2.new(0.5, -75, 0.1, 0)
+backFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+backFrame.BackgroundTransparency = 0.5
+backFrame.Visible = false
+Instance.new("UICorner", backFrame)
+
+local viewPort = Instance.new("ViewportFrame", backFrame)
+viewPort.Size = UDim2.new(1, 0, 0.8, 0)
+viewPort.BackgroundTransparency = 1
+
+local nameLabel = Instance.new("TextLabel", backFrame)
+nameLabel.Size = UDim2.new(1, 0, 0.2, 0)
+nameLabel.Position = UDim2.new(0, 0, 0.8, 0)
+nameLabel.BackgroundTransparency = 1
+nameLabel.TextColor3 = Color3.new(1, 1, 1)
+nameLabel.Font = "SourceSansBold"
+nameLabel.TextSize = 14
+nameLabel.TextScaled = true
+
+-- กล้องจำลองสำหรับ Viewport
+local vCamera = Instance.new("Camera")
+viewPort.CurrentCamera = vCamera
+vCamera.Parent = viewPort
 
 ---------------------------------------------------------
--- [ หน้าต่างใส่คีย์ ]
+-- [ เมนูหลักและระบบคีย์ ]
 ---------------------------------------------------------
 local keyFrame = Instance.new("Frame", screenGui)
 keyFrame.Size = UDim2.new(0, 280, 0, 160); keyFrame.Position = UDim2.new(0.5, -140, 0.5, -80)
@@ -49,12 +65,8 @@ keyInput.Size = UDim2.new(0, 220, 0, 35); keyInput.Position = UDim2.new(0.5, -11
 local submitBtn = Instance.new("TextButton", keyFrame)
 submitBtn.Size = UDim2.new(0, 220, 0, 35); submitBtn.Position = UDim2.new(0.5, -110, 0.75, 0); submitBtn.Text = "ตรวจสอบ"; submitBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 255); submitBtn.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", submitBtn)
 
----------------------------------------------------------
--- [ เมนูหลัก ]
----------------------------------------------------------
 local function BuildMainMenu()
     keyFrame:Destroy()
-
     local pBtn = Instance.new("TextButton", screenGui)
     pBtn.Size = UDim2.new(0, 70, 0, 70); pBtn.Position = UDim2.new(0.05, 0, 0.4, 0)
     pBtn.BackgroundColor3 = Color3.new(1,1,1); pBtn.Text = "P"; pBtn.Font = "SourceSansBold"; pBtn.TextSize = 40; pBtn.TextColor3 = Color3.new(0,0,0); Instance.new("UICorner", pBtn).CornerRadius = UDim.new(1,0)
@@ -64,10 +76,9 @@ local function BuildMainMenu()
     menuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20); menuFrame.Visible = false; Instance.new("UICorner", menuFrame)
     
     local scroll = Instance.new("ScrollingFrame", menuFrame)
-    scroll.Size = UDim2.new(1, -10, 1, -20); scroll.Position = UDim2.new(0, 5, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 800); scroll.ScrollBarThickness = 2
-    Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 8); scroll.UIListLayout.HorizontalAlignment = "Center"
+    scroll.Size = UDim2.new(1, -10, 1, -20); scroll.Position = UDim2.new(0, 5, 0, 10); scroll.BackgroundTransparency = 1; scroll.CanvasSize = UDim2.new(0, 0, 0, 800); Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 8)
 
-    local function createToggleRow(txt, toggleKey)
+    local function createToggle(txt, toggleKey)
         local row = Instance.new("Frame", scroll); row.Size = UDim2.new(1, 0, 0, 42); row.BackgroundColor3 = Color3.fromRGB(35, 35, 35); Instance.new("UICorner", row)
         local label = Instance.new("TextLabel", row); label.Size = UDim2.new(0.6, 0, 1, 0); label.Position = UDim2.new(0, 10, 0, 0); label.Text = txt; label.TextColor3 = Color3.new(1,1,1); label.BackgroundTransparency = 1; label.TextXAlignment = "Left"; label.Font = "SourceSansBold"; label.TextSize = 14
         local btn = Instance.new("TextButton", row); btn.Size = UDim2.new(0, 60, 0, 24); btn.Position = UDim2.new(1, -70, 0.5, -12); btn.Text = "OFF"; btn.BackgroundColor3 = Color3.fromRGB(200, 50, 50); btn.TextColor3 = Color3.new(1,1,1); btn.Font = "SourceSansBold"; Instance.new("UICorner", btn)
@@ -75,83 +86,76 @@ local function BuildMainMenu()
             Toggle[toggleKey] = not Toggle[toggleKey]
             btn.Text = Toggle[toggleKey] and "ON" or "OFF"
             btn.BackgroundColor3 = Toggle[toggleKey] and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
-            if toggleKey == "BackDetect" then backWarn.Visible = Toggle[toggleKey] end
+            if toggleKey == "BackDetect" then backFrame.Visible = Toggle[toggleKey] end
         end)
     end
 
-    local function createActionBtn(txt, color, callback)
-        local b = Instance.new("TextButton", scroll); b.Size = UDim2.new(1, 0, 0, 42); b.BackgroundColor3 = color; b.Text = txt; b.Font = "SourceSansBold"; b.TextSize = 15; b.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", b)
-        b.MouseButton1Click:Connect(function() callback() end)
-    end
+    createToggle("ออโต้แย่งตบ", "AutoSlap")
+    createToggle("มองด้านหลัง (Avatar)", "BackDetect")
+    createToggle("Dodge (7 Keys)", "Dodge")
 
-    ---------------------------------------------------------
-    -- [ ใส่รายการปุ่ม ]
-    ---------------------------------------------------------
-    createActionBtn("HIT 1 (Red)", Color3.fromRGB(255, 50, 50), function() ReplicatedStorage.Events.Hit:FireServer(0.9791415333747864) end)
-    createToggleRow("ออโต้แย่งตบ", "AutoSlap")
-    createToggleRow("มองด้านหลัง (Back Detect)", "BackDetect")
-    createToggleRow("Dodge (7 Keys)", "Dodge")
-    createActionBtn("CHAIR CRATE", Color3.fromRGB(50, 100, 255), function() ReplicatedStorage.Events.CreateRE:FireServer("Chair Crate", "Rare", 6, Vector3.new(-83.8627, 1.2767, -10.0044)) end)
-
-    ---------------------------------------------------------
-    -- [ Logic ลากปุ่ม P ]
-    ---------------------------------------------------------
-    pBtn.MouseButton1Click:Connect(function() menuFrame.Visible = not menuFrame.Visible; menuFrame.Position = UDim2.new(pBtn.Position.X.Scale, pBtn.Position.X.Offset + 80, pBtn.Position.Y.Scale, pBtn.Position.Y.Offset) end)
+    -- ระบบลากปุ่ม P
     local dragging, dStart, sPos; pBtn.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true; dStart = i.Position; sPos = pBtn.Position end end)
-    UserInputService.InputChanged:Connect(function(i) if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then local dl = i.Position-dStart; pBtn.Position = UDim2.new(sPos.X.Scale, sPos.X.Offset+dl.X, sPos.Y.Scale, sPos.Y.Offset+dl.Y); if menuFrame.Visible then menuFrame.Position = UDim2.new(pBtn.Position.X.Scale, pBtn.Position.X.Offset+80, pBtn.Position.Y.Scale, pBtn.Position.Y.Offset) end end end)
+    UserInputService.InputChanged:Connect(function(i) if dragging then local dl = i.Position-dStart; pBtn.Position = UDim2.new(sPos.X.Scale, sPos.X.Offset+dl.X, sPos.Y.Scale, sPos.Y.Offset+dl.Y); if menuFrame.Visible then menuFrame.Position = UDim2.new(pBtn.Position.X.Scale, pBtn.Position.X.Offset+80, pBtn.Position.Y.Scale, pBtn.Position.Y.Offset) end end end)
     UserInputService.InputEnded:Connect(function() dragging = false end)
+    pBtn.MouseButton1Click:Connect(function() menuFrame.Visible = not menuFrame.Visible end)
 end
 
-submitBtn.MouseButton1Click:Connect(function() if keyInput.Text == "1" then BuildMainMenu() else submitBtn.Text = "คีย์ผิด!"; task.wait(1); submitBtn.Text = "ตรวจสอบ" end end)
+submitBtn.MouseButton1Click:Connect(function() if keyInput.Text == "1" then BuildMainMenu() end end)
 
 ---------------------------------------------------------
--- [ ระบบหลัก (Loops) ]
+-- [ ระบบตรวจจับและแสดงผล Avatar ]
 ---------------------------------------------------------
+local currentClone = nil
+
 RunService.RenderStepped:Connect(function()
-    -- 1. มองด้านหลัง (Back Detection)
     if Toggle.BackDetect and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local myRoot = LocalPlayer.Character.HumanoidRootPart
-        local closestEnemy = nil
-        local minDist = 50 -- ระยะตรวจจับ (ปรับได้)
+        local closestPlayer = nil
+        local minDist = 60 -- ระยะ 60 เมตร
 
         for _, p in pairs(Players:GetPlayers()) do
             if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                local targetRoot = p.Character.HumanoidRootPart
-                local directionToTarget = (targetRoot.Position - myRoot.Position).Unit
-                local myForward = myRoot.CFrame.LookVector
-                
-                -- Dot Product < 0 คืออยู่ด้านหลัง
-                local dot = myForward:Dot(directionToTarget)
-                
-                if dot < -0.2 then -- ยิ่งค่าน้อยยิ่งอยู่หลังตรงๆ
-                    local dist = (targetRoot.Position - myRoot.Position).Magnitude
-                    if dist < minDist then
-                        minDist = dist
-                        closestEnemy = p.Name
-                    end
+                local tRoot = p.Character.HumanoidRootPart
+                local dot = myRoot.CFrame.LookVector:Dot((tRoot.Position - myRoot.Position).Unit)
+                if dot < -0.3 then -- อยู่ข้างหลัง
+                    local d = (tRoot.Position - myRoot.Position).Magnitude
+                    if d < minDist then minDist = d; closestPlayer = p end
                 end
             end
         end
 
-        if closestEnemy then
-            backWarn.Text = "⚠️ ด้านหลัง: " .. closestEnemy
+        if closestPlayer then
+            backFrame.Visible = true
+            nameLabel.Text = closestPlayer.Name .. "\n(" .. math.floor(minDist) .. "m)"
+            
+            -- อัปเดตรูปตัวละครใน Viewport
+            if not currentClone or currentClone.Name ~= closestPlayer.Name then
+                viewPort:ClearAllChildren()
+                closestPlayer.Character.Archivable = true
+                currentClone = closestPlayer.Character:Clone()
+                currentClone.Name = closestPlayer.Name
+                currentClone.Parent = viewPort
+                
+                local hrp = currentClone:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    vCamera.CFrame = CFrame.new(hrp.Position + (hrp.CFrame.LookVector * 5) + Vector3.new(0, 2, 0), hrp.Position)
+                end
+            end
         else
-            backWarn.Text = ""
+            backFrame.Visible = false
+            viewPort:ClearAllChildren()
+            currentClone = nil
         end
     else
-        backWarn.Text = ""
+        backFrame.Visible = false
     end
 end)
 
 task.spawn(function()
     while true do
         if Toggle.AutoSlap then pcall(function() ReplicatedStorage.Events.Slap:FireServer() end) end
-        if Toggle.Dodge then
-            pcall(function()
-                local d = ReplicatedStorage.Events.Dodge
-                for _, k in pairs({"G", "Z", "E", "X", "R", "Q", "C"}) do d:FireServer(k) end
-            end)
-        end
+        if Toggle.Dodge then pcall(function() for _, k in pairs({"G", "Z", "E", "X", "R", "Q", "C"}) do ReplicatedStorage.Events.Dodge:FireServer(k) end end) end
         task.wait(0.1)
     end
 end)
