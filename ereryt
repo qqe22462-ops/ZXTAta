@@ -1,140 +1,135 @@
--- [[ ᴘɪꜱɪᴛ  ꜱᴏᴜʟ  ᴘʀᴏᴊᴇᴄᴛɪᴏɴ - FIXED MOVEMENT ]]
+-- [[ ᴘɪꜱɪᴛ  ᴏʀᴇ  ᴅᴇᴛᴇᴄᴛᴏʀ & ᴀᴜᴛᴏ ᴍɪɴᴇ ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
-local IsActive = false
-local FakeChar = nil
-local RealPos = nil
-local Speed = 1.5 -- ความเร็วในการเคลื่อนที่ของร่างวิญญาณ
+local Config = {
+    AutoMine = false,
+    DetectionRadius = 10000, -- รัศมี 10,000 เมตร
+    SelectedOre = nil
+}
 
 ---------------------------------------------------------
--- [ ระบบจัดการร่างจำลอง ]
+-- [ ระบบขุดแร่อัตโนมัติ ]
 ---------------------------------------------------------
-local function CreateSoul()
+local function MineOre(pos)
+    if not pos then return end
+    local args = {
+        CFrame.new(pos.X, pos.Y, pos.Z)
+    }
+    -- ใช้ InvokeServer ตามโค้ดที่คุณส่งมา
+    pcall(function()
+        ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("UsePickaxe"):InvokeServer(unpack(args))
+    end)
+end
+
+task.spawn(function()
+    while true do
+        if Config.AutoMine and LocalPlayer.Character then
+            -- ขุดแร่ที่ใกล้ที่สุดรัวๆ
+            local target = nil
+            local dist = 15 -- ระยะที่ขุดถึง
+            for _, v in pairs(workspace:GetChildren()) do
+                if (v.Name == "Coal" or v.Name == "Iron") and v:IsA("BasePart") then
+                    local d = (v.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+                    if d < dist then MineOre(v.Position) end
+                end
+            end
+        end
+        task.wait(0.1)
+    end
+end)
+
+---------------------------------------------------------
+-- [ ระบบสแกนและวาร์ปไปหาแร่ ]
+---------------------------------------------------------
+local function WarpToNearestOre()
     local Character = LocalPlayer.Character
     if not Character or not Character:FindFirstChild("HumanoidRootPart") then return end
     
-    Character.Archivable = true
-    RealPos = Character.HumanoidRootPart.CFrame -- จำตำแหน่งร่างจริง
+    local closestOre = nil
+    local shortestDist = Config.DetectionRadius
     
-    -- สร้างร่างจำลอง
-    FakeChar = Character:Clone()
-    FakeChar.Parent = workspace
-    FakeChar.Name = "Soul_Projection_Pisit"
-    
-    -- ปลดล็อคทุกส่วนให้ขยับได้ และทำให้ใส
-    for _, part in pairs(FakeChar:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = false
-            part.Anchored = false -- มั่นใจว่าไม่ได้ล็อคไว้
-            part.Transparency = 0.5
-            part.Color = Color3.fromRGB(0, 255, 255)
+    -- ค้นหาแร่ใน Workspace (ถ่านและเหล็ก)
+    for _, obj in pairs(workspace:GetChildren()) do
+        if obj.Name == "Coal" or obj.Name == "Iron" then
+            local pos = obj:IsA("BasePart") and obj.Position or (obj:FindFirstChildWhichIsA("BasePart") and obj:FindFirstChildWhichIsA("BasePart").Position)
+            if pos then
+                local distance = (pos - Character.HumanoidRootPart.Position).Magnitude
+                if distance < shortestDist then
+                    shortestDist = distance
+                    closestOre = pos
+                end
+            end
         end
     end
     
-    -- จัดการร่างจริง
-    for _, part in pairs(Character:GetDescendants()) do
-        if part:IsA("BasePart") then part.Transparency = 1 end
+    if closestOre then
+        Character.HumanoidRootPart.CFrame = CFrame.new(closestOre + Vector3.new(0, 3, 0)) -- วาร์ปไปเหนือแร่นิดนึง
     end
-    Character.HumanoidRootPart.Anchored = true -- ล็อคร่างจริงไว้ที่เดิม
 end
-
-local function RemoveSoul()
-    if FakeChar then
-        FakeChar:Destroy()
-        FakeChar = nil
-    end
-    
-    local Character = LocalPlayer.Character
-    if Character then
-        for _, part in pairs(Character:GetDescendants()) do
-            if part:IsA("BasePart") then part.Transparency = 0 end
-        end
-        Character.HumanoidRootPart.Anchored = false
-        Character.HumanoidRootPart.CFrame = RealPos -- กลับมาร่างเดิม
-    end
-    workspace.CurrentCamera.CameraSubject = LocalPlayer.Character.Humanoid
-end
-
----------------------------------------------------------
--- [ ระบบควบคุมการเคลื่อนที่ (Fixed) ]
----------------------------------------------------------
-RunService.RenderStepped:Connect(function()
-    if IsActive and FakeChar and FakeChar:FindFirstChild("HumanoidRootPart") then
-        local cam = workspace.CurrentCamera
-        local hrp = FakeChar.HumanoidRootPart
-        local moveDir = Vector3.new(0,0,0)
-        
-        -- ใช้ CFrame ในการขยับแทน Velocity เพื่อความชัวร์
-        local look = cam.CFrame.LookVector
-        local right = cam.CFrame.RightVector
-        
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Vector3.new(look.X, 0, look.Z) end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - Vector3.new(look.X, 0, look.Z) end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - Vector3.new(right.X, 0, right.Z) end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + Vector3.new(right.X, 0, right.Z) end
-        
-        if moveDir.Magnitude > 0 then
-            hrp.CFrame = CFrame.new(hrp.Position, hrp.Position + moveDir) * CFrame.new(0, 0, -Speed)
-        end
-        
-        -- บังคับกล้องจ้องที่ร่างวิญญาณ
-        cam.CameraSubject = FakeChar.Humanoid
-    end
-end)
 
 ---------------------------------------------------------
 -- [ ระบบ UI ]
 ---------------------------------------------------------
-if LocalPlayer.PlayerGui:FindFirstChild("PisitSoulUI") then
-    LocalPlayer.PlayerGui.PisitSoulUI:Destroy()
+if LocalPlayer.PlayerGui:FindFirstChild("PisitOreUI") then
+    LocalPlayer.PlayerGui.PisitOreUI:Destroy()
 end
 
 local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-screenGui.Name = "PisitSoulUI"
+screenGui.Name = "PisitOreUI"
 screenGui.ResetOnSpawn = false
 
-local mainBtn = Instance.new("TextButton", screenGui)
-mainBtn.Size = UDim2.new(0, 130, 0, 50)
-mainBtn.Position = UDim2.new(0.1, 0, 0.2, 0)
-mainBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-mainBtn.Text = "ร่างทดลอง: OFF"
-mainBtn.TextColor3 = Color3.new(1, 1, 1)
-mainBtn.Font = "SourceSansBold"
-mainBtn.TextSize = 16
-Instance.new("UICorner", mainBtn)
+local mainFrame = Instance.new("Frame", screenGui)
+mainFrame.Size = UDim2.new(0, 180, 0, 160)
+mainFrame.Position = UDim2.new(0.5, -90, 0.4, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Instance.new("UICorner", mainFrame)
 
--- ระบบลากปุ่ม
+local title = Instance.new("TextLabel", mainFrame)
+title.Size = UDim2.new(1, 0, 0, 30); title.Text = "PISIT ORE HUB"; title.TextColor3 = Color3.new(1,1,1); title.BackgroundTransparency = 1; title.Font = "SourceSansBold"
+
+-- ปุ่ม Auto Mine
+local mineBtn = Instance.new("TextButton", mainFrame)
+mineBtn.Size = UDim2.new(0.9, 0, 0, 35); mineBtn.Position = UDim2.new(0.05, 0, 0.25, 0)
+mineBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50); mineBtn.Text = "Auto Mine: OFF"; mineBtn.TextColor3 = Color3.new(1,1,1); mineBtn.Font = "SourceSansBold"
+Instance.new("UICorner", mineBtn)
+
+-- ปุ่ม Warp
+local warpBtn = Instance.new("TextButton", mainFrame)
+warpBtn.Size = UDim2.new(0.9, 0, 0, 35); warpBtn.Position = UDim2.new(0.05, 0, 0.55, 0)
+warpBtn.BackgroundColor3 = Color3.fromRGB(50, 100, 200); warpBtn.Text = "Warp ไปแร่ที่ใกล้ที่สุด"; warpBtn.TextColor3 = Color3.new(1,1,1); warpBtn.Font = "SourceSansBold"
+Instance.new("UICorner", warpBtn)
+
+---------------------------------------------------------
+-- [ Logic ปุ่ม ]
+---------------------------------------------------------
+mineBtn.MouseButton1Click:Connect(function()
+    Config.AutoMine = not Config.AutoMine
+    mineBtn.Text = Config.AutoMine and "Auto Mine: ON" or "Auto Mine: OFF"
+    mineBtn.BackgroundColor3 = Config.AutoMine and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
+end)
+
+warpBtn.MouseButton1Click:Connect(function()
+    WarpToNearestOre()
+end)
+
+-- ระบบลาก UI
 local dragging, dragInput, dragStart, startPos
-mainBtn.InputBegan:Connect(function(input)
+mainFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true; dragStart = input.Position; startPos = mainBtn.Position
+        dragging = true; dragStart = input.Position; startPos = mainFrame.Position
     end
 end)
-UserInputService.InputChanged:Connect(function(input)
+mainFrame.InputChanged:Connect(function(input)
     if input == dragInput and dragging then
         local delta = input.Position - dragStart
-        mainBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
-mainBtn.InputChanged:Connect(function(input)
+mainFrame.InputChanged:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
-end)
-
--- คลิกเปิด/ปิด
-mainBtn.MouseButton1Click:Connect(function()
-    IsActive = not IsActive
-    if IsActive then
-        mainBtn.Text = "ร่างทดลอง: ON"
-        mainBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-        CreateSoul()
-    else
-        mainBtn.Text = "ร่างทดลอง: OFF"
-        mainBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-        RemoveSoul()
-    end
 end)
