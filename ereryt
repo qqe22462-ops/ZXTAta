@@ -1,75 +1,162 @@
--- [[ Mobile Draggable + Toggle Speed 100 Fixed ]]
-local player = game.Players.LocalPlayer
-local screenGui = Instance.new("ScreenGui", player.PlayerGui)
-screenGui.Name = "Speed100FixedMenu"
-screenGui.ResetOnSpawn = false
+-- [[ ᴘɪꜱɪᴛ  ᴀᴜᴛᴏ-ᴇxᴘʟᴏꜱɪᴠᴇ - TIMER SYSTEM ]]
+-- OWNER: ไกรสร พิสิษฐ์ 🫡
 
--- 1. สร้างปุ่มหลัก (Main Button)
-local mainBtn = Instance.new("TextButton", screenGui)
-mainBtn.Size = UDim2.new(0, 80, 0, 80)
-mainBtn.Position = UDim2.new(0.1, 0, 0.5, 0)
-mainBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0) -- เริ่มต้นสีแดง (OFF)
-mainBtn.Text = "SPEED\nOFF"
-mainBtn.TextColor3 = Color3.new(1, 1, 1)
-mainBtn.Font = Enum.Font.SourceSansBold
-mainBtn.TextSize = 18
-Instance.new("UICorner", mainBtn).CornerRadius = UDim.new(1, 0)
-local stroke = Instance.new("UIStroke", mainBtn)
-stroke.Thickness = 3
-stroke.Color = Color3.new(1, 1, 1)
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
 
--- [ ระบบลากปุ่ม ]
-local dragging, dragInput, dragStart, startPos
-mainBtn.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true; dragStart = input.Position; startPos = mainBtn.Position
-    end
-end)
-game:GetService("UserInputService").InputChanged:Connect(function(input)
-    if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) and dragging then
-        local delta = input.Position - dragStart
-        mainBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-game:GetService("UserInputService").InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = false
-    end
-end)
+---------------------------------------------------------
+-- [[ พื้นที่จัดการโค้ดระเบิด ]]
+---------------------------------------------------------
+local Config = {
+    AutoBoom = false,
+    CurrentPoint = 1, -- จุดปัจจุบันที่กำลังทำงาน
+    Timer = 15 -- เวลาต่อจุด (วินาที)
+}
 
--- [ ระบบเปิด-ปิด และล็อคค่า 100 ]
-local speedActive = false
+-- [ พิกัดวาร์ปของแต่ละจุด ]
+local WarpPoints = {
+    Point1 = CFrame.new(-156.402, -54.340, 107.665),
+    Point2 = CFrame.new(-359.656, -101.421, -161.188)
+}
 
-mainBtn.MouseButton1Click:Connect(function()
-    if dragging then return end -- ป้องกันการกดโดนขณะลาก
-    
-    speedActive = not speedActive
-    
-    if speedActive then
-        mainBtn.Text = "SPEED\nON"
-        mainBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0) -- สีเขียว (ON)
-    else
-        mainBtn.Text = "SPEED\nOFF"
-        mainBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0) -- สีแดง (OFF)
-        -- คืนค่าปกติเมื่อปิด
-        local char = player.Character
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        if hum then hum.WalkSpeed = 16 end
-    end
-end)
+-- [ ฟังก์ชันระเบิดจุดที่ 1 ]
+local function Execute1()
+    local tool = LocalPlayer.Backpack:FindFirstChild("Thermite") or (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Thermite"))
+    if not tool then return end
+    local args = {
+        "Thermite",
+        CFrame.new(-156.40277099609375, -54.340362548828125, 107.66516876220703, 0.5198333859443665, 0.6089127659797668, -0.5991649627685547, -0, 0.7013784646987915, 0.7127891778945923, 0.8542676568031311, -0.3705316185951233, 0.36459997296333313),
+        workspace:WaitForChild("Terrain"),
+        tool,
+        Vector3.new(-0.02289554476737976, 0.9262236952781677, 0.3762783706188202)
+    }
+    ReplicatedStorage:WaitForChild("Tools"):WaitForChild("PlaceExplosive"):FireServer(unpack(args))
+end
 
--- ระบบ Loop บังคับความเร็ว 100 ตลอดเวลา (ถ้าเปิดใช้งาน)
+-- [ ฟังก์ชันระเบิดจุดที่ 2 ]
+local function Execute2()
+    local tool = LocalPlayer.Backpack:FindFirstChild("Thermite") or (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Thermite"))
+    if not tool then return end
+    local args = {
+        "Thermite",
+        CFrame.new(-359.656005859375, -101.4210205078125, -161.18878173828125, 0.19319698214530945, 0.5881767868995667, -0.7853171825408936, -0, 0.8003966808319092, 0.5994707942008972, 0.981160044670105, -0.11581594496965408, 0.15463420748710632),
+        workspace:WaitForChild("Terrain"),
+        tool,
+        Vector3.new(-0.9744876623153687, 0.12786023318767548, -0.1844605952501297)
+    }
+    ReplicatedStorage:WaitForChild("Tools"):WaitForChild("PlaceExplosive"):FireServer(unpack(args))
+end
+
+---------------------------------------------------------
+-- [ ระบบจัดการเวลาและการสลับจุด ]
+---------------------------------------------------------
 task.spawn(function()
     while true do
-        if speedActive then
-            pcall(function()
-                local char = player.Character
-                local hum = char and char:FindFirstChildOfClass("Humanoid")
-                if hum and hum.WalkSpeed ~= 100 then
-                    hum.WalkSpeed = 100
-                end
-            end)
+        if Config.AutoBoom then
+            -- ลูป 15 วินาทีสำหรับจุดที่ 1
+            Config.CurrentPoint = 1
+            local startTime1 = tick()
+            while tick() - startTime1 < Config.Timer and Config.AutoBoom do
+                pcall(function()
+                    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                        LocalPlayer.Character.HumanoidRootPart.CFrame = WarpPoints.Point1
+                    end
+                    Execute1()
+                end)
+                task.wait(0.1) -- ความเร็วในการวางระเบิด
+            end
+
+            -- ลูป 15 วินาทีสำหรับจุดที่ 2
+            Config.CurrentPoint = 2
+            local startTime2 = tick()
+            while tick() - startTime2 < Config.Timer and Config.AutoBoom do
+                pcall(function()
+                    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                        LocalPlayer.Character.HumanoidRootPart.CFrame = WarpPoints.Point2
+                    end
+                    Execute2()
+                end)
+                task.wait(0.1)
+            end
+        else
+            task.wait(0.5)
         end
-        task.wait(0.1) -- เช็คถี่ๆ เพื่อไม่ให้ความเร็วตก
+    end
+end)
+
+---------------------------------------------------------
+-- [ ระบบ UI ]
+---------------------------------------------------------
+if LocalPlayer.PlayerGui:FindFirstChild("PisitTimerUI") then
+    LocalPlayer.PlayerGui.PisitTimerUI:Destroy()
+end
+
+local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+screenGui.Name = "PisitTimerUI"
+screenGui.ResetOnSpawn = false
+
+local mainFrame = Instance.new("Frame", screenGui)
+mainFrame.Size = UDim2.new(0, 180, 0, 60)
+mainFrame.Position = UDim2.new(0.5, -90, 0.1, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+Instance.new("UICorner", mainFrame)
+
+local statusLabel = Instance.new("TextLabel", mainFrame)
+statusLabel.Size = UDim2.new(1, 0, 0.5, 0)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "ระบบปิดอยู่"
+statusLabel.TextColor3 = Color3.new(1, 1, 1)
+statusLabel.Font = "SourceSansBold"
+statusLabel.TextSize = 12
+
+local toggleBtn = Instance.new("TextButton", mainFrame)
+toggleBtn.Size = UDim2.new(0.8, 0, 0.4, 0)
+toggleBtn.Position = UDim2.new(0.1, 0, 0.5, 0)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+toggleBtn.Text = "เริ่มการทำงาน"
+toggleBtn.TextColor3 = Color3.new(1, 1, 1)
+toggleBtn.Font = "SourceSansBold"
+Instance.new("UICorner", toggleBtn)
+
+-- ระบบลาก UI
+local dragging, dragInput, dragStart, startPos
+mainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true; dragStart = input.Position; startPos = mainFrame.Position
+    end
+end)
+mainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end end)
+
+-- ปุ่มกด ON/OFF
+toggleBtn.MouseButton1Click:Connect(function()
+    Config.AutoBoom = not Config.AutoBoom
+    if Config.AutoBoom then
+        toggleBtn.Text = "หยุดทำงาน"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+    else
+        toggleBtn.Text = "เริ่มการทำงาน"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        statusLabel.Text = "ระบบปิดอยู่"
+    end
+end)
+
+-- Loop อัปเดตข้อความบน UI
+task.spawn(function()
+    while true do
+        if Config.AutoBoom then
+            statusLabel.Text = "กำลังระเบิดจุดที่: " .. Config.CurrentPoint
+        end
+        task.wait(0.5)
     end
 end)
