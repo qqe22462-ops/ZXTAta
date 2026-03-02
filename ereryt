@@ -1,0 +1,24 @@
+local button = script.Parent -- อ้างอิงถึงตัวปุ่ม
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
+
+-- ตั้งค่าความเร็วที่ต้องการ
+local normalSpeed = 16
+local fastSpeed = 100 -- ปรับตัวเลขตรงนี้ได้ตามใจชอบ
+local isSpeedEnabled = false -- สถานะเริ่มต้น (ปิดอยู่)
+
+-- ฟังก์ชันเมื่อคลิกปุ่ม
+button.MouseButton1Click:Connect(function()
+    isSpeedEnabled = not isSpeedEnabled -- สลับสถานะ (เปิดเป็นปิด / ปิดเป็นเปิด)
+    
+    if isSpeedEnabled then
+        humanoid.WalkSpeed = fastSpeed
+        button.Text = "Speed: ON"
+        button.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- เปลี่ยนปุ่มเป็นสีเขียว
+    else
+        humanoid.WalkSpeed = normalSpeed
+        button.Text = "Speed: OFF"
+        button.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- เปลี่ยนปุ่มเป็นสีแดง
+    end
+end)
