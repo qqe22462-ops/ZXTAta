@@ -1,82 +1,108 @@
--- [[ Mobile Draggable Speed Toggle - 100 ]]
+-- [[ Mobile Draggable + Long Press to Input Speed ]]
 local player = game.Players.LocalPlayer
+local UIS = game:GetService("UserInputService")
+
 local screenGui = Instance.new("ScreenGui", player.PlayerGui)
-screenGui.Name = "MobileSpeedMenu"
+screenGui.Name = "LongPressSpeedMenu"
 screenGui.ResetOnSpawn = false
 
--- สร้างปุ่มกลมๆ สำหรับกด
+-- 1. สร้างปุ่มหลัก (Main Button)
 local mainBtn = Instance.new("TextButton", screenGui)
 mainBtn.Size = UDim2.new(0, 70, 0, 70)
 mainBtn.Position = UDim2.new(0.1, 0, 0.5, 0)
-mainBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-mainBtn.Text = "Speed\nOFF"
+mainBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainBtn.Text = "SPD"
 mainBtn.TextColor3 = Color3.new(1, 1, 1)
 mainBtn.Font = Enum.Font.SourceSansBold
-mainBtn.TextSize = 18
-mainBtn.ClipsDescendants = true
-
-local corner = Instance.new("UICorner", mainBtn)
-corner.CornerRadius = UDim.new(1, 0)
-
+mainBtn.TextSize = 20
+Instance.new("UICorner", mainBtn).CornerRadius = UDim.new(1, 0)
 local stroke = Instance.new("UIStroke", mainBtn)
 stroke.Thickness = 2
 stroke.Color = Color3.new(1, 1, 1)
 
--- [ ระบบลากปุ่มสำหรับมือถือ ]
+-- 2. หน้าต่างกรอกตัวเลข (Input Frame)
+local inputFrame = Instance.new("Frame", screenGui)
+inputFrame.Size = UDim2.new(0, 150, 0, 110)
+inputFrame.Position = UDim2.new(0.5, -75, 0.5, -55)
+inputFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+inputFrame.Visible = false
+inputFrame.ZIndex = 10
+Instance.new("UICorner", inputFrame)
+
+local speedInput = Instance.new("TextBox", inputFrame)
+speedInput.Size = UDim2.new(0.8, 0, 0.35, 0)
+speedInput.Position = UDim2.new(0.1, 0, 0.1, 0)
+speedInput.PlaceholderText = "16 - 200"
+speedInput.Text = ""
+speedInput.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+speedInput.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", speedInput)
+
+local setBtn = Instance.new("TextButton", inputFrame)
+setBtn.Size = UDim2.new(0.8, 0, 0.3, 0)
+setBtn.Position = UDim2.new(0.1, 0, 0.6, 0)
+setBtn.Text = "SET SPEED"
+setBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+setBtn.TextColor3 = Color3.new(1, 1, 1)
+Instance.new("UICorner", setBtn)
+
+-- [ ระบบลากปุ่ม ]
 local dragging, dragInput, dragStart, startPos
 mainBtn.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = true
-		dragStart = input.Position
-		startPos = mainBtn.Position
-	end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true; dragStart = input.Position; startPos = mainBtn.Position
+    end
 end)
-
-mainBtn.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-		dragInput = input
-	end
-end)
-
 game:GetService("UserInputService").InputChanged:Connect(function(input)
-	if input == dragInput and dragging then
-		local delta = input.Position - dragStart
-		mainBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-	end
+    if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) and dragging then
+        local delta = input.Position - dragStart
+        mainBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
 end)
-
 game:GetService("UserInputService").InputEnded:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-		dragging = false
-	end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
 end)
 
--- [ ระบบเปิด-ปิดความเร็ว ]
-local isFast = false
+-- [ ระบบกดค้าง (Long Press) เพื่อเปิดหน้าต่าง ]
+local holdTime = 0.5 -- ตั้งเวลาค้างไว้ 0.5 วินาที
+local isHolding = false
 
-mainBtn.MouseButton1Click:Connect(function()
-	if dragging then return end -- ป้องกันการกดโดนขณะกำลังลาก
-	
-	isFast = not isFast
-	local char = player.Character
-	local hum = char and char:FindFirstChildOfClass("Humanoid")
-	
-	if isFast then
-		if hum then hum.WalkSpeed = 100 end
-		mainBtn.Text = "Speed\nON"
-		mainBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0) -- สีเขียว
-	else
-		if hum then hum.WalkSpeed = 16 end
-		mainBtn.Text = "Speed\nOFF"
-		mainBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0) -- สีแดง
-	end
+mainBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        isHolding = true
+        task.wait(holdTime)
+        if isHolding and not dragging then
+            inputFrame.Visible = true -- เปิดหน้าต่างเมื่อกดค้างครบเวลาและไม่ได้กำลังลาก
+        end
+    end
 end)
 
--- ระบบกันตายแล้วความเร็วหาย
+mainBtn.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        isHolding = false
+    end
+end)
+
+-- [ ระบบตั้งค่าความเร็ว ]
+local currentSpeed = 16
+setBtn.MouseButton1Click:Connect(function()
+    local val = tonumber(speedInput.Text)
+    if val then
+        val = math.clamp(val, 16, 200)
+        currentSpeed = val
+        local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum.WalkSpeed = currentSpeed end
+        mainBtn.Text = tostring(currentSpeed)
+    end
+    inputFrame.Visible = false
+    speedInput.Text = ""
+end)
+
+-- ระบบกันตาย
 player.CharacterAdded:Connect(function(char)
-	local hum = char:WaitForChild("Humanoid")
-	task.wait(0.5)
-	if isFast then
-		hum.WalkSpeed = 100
-	end
+    local hum = char:WaitForChild("Humanoid")
+    task.wait(0.5)
+    hum.WalkSpeed = currentSpeed
 end)
