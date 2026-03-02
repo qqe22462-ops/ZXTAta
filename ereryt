@@ -1,43 +1,82 @@
-local UserInputService = game:GetService("UserInputService")
+-- [[ Mobile Draggable Speed Toggle - 100 ]]
 local player = game.Players.LocalPlayer
-local button = script.Parent
+local screenGui = Instance.new("ScreenGui", player.PlayerGui)
+screenGui.Name = "MobileSpeedMenu"
+screenGui.ResetOnSpawn = false
 
--- ตั้งค่าที่ต้องการปรับ
-local walkSpeedNormal = 16
-local walkSpeedFast = 100 -- ปรับความเร็วตรงนี้
-local toggleKey = Enum.KeyCode.Q -- ปุ่มบนคีย์บอร์ดที่ใช้เปิด/ปิด (ในที่นี้คือปุ่ม Q)
+-- สร้างปุ่มกลมๆ สำหรับกด
+local mainBtn = Instance.new("TextButton", screenGui)
+mainBtn.Size = UDim2.new(0, 70, 0, 70)
+mainBtn.Position = UDim2.new(0.1, 0, 0.5, 0)
+mainBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+mainBtn.Text = "Speed\nOFF"
+mainBtn.TextColor3 = Color3.new(1, 1, 1)
+mainBtn.Font = Enum.Font.SourceSansBold
+mainBtn.TextSize = 18
+mainBtn.ClipsDescendants = true
 
-local isEnabled = false
+local corner = Instance.new("UICorner", mainBtn)
+corner.CornerRadius = UDim.new(1, 0)
 
--- ฟังก์ชันสำหรับสลับสถานะ
-local function toggleSpeed()
-	local character = player.Character
-	if not character then return end
-	local humanoid = character:FindFirstChildOfClass("Humanoid")
-	if not humanoid then return end
-	
-	isEnabled = not isEnabled
-	
-	if isEnabled then
-		humanoid.WalkSpeed = walkSpeedFast
-		button.Text = "Speed: ON"
-		button.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- สีเขียว
-	else
-		humanoid.WalkSpeed = walkSpeedNormal
-		button.Text = "Speed: OFF"
-		button.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- สีแดง
-	end
-end
+local stroke = Instance.new("UIStroke", mainBtn)
+stroke.Thickness = 2
+stroke.Color = Color3.new(1, 1, 1)
 
--- 1. ตรวจจับการคลิกที่ปุ่มบนหน้าจอ
-button.MouseButton1Click:Connect(toggleSpeed)
-
--- 2. ตรวจจับการกดปุ่มบนคีย์บอร์ด (Hotkey)
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-	if not gameProcessed and input.KeyCode == toggleKey then
-		toggleSpeed()
+-- [ ระบบลากปุ่มสำหรับมือถือ ]
+local dragging, dragInput, dragStart, startPos
+mainBtn.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = mainBtn.Position
 	end
 end)
 
--- แจ้งเตือนในช่อง Output เมื่อสคริปต์เริ่มทำงาน
-print("สคริปต์ Speed Toggle พร้อมใช้งาน! (กดปุ่มบนจอ หรือกด Q)")
+mainBtn.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		local delta = input.Position - dragStart
+		mainBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+end)
+
+game:GetService("UserInputService").InputEnded:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = false
+	end
+end)
+
+-- [ ระบบเปิด-ปิดความเร็ว ]
+local isFast = false
+
+mainBtn.MouseButton1Click:Connect(function()
+	if dragging then return end -- ป้องกันการกดโดนขณะกำลังลาก
+	
+	isFast = not isFast
+	local char = player.Character
+	local hum = char and char:FindFirstChildOfClass("Humanoid")
+	
+	if isFast then
+		if hum then hum.WalkSpeed = 100 end
+		mainBtn.Text = "Speed\nON"
+		mainBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0) -- สีเขียว
+	else
+		if hum then hum.WalkSpeed = 16 end
+		mainBtn.Text = "Speed\nOFF"
+		mainBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0) -- สีแดง
+	end
+end)
+
+-- ระบบกันตายแล้วความเร็วหาย
+player.CharacterAdded:Connect(function(char)
+	local hum = char:WaitForChild("Humanoid")
+	task.wait(0.5)
+	if isFast then
+		hum.WalkSpeed = 100
+	end
+end)
