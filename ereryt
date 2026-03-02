@@ -1,24 +1,43 @@
-local button = script.Parent -- อ้างอิงถึงตัวปุ่ม
+local UserInputService = game:GetService("UserInputService")
 local player = game.Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
+local button = script.Parent
 
--- ตั้งค่าความเร็วที่ต้องการ
-local normalSpeed = 16
-local fastSpeed = 100 -- ปรับตัวเลขตรงนี้ได้ตามใจชอบ
-local isSpeedEnabled = false -- สถานะเริ่มต้น (ปิดอยู่)
+-- ตั้งค่าที่ต้องการปรับ
+local walkSpeedNormal = 16
+local walkSpeedFast = 100 -- ปรับความเร็วตรงนี้
+local toggleKey = Enum.KeyCode.Q -- ปุ่มบนคีย์บอร์ดที่ใช้เปิด/ปิด (ในที่นี้คือปุ่ม Q)
 
--- ฟังก์ชันเมื่อคลิกปุ่ม
-button.MouseButton1Click:Connect(function()
-    isSpeedEnabled = not isSpeedEnabled -- สลับสถานะ (เปิดเป็นปิด / ปิดเป็นเปิด)
-    
-    if isSpeedEnabled then
-        humanoid.WalkSpeed = fastSpeed
-        button.Text = "Speed: ON"
-        button.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- เปลี่ยนปุ่มเป็นสีเขียว
-    else
-        humanoid.WalkSpeed = normalSpeed
-        button.Text = "Speed: OFF"
-        button.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- เปลี่ยนปุ่มเป็นสีแดง
-    end
+local isEnabled = false
+
+-- ฟังก์ชันสำหรับสลับสถานะ
+local function toggleSpeed()
+	local character = player.Character
+	if not character then return end
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if not humanoid then return end
+	
+	isEnabled = not isEnabled
+	
+	if isEnabled then
+		humanoid.WalkSpeed = walkSpeedFast
+		button.Text = "Speed: ON"
+		button.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- สีเขียว
+	else
+		humanoid.WalkSpeed = walkSpeedNormal
+		button.Text = "Speed: OFF"
+		button.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- สีแดง
+	end
+end
+
+-- 1. ตรวจจับการคลิกที่ปุ่มบนหน้าจอ
+button.MouseButton1Click:Connect(toggleSpeed)
+
+-- 2. ตรวจจับการกดปุ่มบนคีย์บอร์ด (Hotkey)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if not gameProcessed and input.KeyCode == toggleKey then
+		toggleSpeed()
+	end
 end)
+
+-- แจ้งเตือนในช่อง Output เมื่อสคริปต์เริ่มทำงาน
+print("สคริปต์ Speed Toggle พร้อมใช้งาน! (กดปุ่มบนจอ หรือกด Q)")
