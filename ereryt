@@ -1,162 +1,145 @@
--- [[ ᴘɪꜱɪᴛ  ᴀᴜᴛᴏ-ᴇxᴘʟᴏꜱɪᴠᴇ - TIMER SYSTEM ]]
+-- [[ ᴘɪꜱɪᴛ  ꜱᴏᴜʟ  ᴘʀᴏᴊᴇᴄᴛɪᴏɴ - ร่างจำลอง ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
----------------------------------------------------------
--- [[ พื้นที่จัดการโค้ดระเบิด ]]
----------------------------------------------------------
-local Config = {
-    AutoBoom = false,
-    CurrentPoint = 1, -- จุดปัจจุบันที่กำลังทำงาน
-    Timer = 15 -- เวลาต่อจุด (วินาที)
-}
+local IsActive = false
+local FakeChar = nil
+local RealPos = nil
 
--- [ พิกัดวาร์ปของแต่ละจุด ]
-local WarpPoints = {
-    Point1 = CFrame.new(-156.402, -54.340, 107.665),
-    Point2 = CFrame.new(-359.656, -101.421, -161.188)
-}
-
--- [ ฟังก์ชันระเบิดจุดที่ 1 ]
-local function Execute1()
-    local tool = LocalPlayer.Backpack:FindFirstChild("Thermite") or (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Thermite"))
-    if not tool then return end
-    local args = {
-        "Thermite",
-        CFrame.new(-156.40277099609375, -54.340362548828125, 107.66516876220703, 0.5198333859443665, 0.6089127659797668, -0.5991649627685547, -0, 0.7013784646987915, 0.7127891778945923, 0.8542676568031311, -0.3705316185951233, 0.36459997296333313),
-        workspace:WaitForChild("Terrain"),
-        tool,
-        Vector3.new(-0.02289554476737976, 0.9262236952781677, 0.3762783706188202)
-    }
-    ReplicatedStorage:WaitForChild("Tools"):WaitForChild("PlaceExplosive"):FireServer(unpack(args))
+---------------------------------------------------------
+-- [ ระบบจัดการร่างจำลอง ]
+---------------------------------------------------------
+local function CreateSoul()
+    local Character = LocalPlayer.Character
+    if not Character or not Character:FindFirstChild("HumanoidRootPart") then return end
+    
+    Character.Archivable = true
+    RealPos = Character.HumanoidRootPart.CFrame
+    
+    -- สร้างร่างจำลอง
+    FakeChar = Character:Clone()
+    FakeChar.Parent = workspace
+    FakeChar.Name = "Soul_Projection"
+    
+    -- ทำให้ร่างจำลองใสเหมือนวิญญาณ
+    for _, part in pairs(FakeChar:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = false
+            part.Transparency = 0.5
+            part.Color = Color3.fromRGB(0, 255, 255) -- สีวิญญาณฟ้าๆ
+        end
+    end
+    
+    -- ล็อคร่างจริงไว้ที่เดิมและทำให้ล่องหน
+    for _, part in pairs(Character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.Transparency = 1
+        end
+    end
+    Character.HumanoidRootPart.Anchored = true
 end
 
--- [ ฟังก์ชันระเบิดจุดที่ 2 ]
-local function Execute2()
-    local tool = LocalPlayer.Backpack:FindFirstChild("Thermite") or (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Thermite"))
-    if not tool then return end
-    local args = {
-        "Thermite",
-        CFrame.new(-359.656005859375, -101.4210205078125, -161.18878173828125, 0.19319698214530945, 0.5881767868995667, -0.7853171825408936, -0, 0.8003966808319092, 0.5994707942008972, 0.981160044670105, -0.11581594496965408, 0.15463420748710632),
-        workspace:WaitForChild("Terrain"),
-        tool,
-        Vector3.new(-0.9744876623153687, 0.12786023318767548, -0.1844605952501297)
-    }
-    ReplicatedStorage:WaitForChild("Tools"):WaitForChild("PlaceExplosive"):FireServer(unpack(args))
+local function RemoveSoul()
+    if FakeChar then
+        FakeChar:Destroy()
+        FakeChar = nil
+    end
+    
+    -- เอาร่างจริงกลับมา
+    local Character = LocalPlayer.Character
+    if Character then
+        for _, part in pairs(Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.Transparency = 0
+            end
+        end
+        Character.HumanoidRootPart.Anchored = false
+        Character.HumanoidRootPart.CFrame = RealPos
+    end
 end
 
----------------------------------------------------------
--- [ ระบบจัดการเวลาและการสลับจุด ]
----------------------------------------------------------
-task.spawn(function()
-    while true do
-        if Config.AutoBoom then
-            -- ลูป 15 วินาทีสำหรับจุดที่ 1
-            Config.CurrentPoint = 1
-            local startTime1 = tick()
-            while tick() - startTime1 < Config.Timer and Config.AutoBoom do
-                pcall(function()
-                    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                        LocalPlayer.Character.HumanoidRootPart.CFrame = WarpPoints.Point1
-                    end
-                    Execute1()
-                end)
-                task.wait(0.1) -- ความเร็วในการวางระเบิด
-            end
-
-            -- ลูป 15 วินาทีสำหรับจุดที่ 2
-            Config.CurrentPoint = 2
-            local startTime2 = tick()
-            while tick() - startTime2 < Config.Timer and Config.AutoBoom do
-                pcall(function()
-                    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                        LocalPlayer.Character.HumanoidRootPart.CFrame = WarpPoints.Point2
-                    end
-                    Execute2()
-                end)
-                task.wait(0.1)
-            end
+-- ระบบควบคุมร่างวิญญาณเดินตามกล้อง
+RunService.RenderStepped:Connect(function()
+    if IsActive and FakeChar and FakeChar:FindFirstChild("HumanoidRootPart") then
+        local cam = workspace.CurrentCamera
+        local moveDir = Vector3.new(0,0,0)
+        
+        -- ตรวจสอบการกดปุ่มเดิน
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + cam.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - cam.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - cam.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cam.CFrame.RightVector end
+        
+        if moveDir.Magnitude > 0 then
+            moveDir = Vector3.new(moveDir.X, 0, moveDir.Z).Unit
+            FakeChar.HumanoidRootPart.Velocity = moveDir * 50 -- ความเร็วร่างวิญญาณ
+            FakeChar.HumanoidRootPart.CFrame = CFrame.new(FakeChar.HumanoidRootPart.Position, FakeChar.HumanoidRootPart.Position + moveDir)
         else
-            task.wait(0.5)
+            FakeChar.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
+        end
+        
+        -- ให้กล้องตามร่างวิญญาณ
+        cam.CameraSubject = FakeChar.Humanoid
+    else
+        if LocalPlayer.Character then
+            workspace.CurrentCamera.CameraSubject = LocalPlayer.Character.Humanoid
         end
     end
 end)
 
 ---------------------------------------------------------
--- [ ระบบ UI ]
+-- [ ระบบ UI ปุ่มลอย ]
 ---------------------------------------------------------
-if LocalPlayer.PlayerGui:FindFirstChild("PisitTimerUI") then
-    LocalPlayer.PlayerGui.PisitTimerUI:Destroy()
+if LocalPlayer.PlayerGui:FindFirstChild("PisitSoulUI") then
+    LocalPlayer.PlayerGui.PisitSoulUI:Destroy()
 end
 
 local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-screenGui.Name = "PisitTimerUI"
+screenGui.Name = "PisitSoulUI"
 screenGui.ResetOnSpawn = false
 
-local mainFrame = Instance.new("Frame", screenGui)
-mainFrame.Size = UDim2.new(0, 180, 0, 60)
-mainFrame.Position = UDim2.new(0.5, -90, 0.1, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-Instance.new("UICorner", mainFrame)
+local mainBtn = Instance.new("TextButton", screenGui)
+mainBtn.Size = UDim2.new(0, 120, 0, 50)
+mainBtn.Position = UDim2.new(0.1, 0, 0.2, 0)
+mainBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainBtn.Text = "SOUL: OFF"
+mainBtn.TextColor3 = Color3.new(1, 1, 1)
+mainBtn.Font = "SourceSansBold"
+mainBtn.TextSize = 18
+Instance.new("UICorner", mainBtn)
 
-local statusLabel = Instance.new("TextLabel", mainFrame)
-statusLabel.Size = UDim2.new(1, 0, 0.5, 0)
-statusLabel.BackgroundTransparency = 1
-statusLabel.Text = "ระบบปิดอยู่"
-statusLabel.TextColor3 = Color3.new(1, 1, 1)
-statusLabel.Font = "SourceSansBold"
-statusLabel.TextSize = 12
-
-local toggleBtn = Instance.new("TextButton", mainFrame)
-toggleBtn.Size = UDim2.new(0.8, 0, 0.4, 0)
-toggleBtn.Position = UDim2.new(0.1, 0, 0.5, 0)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-toggleBtn.Text = "เริ่มการทำงาน"
-toggleBtn.TextColor3 = Color3.new(1, 1, 1)
-toggleBtn.Font = "SourceSansBold"
-Instance.new("UICorner", toggleBtn)
-
--- ระบบลาก UI
+-- ระบบลากปุ่ม
 local dragging, dragInput, dragStart, startPos
-mainFrame.InputBegan:Connect(function(input)
+mainBtn.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true; dragStart = input.Position; startPos = mainFrame.Position
+        dragging = true; dragStart = input.Position; startPos = mainBtn.Position
     end
 end)
-mainFrame.InputChanged:Connect(function(input)
+mainBtn.InputChanged:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
 end)
 UserInputService.InputChanged:Connect(function(input)
     if input == dragInput and dragging then
         local delta = input.Position - dragStart
-        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        mainBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
-UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end end)
+UserInputService.InputEnded:Connect(function(input) if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
 
--- ปุ่มกด ON/OFF
-toggleBtn.MouseButton1Click:Connect(function()
-    Config.AutoBoom = not Config.AutoBoom
-    if Config.AutoBoom then
-        toggleBtn.Text = "หยุดทำงาน"
-        toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+-- ปุ่มคลิกเปิด/ปิด
+mainBtn.MouseButton1Click:Connect(function()
+    IsActive = not IsActive
+    if IsActive then
+        mainBtn.Text = "SOUL: ON"
+        mainBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
+        CreateSoul()
     else
-        toggleBtn.Text = "เริ่มการทำงาน"
-        toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-        statusLabel.Text = "ระบบปิดอยู่"
-    end
-end)
-
--- Loop อัปเดตข้อความบน UI
-task.spawn(function()
-    while true do
-        if Config.AutoBoom then
-            statusLabel.Text = "กำลังระเบิดจุดที่: " .. Config.CurrentPoint
-        end
-        task.wait(0.5)
+        mainBtn.Text = "SOUL: OFF"
+        mainBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        RemoveSoul()
     end
 end)
