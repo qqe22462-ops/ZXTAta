@@ -1,4 +1,4 @@
--- [[ ᴘɪꜱɪᴛ  ᴀᴜᴛᴏ-ᴍɪɴᴇ  ꜱᴛᴇᴘᴘᴇʀ ]]
+-- [[ ᴘɪꜱɪᴛ  ꜱᴍᴀʀᴛ-ᴍɪɴᴇ  ᴠ2 ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 
 local Players = game:GetService("Players")
@@ -8,11 +8,11 @@ local LocalPlayer = Players.LocalPlayer
 
 local Config = {
     Enabled = false,
-    MineDelay = 0.5, -- ขุดจุดละ 0.5 วินาที
-    ReturnPos = nil  -- เก็บตำแหน่งเดิมก่อนวาร์ป
+    MineRate = 0.5, -- ขุดทุกๆ 0.5 วินาที
+    ReturnPos = nil
 }
 
--- [ รายรวมพิกัดทั้งหมด 12 จุดที่คุณส่งมา ]
+-- [ รายชื่อพิกัด 12 จุด ]
 local MinePoints = {
     CFrame.new(244.637, 1308.860, -382.648),
     CFrame.new(236.195, 1306.692, -409.792),
@@ -28,43 +28,58 @@ local MinePoints = {
     CFrame.new(-18.821, 1179.593, -260.221)
 }
 
--- ฟังก์ชันส่ง Remote ขุด
-local function UsePickaxe(targetCFrame)
+-- ฟังก์ชันเช็คว่ามีแร่อยู่ในพิกัดนั้นไหม (ระยะใกล้เคียง 5 เมตร)
+local function GetOreAtPos(targetPos)
+    for _, v in pairs(workspace:GetChildren()) do
+        if v:IsA("BasePart") or v:IsA("Model") then
+            local pos = v:IsA("BasePart") and v.Position or (v:FindFirstChildWhichIsA("BasePart") and v:FindFirstChildWhichIsA("BasePart").Position)
+            if pos and (pos - targetPos).Magnitude < 5 then
+                return v -- คืนค่าแร่ออกมา
+            end
+        end
+    end
+    return nil
+end
+
+-- ฟังก์ชันขุด
+local function UsePickaxe(cf)
     pcall(function()
-        ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("UsePickaxe"):InvokeServer(targetCFrame)
+        ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("UsePickaxe"):InvokeServer(cf)
     end)
 end
 
 ---------------------------------------------------------
--- [ ระบบ Loop การทำงาน ]
+-- [ ระบบ Loop อัจฉริยะ ]
 ---------------------------------------------------------
 task.spawn(function()
     while true do
         if Config.Enabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            -- 1. บันทึกตำแหน่งก่อนเริ่ม (เพื่อวาร์ปกลับ)
             Config.ReturnPos = LocalPlayer.Character.HumanoidRootPart.CFrame
             
-            -- 2. วนลูปวาร์ปไปแต่ละจุด
             for i, targetCF in ipairs(MinePoints) do
-                if not Config.Enabled then break end -- ถ้ากดปิดกลางคันให้หยุด
+                if not Config.Enabled then break end
                 
-                -- วาร์ปตัวละคร
+                -- วาร์ปไปที่แร่
                 LocalPlayer.Character.HumanoidRootPart.CFrame = targetCF + Vector3.new(0, 3, 0)
+                task.wait(0.2) -- รอให้ Map โหลดแร่แป๊บนึง
                 
-                -- ขุดรัวๆ 0.5 วินาทีที่จุดนั้น
-                local startMine = tick()
-                while tick() - startMine < Config.MineDelay do
-                    UsePickaxe(targetCF)
-                    task.wait(0.05) -- ความเร็วในการส่ง Remote ภายใน 0.5 วิ
+                -- [[ ลูปขุดจนกว่าแร่จะหมด ]]
+                while Config.Enabled do
+                    local ore = GetOreAtPos(targetCF.Position)
+                    if ore and ore.Parent then
+                        UsePickaxe(targetCF)
+                        task.wait(Config.MineRate) -- รอ 0.5 วินาทีตามที่คุณสั่ง
+                    else
+                        -- ถ้าแร่หายไปแล้ว ให้หลุดลูปเพื่อไปจุดต่อไป
+                        break 
+                    end
                 end
             end
             
-            -- 3. ขุดเสร็จทุกจุด วาร์ปกลับที่เดิม
+            -- จบงาน วาร์ปกลับ
             if Config.Enabled then
                 LocalPlayer.Character.HumanoidRootPart.CFrame = Config.ReturnPos
-                Config.Enabled = false -- ปิดการทำงานอัตโนมัติเมื่อครบวงรอบ (หรือจะให้วนใหม่ก็เอาบรรทัดนี้ออก)
-                
-                -- อัปเดตปุ่ม UI
+                Config.Enabled = false
                 if _G.UpdateBtn then _G.UpdateBtn() end
             end
         end
@@ -73,14 +88,14 @@ task.spawn(function()
 end)
 
 ---------------------------------------------------------
--- [ ระบบ UI ]
+-- [ ระบบ UI (ลากได้) ]
 ---------------------------------------------------------
-if LocalPlayer.PlayerGui:FindFirstChild("PisitAutoMineUI") then
-    LocalPlayer.PlayerGui.PisitAutoMineUI:Destroy()
+if LocalPlayer.PlayerGui:FindFirstChild("PisitSmartMineUI") then
+    LocalPlayer.PlayerGui.PisitSmartMineUI:Destroy()
 end
 
 local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-screenGui.Name = "PisitAutoMineUI"
+screenGui.Name = "PisitSmartMineUI"
 screenGui.ResetOnSpawn = false
 
 local mainFrame = Instance.new("Frame", screenGui)
@@ -93,14 +108,14 @@ local toggleBtn = Instance.new("TextButton", mainFrame)
 toggleBtn.Size = UDim2.new(0.9, 0, 0.7, 0)
 toggleBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
 toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-toggleBtn.Text = "เริ่มขุดออโต้"
+toggleBtn.Text = "เริ่มขุด (จนหมด)"
 toggleBtn.TextColor3 = Color3.new(1, 1, 1)
 toggleBtn.Font = "SourceSansBold"
-toggleBtn.TextSize = 16
+toggleBtn.TextSize = 14
 Instance.new("UICorner", toggleBtn)
 
 _G.UpdateBtn = function()
-    toggleBtn.Text = Config.Enabled and "กำลังขุด..." or "เริ่มขุดออโต้"
+    toggleBtn.Text = Config.Enabled and "กำลังเคลียร์แร่..." or "เริ่มขุด (จนหมด)"
     toggleBtn.BackgroundColor3 = Config.Enabled and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
 end
 
@@ -109,7 +124,7 @@ toggleBtn.MouseButton1Click:Connect(function()
     _G.UpdateBtn()
 end)
 
--- ระบบลาก
+-- ระบบลาก (Drag)
 local dragging, dragInput, dragStart, startPos
 mainFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
