@@ -1,4 +1,4 @@
--- [[ ᴘɪꜱɪᴛ  ꜱᴍᴀʀᴛ-ᴍɪɴᴇ  ᴠ2 ]]
+-- [[ ᴘɪꜱɪᴛ  ꜱᴍᴀʀᴛ-ᴍɪɴᴇ  ᴠ3 - FIXED ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 
 local Players = game:GetService("Players")
@@ -28,20 +28,25 @@ local MinePoints = {
     CFrame.new(-18.821, 1179.593, -260.221)
 }
 
--- ฟังก์ชันเช็คว่ามีแร่อยู่ในพิกัดนั้นไหม (ระยะใกล้เคียง 5 เมตร)
-local function GetOreAtPos(targetPos)
-    for _, v in pairs(workspace:GetChildren()) do
-        if v:IsA("BasePart") or v:IsA("Model") then
-            local pos = v:IsA("BasePart") and v.Position or (v:FindFirstChildWhichIsA("BasePart") and v:FindFirstChildWhichIsA("BasePart").Position)
-            if pos and (pos - targetPos).Magnitude < 5 then
-                return v -- คืนค่าแร่ออกมา
+-- ฟังก์ชันค้นหาแร่ที่ใกล้พิกัดที่สุด (เช็คละเอียดขึ้น)
+local function FindOreAtPos(targetPos)
+    local closest = nil
+    local dist = 8 -- รัศมีตรวจจับแร่ 8 เมตร
+    
+    -- ตรวจสอบใน Workspace (รวมถึง Folder ต่างๆ)
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("BasePart") and (v.Name:find("Coal") or v.Name:find("Iron") or v.Name:find("Gold") or v.Name:find("Ore")) then
+            local d = (v.Position - targetPos).Magnitude
+            if d < dist then
+                dist = d
+                closest = v
             end
         end
     end
-    return nil
+    return closest
 end
 
--- ฟังก์ชันขุด
+-- ฟังก์ชันส่ง Remote ขุด
 local function UsePickaxe(cf)
     pcall(function()
         ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("UsePickaxe"):InvokeServer(cf)
@@ -49,34 +54,39 @@ local function UsePickaxe(cf)
 end
 
 ---------------------------------------------------------
--- [ ระบบ Loop อัจฉริยะ ]
+-- [ ระบบ Loop การทำงานแบบล็อคเป้า ]
 ---------------------------------------------------------
 task.spawn(function()
     while true do
         if Config.Enabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            -- เก็บตำแหน่งเดิมก่อนเริ่ม
             Config.ReturnPos = LocalPlayer.Character.HumanoidRootPart.CFrame
             
-            for i, targetCF in ipairs(MinePoints) do
+            for _, targetCF in ipairs(MinePoints) do
                 if not Config.Enabled then break end
                 
-                -- วาร์ปไปที่แร่
+                -- 1. วาร์ปไปที่แร่และล็อคตำแหน่งไว้
                 LocalPlayer.Character.HumanoidRootPart.CFrame = targetCF + Vector3.new(0, 3, 0)
-                task.wait(0.2) -- รอให้ Map โหลดแร่แป๊บนึง
+                task.wait(0.3) -- รอแมพโหลดแร่
                 
-                -- [[ ลูปขุดจนกว่าแร่จะหมด ]]
-                while Config.Enabled do
-                    local ore = GetOreAtPos(targetCF.Position)
+                -- 2. วนลูปขุดที่จุดนี้ "จนกว่าแร่จะหายไป"
+                local isMiningThisPoint = true
+                while isMiningThisPoint and Config.Enabled do
+                    local ore = FindOreAtPos(targetCF.Position)
+                    
                     if ore and ore.Parent then
+                        -- แร่อยู่! ขุด 1 ครั้ง แล้วรอ 0.5 วิ
                         UsePickaxe(targetCF)
-                        task.wait(Config.MineRate) -- รอ 0.5 วินาทีตามที่คุณสั่ง
+                        task.wait(Config.MineRate) -- << ขุดที่จุดเดิมทุก 0.5 วินาที
                     else
-                        -- ถ้าแร่หายไปแล้ว ให้หลุดลูปเพื่อไปจุดต่อไป
-                        break 
+                        -- แร่แตกแล้ว หรือหาไม่เจอแล้ว
+                        isMiningThisPoint = false -- หลุดลูปไปจุดต่อไป
                     end
                 end
+                task.wait(0.1) -- พักนิดนึงก่อนวาร์ปไปจุดใหม่
             end
             
-            -- จบงาน วาร์ปกลับ
+            -- จบงาน วาร์ปกลับจุดเริ่ม
             if Config.Enabled then
                 LocalPlayer.Character.HumanoidRootPart.CFrame = Config.ReturnPos
                 Config.Enabled = false
@@ -88,14 +98,14 @@ task.spawn(function()
 end)
 
 ---------------------------------------------------------
--- [ ระบบ UI (ลากได้) ]
+-- [ ระบบ UI ]
 ---------------------------------------------------------
-if LocalPlayer.PlayerGui:FindFirstChild("PisitSmartMineUI") then
-    LocalPlayer.PlayerGui.PisitSmartMineUI:Destroy()
+if LocalPlayer.PlayerGui:FindFirstChild("PisitFixMineUI") then
+    LocalPlayer.PlayerGui.PisitFixMineUI:Destroy()
 end
 
 local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-screenGui.Name = "PisitSmartMineUI"
+screenGui.Name = "PisitFixMineUI"
 screenGui.ResetOnSpawn = false
 
 local mainFrame = Instance.new("Frame", screenGui)
@@ -108,14 +118,14 @@ local toggleBtn = Instance.new("TextButton", mainFrame)
 toggleBtn.Size = UDim2.new(0.9, 0, 0.7, 0)
 toggleBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
 toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-toggleBtn.Text = "เริ่มขุด (จนหมด)"
+toggleBtn.Text = "เริ่มขุด (ล็อคเป้า)"
 toggleBtn.TextColor3 = Color3.new(1, 1, 1)
 toggleBtn.Font = "SourceSansBold"
 toggleBtn.TextSize = 14
 Instance.new("UICorner", toggleBtn)
 
 _G.UpdateBtn = function()
-    toggleBtn.Text = Config.Enabled and "กำลังเคลียร์แร่..." or "เริ่มขุด (จนหมด)"
+    toggleBtn.Text = Config.Enabled and "กำลังขุดจุดนี้อยู่..." or "เริ่มขุด (ล็อคเป้า)"
     toggleBtn.BackgroundColor3 = Config.Enabled and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
 end
 
@@ -132,11 +142,11 @@ mainFrame.InputBegan:Connect(function(input)
     end
 end)
 mainFrame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
-end)
-UserInputService.InputChanged:Connect(function(input)
     if input == dragInput and dragging then
         local delta = input.Position - dragStart
         mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
+end)
+mainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
 end)
