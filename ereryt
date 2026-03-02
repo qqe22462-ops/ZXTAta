@@ -1,52 +1,22 @@
--- [[ Mobile Draggable + Long Press + Force Real Speed ]]
+-- [[ Mobile Draggable + Toggle Speed 100 Fixed ]]
 local player = game.Players.LocalPlayer
-local runService = game:GetService("RunService")
-
 local screenGui = Instance.new("ScreenGui", player.PlayerGui)
-screenGui.Name = "ForceSpeedMenu"
+screenGui.Name = "Speed100FixedMenu"
 screenGui.ResetOnSpawn = false
 
 -- 1. สร้างปุ่มหลัก (Main Button)
 local mainBtn = Instance.new("TextButton", screenGui)
-mainBtn.Size = UDim2.new(0, 70, 0, 70)
+mainBtn.Size = UDim2.new(0, 80, 0, 80)
 mainBtn.Position = UDim2.new(0.1, 0, 0.5, 0)
-mainBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-mainBtn.Text = "SPD"
+mainBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0) -- เริ่มต้นสีแดง (OFF)
+mainBtn.Text = "SPEED\nOFF"
 mainBtn.TextColor3 = Color3.new(1, 1, 1)
 mainBtn.Font = Enum.Font.SourceSansBold
-mainBtn.TextSize = 20
+mainBtn.TextSize = 18
 Instance.new("UICorner", mainBtn).CornerRadius = UDim.new(1, 0)
 local stroke = Instance.new("UIStroke", mainBtn)
-stroke.Thickness = 2
+stroke.Thickness = 3
 stroke.Color = Color3.new(1, 1, 1)
-
--- 2. หน้าต่างกรอกตัวเลข (Input Frame)
-local inputFrame = Instance.new("Frame", screenGui)
-inputFrame.Size = UDim2.new(0, 160, 0, 110)
-inputFrame.Position = UDim2.new(0.5, -80, 0.5, -55)
-inputFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-inputFrame.Visible = false
-inputFrame.ZIndex = 10
-Instance.new("UICorner", inputFrame)
-
-local speedInput = Instance.new("TextBox", inputFrame)
-speedInput.Size = UDim2.new(0.8, 0, 0.35, 0)
-speedInput.Position = UDim2.new(0.1, 0, 0.15, 0)
-speedInput.PlaceholderText = "ใส่เลข (16-200)"
-speedInput.Text = ""
-speedInput.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-speedInput.TextColor3 = Color3.new(1, 1, 1)
-speedInput.Font = Enum.Font.SourceSans
-Instance.new("UICorner", speedInput)
-
-local setBtn = Instance.new("TextButton", inputFrame)
-setBtn.Size = UDim2.new(0.8, 0, 0.3, 0)
-setBtn.Position = UDim2.new(0.1, 0, 0.6, 0)
-setBtn.Text = "SET SPEED"
-setBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-setBtn.TextColor3 = Color3.new(1, 1, 1)
-setBtn.Font = Enum.Font.SourceSansBold
-Instance.new("UICorner", setBtn)
 
 -- [ ระบบลากปุ่ม ]
 local dragging, dragInput, dragStart, startPos
@@ -67,44 +37,39 @@ game:GetService("UserInputService").InputEnded:Connect(function(input)
     end
 end)
 
--- [ ระบบกดค้าง (0.5 วิ) เพื่อเปิดเมนู ]
-local isHolding = false
-mainBtn.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        isHolding = true
-        task.wait(0.5)
-        if isHolding and not dragging then
-            inputFrame.Visible = true
-        end
+-- [ ระบบเปิด-ปิด และล็อคค่า 100 ]
+local speedActive = false
+
+mainBtn.MouseButton1Click:Connect(function()
+    if dragging then return end -- ป้องกันการกดโดนขณะลาก
+    
+    speedActive = not speedActive
+    
+    if speedActive then
+        mainBtn.Text = "SPEED\nON"
+        mainBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0) -- สีเขียว (ON)
+    else
+        mainBtn.Text = "SPEED\nOFF"
+        mainBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0) -- สีแดง (OFF)
+        -- คืนค่าปกติเมื่อปิด
+        local char = player.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum then hum.WalkSpeed = 16 end
     end
 end)
-mainBtn.InputEnded:Connect(function(input)
-    isHolding = false
-end)
 
--- [ ระบบบังคับความเร็ว (The Core) ]
-local targetSpeed = 16
-
-setBtn.MouseButton1Click:Connect(function()
-    local val = tonumber(speedInput.Text)
-    if val then
-        targetSpeed = math.clamp(val, 0, 500) -- ปรับได้สูงสุด 500
-        mainBtn.Text = tostring(targetSpeed)
-    end
-    inputFrame.Visible = false
-    speedInput.Text = ""
-end)
-
--- ใช้ Loop เพื่อบังคับความเร็วให้คงที่ตลอดเวลา (กันโดนแมพรีเซ็ต)
+-- ระบบ Loop บังคับความเร็ว 100 ตลอดเวลา (ถ้าเปิดใช้งาน)
 task.spawn(function()
     while true do
-        pcall(function()
-            local char = player.Character
-            local hum = char and char:FindFirstChildOfClass("Humanoid")
-            if hum and hum.WalkSpeed ~= targetSpeed then
-                hum.WalkSpeed = targetSpeed
-            end
-        end)
-        task.wait(0.1) -- เช็คทุกๆ 0.1 วินาที
+        if speedActive then
+            pcall(function()
+                local char = player.Character
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
+                if hum and hum.WalkSpeed ~= 100 then
+                    hum.WalkSpeed = 100
+                end
+            end)
+        end
+        task.wait(0.1) -- เช็คถี่ๆ เพื่อไม่ให้ความเร็วตก
     end
 end)
