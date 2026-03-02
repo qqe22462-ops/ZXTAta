@@ -1,4 +1,4 @@
--- [[ ᴘɪꜱɪᴛ  ᴏʀᴇ  ᴅᴇᴛᴇᴄᴛᴏʀ & ᴀᴜᴛᴏ ᴍɪɴᴇ ]]
+-- [[ ᴘɪꜱɪᴛ  ᴀᴜᴛᴏ-ᴍɪɴᴇ  ꜱᴛᴇᴘᴘᴇʀ ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 
 local Players = game:GetService("Players")
@@ -7,117 +7,109 @@ local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
 local Config = {
-    AutoMine = false,
-    DetectionRadius = 10000, -- รัศมี 10,000 เมตร
-    SelectedOre = nil
+    Enabled = false,
+    MineDelay = 0.5, -- ขุดจุดละ 0.5 วินาที
+    ReturnPos = nil  -- เก็บตำแหน่งเดิมก่อนวาร์ป
 }
 
----------------------------------------------------------
--- [ ระบบขุดแร่อัตโนมัติ ]
----------------------------------------------------------
-local function MineOre(pos)
-    if not pos then return end
-    local args = {
-        CFrame.new(pos.X, pos.Y, pos.Z)
-    }
-    -- ใช้ InvokeServer ตามโค้ดที่คุณส่งมา
+-- [ รายรวมพิกัดทั้งหมด 12 จุดที่คุณส่งมา ]
+local MinePoints = {
+    CFrame.new(244.637, 1308.860, -382.648),
+    CFrame.new(236.195, 1306.692, -409.792),
+    CFrame.new(347.330, 1374.914, -315.731),
+    CFrame.new(267.250, 1295.463, -320.000),
+    CFrame.new(60.117, 1188.191, -302.319),
+    CFrame.new(91.089, 1192.837, -333.126),
+    CFrame.new(97.882, 1192.999, -326.213),
+    CFrame.new(1.620, 1180.207, -270.927),
+    CFrame.new(23.018, 1184.838, -292.028),
+    CFrame.new(-18.821, 1179.593, -260.221),
+    CFrame.new(-5.044, 1180.888, -275.077),
+    CFrame.new(-18.821, 1179.593, -260.221)
+}
+
+-- ฟังก์ชันส่ง Remote ขุด
+local function UsePickaxe(targetCFrame)
     pcall(function()
-        ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("UsePickaxe"):InvokeServer(unpack(args))
+        ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("UsePickaxe"):InvokeServer(targetCFrame)
     end)
 end
 
+---------------------------------------------------------
+-- [ ระบบ Loop การทำงาน ]
+---------------------------------------------------------
 task.spawn(function()
     while true do
-        if Config.AutoMine and LocalPlayer.Character then
-            -- ขุดแร่ที่ใกล้ที่สุดรัวๆ
-            local target = nil
-            local dist = 15 -- ระยะที่ขุดถึง
-            for _, v in pairs(workspace:GetChildren()) do
-                if (v.Name == "Coal" or v.Name == "Iron") and v:IsA("BasePart") then
-                    local d = (v.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-                    if d < dist then MineOre(v.Position) end
+        if Config.Enabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            -- 1. บันทึกตำแหน่งก่อนเริ่ม (เพื่อวาร์ปกลับ)
+            Config.ReturnPos = LocalPlayer.Character.HumanoidRootPart.CFrame
+            
+            -- 2. วนลูปวาร์ปไปแต่ละจุด
+            for i, targetCF in ipairs(MinePoints) do
+                if not Config.Enabled then break end -- ถ้ากดปิดกลางคันให้หยุด
+                
+                -- วาร์ปตัวละคร
+                LocalPlayer.Character.HumanoidRootPart.CFrame = targetCF + Vector3.new(0, 3, 0)
+                
+                -- ขุดรัวๆ 0.5 วินาทีที่จุดนั้น
+                local startMine = tick()
+                while tick() - startMine < Config.MineDelay do
+                    UsePickaxe(targetCF)
+                    task.wait(0.05) -- ความเร็วในการส่ง Remote ภายใน 0.5 วิ
                 end
             end
+            
+            -- 3. ขุดเสร็จทุกจุด วาร์ปกลับที่เดิม
+            if Config.Enabled then
+                LocalPlayer.Character.HumanoidRootPart.CFrame = Config.ReturnPos
+                Config.Enabled = false -- ปิดการทำงานอัตโนมัติเมื่อครบวงรอบ (หรือจะให้วนใหม่ก็เอาบรรทัดนี้ออก)
+                
+                -- อัปเดตปุ่ม UI
+                if _G.UpdateBtn then _G.UpdateBtn() end
+            end
         end
-        task.wait(0.1)
+        task.wait(1)
     end
 end)
-
----------------------------------------------------------
--- [ ระบบสแกนและวาร์ปไปหาแร่ ]
----------------------------------------------------------
-local function WarpToNearestOre()
-    local Character = LocalPlayer.Character
-    if not Character or not Character:FindFirstChild("HumanoidRootPart") then return end
-    
-    local closestOre = nil
-    local shortestDist = Config.DetectionRadius
-    
-    -- ค้นหาแร่ใน Workspace (ถ่านและเหล็ก)
-    for _, obj in pairs(workspace:GetChildren()) do
-        if obj.Name == "Coal" or obj.Name == "Iron" then
-            local pos = obj:IsA("BasePart") and obj.Position or (obj:FindFirstChildWhichIsA("BasePart") and obj:FindFirstChildWhichIsA("BasePart").Position)
-            if pos then
-                local distance = (pos - Character.HumanoidRootPart.Position).Magnitude
-                if distance < shortestDist then
-                    shortestDist = distance
-                    closestOre = pos
-                end
-            end
-        end
-    end
-    
-    if closestOre then
-        Character.HumanoidRootPart.CFrame = CFrame.new(closestOre + Vector3.new(0, 3, 0)) -- วาร์ปไปเหนือแร่นิดนึง
-    end
-end
 
 ---------------------------------------------------------
 -- [ ระบบ UI ]
 ---------------------------------------------------------
-if LocalPlayer.PlayerGui:FindFirstChild("PisitOreUI") then
-    LocalPlayer.PlayerGui.PisitOreUI:Destroy()
+if LocalPlayer.PlayerGui:FindFirstChild("PisitAutoMineUI") then
+    LocalPlayer.PlayerGui.PisitAutoMineUI:Destroy()
 end
 
 local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-screenGui.Name = "PisitOreUI"
+screenGui.Name = "PisitAutoMineUI"
 screenGui.ResetOnSpawn = false
 
 local mainFrame = Instance.new("Frame", screenGui)
-mainFrame.Size = UDim2.new(0, 180, 0, 160)
-mainFrame.Position = UDim2.new(0.5, -90, 0.4, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+mainFrame.Size = UDim2.new(0, 160, 0, 60)
+mainFrame.Position = UDim2.new(0.5, -80, 0.2, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 Instance.new("UICorner", mainFrame)
 
-local title = Instance.new("TextLabel", mainFrame)
-title.Size = UDim2.new(1, 0, 0, 30); title.Text = "PISIT ORE HUB"; title.TextColor3 = Color3.new(1,1,1); title.BackgroundTransparency = 1; title.Font = "SourceSansBold"
+local toggleBtn = Instance.new("TextButton", mainFrame)
+toggleBtn.Size = UDim2.new(0.9, 0, 0.7, 0)
+toggleBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+toggleBtn.Text = "เริ่มขุดออโต้"
+toggleBtn.TextColor3 = Color3.new(1, 1, 1)
+toggleBtn.Font = "SourceSansBold"
+toggleBtn.TextSize = 16
+Instance.new("UICorner", toggleBtn)
 
--- ปุ่ม Auto Mine
-local mineBtn = Instance.new("TextButton", mainFrame)
-mineBtn.Size = UDim2.new(0.9, 0, 0, 35); mineBtn.Position = UDim2.new(0.05, 0, 0.25, 0)
-mineBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50); mineBtn.Text = "Auto Mine: OFF"; mineBtn.TextColor3 = Color3.new(1,1,1); mineBtn.Font = "SourceSansBold"
-Instance.new("UICorner", mineBtn)
+_G.UpdateBtn = function()
+    toggleBtn.Text = Config.Enabled and "กำลังขุด..." or "เริ่มขุดออโต้"
+    toggleBtn.BackgroundColor3 = Config.Enabled and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
+end
 
--- ปุ่ม Warp
-local warpBtn = Instance.new("TextButton", mainFrame)
-warpBtn.Size = UDim2.new(0.9, 0, 0, 35); warpBtn.Position = UDim2.new(0.05, 0, 0.55, 0)
-warpBtn.BackgroundColor3 = Color3.fromRGB(50, 100, 200); warpBtn.Text = "Warp ไปแร่ที่ใกล้ที่สุด"; warpBtn.TextColor3 = Color3.new(1,1,1); warpBtn.Font = "SourceSansBold"
-Instance.new("UICorner", warpBtn)
-
----------------------------------------------------------
--- [ Logic ปุ่ม ]
----------------------------------------------------------
-mineBtn.MouseButton1Click:Connect(function()
-    Config.AutoMine = not Config.AutoMine
-    mineBtn.Text = Config.AutoMine and "Auto Mine: ON" or "Auto Mine: OFF"
-    mineBtn.BackgroundColor3 = Config.AutoMine and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
+toggleBtn.MouseButton1Click:Connect(function()
+    Config.Enabled = not Config.Enabled
+    _G.UpdateBtn()
 end)
 
-warpBtn.MouseButton1Click:Connect(function()
-    WarpToNearestOre()
-end)
-
--- ระบบลาก UI
+-- ระบบลาก
 local dragging, dragInput, dragStart, startPos
 mainFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -125,11 +117,11 @@ mainFrame.InputBegan:Connect(function(input)
     end
 end)
 mainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
+end)
+UserInputService.InputChanged:Connect(function(input)
     if input == dragInput and dragging then
         local delta = input.Position - dragStart
         mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
-end)
-mainFrame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
 end)
