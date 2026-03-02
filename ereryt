@@ -1,18 +1,19 @@
--- [[ ᴘɪꜱɪᴛ  ꜱᴍᴀʀᴛ-ᴍɪɴᴇ  ᴠ3 - FIXED ]]
+-- [[ ᴘɪꜱɪᴛ  ɪɴꜰɪɴɪᴛᴇ  ꜰᴀʀᴍ  (ᴀᴜᴛᴏ ʜᴏᴘᴘᴇʀ) ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local UserInputService = game:GetService("UserInputService")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
 
+-- [[ ตั้งค่าระบบ ]]
 local Config = {
-    Enabled = false,
-    MineRate = 0.5, -- ขุดทุกๆ 0.5 วินาที
-    ReturnPos = nil
+    Enabled = true, -- เปิดใช้งานทันทีที่รัน
+    MineSpamRate = 0.05, -- ความเร็วในการรัน Remote (รัวมาก)
+    CheckOreDelay = 0.1, -- ความถี่ในการเช็คว่าแร่หมดหรือยัง
 }
 
--- [ รายชื่อพิกัด 12 จุด ]
 local MinePoints = {
     CFrame.new(244.637, 1308.860, -382.648),
     CFrame.new(236.195, 1306.692, -409.792),
@@ -28,125 +29,120 @@ local MinePoints = {
     CFrame.new(-18.821, 1179.593, -260.221)
 }
 
--- ฟังก์ชันค้นหาแร่ที่ใกล้พิกัดที่สุด (เช็คละเอียดขึ้น)
-local function FindOreAtPos(targetPos)
-    local closest = nil
-    local dist = 8 -- รัศมีตรวจจับแร่ 8 เมตร
-    
-    -- ตรวจสอบใน Workspace (รวมถึง Folder ต่างๆ)
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("BasePart") and (v.Name:find("Coal") or v.Name:find("Iron") or v.Name:find("Gold") or v.Name:find("Ore")) then
-            local d = (v.Position - targetPos).Magnitude
-            if d < dist then
-                dist = d
-                closest = v
-            end
-        end
-    end
-    return closest
-end
-
--- ฟังก์ชันส่ง Remote ขุด
-local function UsePickaxe(cf)
-    pcall(function()
-        ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("UsePickaxe"):InvokeServer(cf)
+---------------------------------------------------------
+-- [ ฟังก์ชันระบบวาร์ปเซิร์ฟเวอร์ ]
+---------------------------------------------------------
+local function ServerHop()
+    print("กำลังหาเซิร์ฟเวอร์ใหม่...")
+    local sfUrl = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=100"
+    local success, result = pcall(function()
+        return HttpService:JSONDecode(game:HttpGet(sfUrl))
     end)
-end
 
----------------------------------------------------------
--- [ ระบบ Loop การทำงานแบบล็อคเป้า ]
----------------------------------------------------------
-task.spawn(function()
-    while true do
-        if Config.Enabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            -- เก็บตำแหน่งเดิมก่อนเริ่ม
-            Config.ReturnPos = LocalPlayer.Character.HumanoidRootPart.CFrame
-            
-            for _, targetCF in ipairs(MinePoints) do
-                if not Config.Enabled then break end
-                
-                -- 1. วาร์ปไปที่แร่และล็อคตำแหน่งไว้
-                LocalPlayer.Character.HumanoidRootPart.CFrame = targetCF + Vector3.new(0, 3, 0)
-                task.wait(0.3) -- รอแมพโหลดแร่
-                
-                -- 2. วนลูปขุดที่จุดนี้ "จนกว่าแร่จะหายไป"
-                local isMiningThisPoint = true
-                while isMiningThisPoint and Config.Enabled do
-                    local ore = FindOreAtPos(targetCF.Position)
-                    
-                    if ore and ore.Parent then
-                        -- แร่อยู่! ขุด 1 ครั้ง แล้วรอ 0.5 วิ
-                        UsePickaxe(targetCF)
-                        task.wait(Config.MineRate) -- << ขุดที่จุดเดิมทุก 0.5 วินาที
-                    else
-                        -- แร่แตกแล้ว หรือหาไม่เจอแล้ว
-                        isMiningThisPoint = false -- หลุดลูปไปจุดต่อไป
-                    end
-                end
-                task.wait(0.1) -- พักนิดนึงก่อนวาร์ปไปจุดใหม่
-            end
-            
-            -- จบงาน วาร์ปกลับจุดเริ่ม
-            if Config.Enabled then
-                LocalPlayer.Character.HumanoidRootPart.CFrame = Config.ReturnPos
-                Config.Enabled = false
-                if _G.UpdateBtn then _G.UpdateBtn() end
+    if success then
+        for _, server in pairs(result.data) do
+            if server.playing < server.maxPlayers and server.id ~= game.JobId then
+                TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer)
+                return
             end
         end
-        task.wait(1)
     end
-end)
-
----------------------------------------------------------
--- [ ระบบ UI ]
----------------------------------------------------------
-if LocalPlayer.PlayerGui:FindFirstChild("PisitFixMineUI") then
-    LocalPlayer.PlayerGui.PisitFixMineUI:Destroy()
+    -- ถ้าหาไม่เจอให้ลองใหม่
+    task.wait(2)
+    ServerHop()
 end
 
-local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-screenGui.Name = "PisitFixMineUI"
-screenGui.ResetOnSpawn = false
-
-local mainFrame = Instance.new("Frame", screenGui)
-mainFrame.Size = UDim2.new(0, 160, 0, 60)
-mainFrame.Position = UDim2.new(0.5, -80, 0.2, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Instance.new("UICorner", mainFrame)
-
-local toggleBtn = Instance.new("TextButton", mainFrame)
-toggleBtn.Size = UDim2.new(0.9, 0, 0.7, 0)
-toggleBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-toggleBtn.Text = "เริ่มขุด (ล็อคเป้า)"
-toggleBtn.TextColor3 = Color3.new(1, 1, 1)
-toggleBtn.Font = "SourceSansBold"
-toggleBtn.TextSize = 14
-Instance.new("UICorner", toggleBtn)
-
-_G.UpdateBtn = function()
-    toggleBtn.Text = Config.Enabled and "กำลังขุดจุดนี้อยู่..." or "เริ่มขุด (ล็อคเป้า)"
-    toggleBtn.BackgroundColor3 = Config.Enabled and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
+---------------------------------------------------------
+-- [ ฟังก์ชันเช็คแร่และขุด ]
+---------------------------------------------------------
+local function GetOreAt(pos)
+    for _, v in pairs(workspace:GetDescendants()) do
+        if v:IsA("BasePart") and (v.Name:find("Coal") or v.Name:find("Iron") or v.Name:find("Ore")) then
+            if (v.Position - pos).Magnitude < 10 then return v end
+        end
+    end
+    return nil
 end
 
-toggleBtn.MouseButton1Click:Connect(function()
-    Config.Enabled = not Config.Enabled
-    _G.UpdateBtn()
-end)
+local function StartAutoFarm()
+    local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local HRP = Character:WaitForChild("HumanoidRootPart")
 
--- ระบบลาก (Drag)
-local dragging, dragInput, dragStart, startPos
-mainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true; dragStart = input.Position; startPos = mainFrame.Position
+    print("เริ่มวงรอบการขุด 12 จุด...")
+
+    for i, targetCF in ipairs(MinePoints) do
+        if not Config.Enabled then break end
+        
+        -- วาร์ปไปจุดแร่
+        HRP.CFrame = targetCF + Vector3.new(0, 3, 0)
+        task.wait(0.3) -- รอให้แร่โหลด
+
+        -- ขุดจนกว่าแร่จะหาย
+        while Config.Enabled do
+            local ore = GetOreAt(targetCF.Position)
+            if ore and ore.Parent then
+                -- สั่งขุดรัวๆ
+                pcall(function()
+                    ReplicatedStorage.Remotes.UsePickaxe:InvokeServer(targetCF)
+                end)
+                task.wait(Config.MineSpamRate) 
+            else
+                -- แร่แตกแล้ว ไปจุดต่อไป
+                print("จุดที่ " .. i .. " เคลียร์!")
+                break
+            end
+        end
     end
-end)
-mainFrame.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - dragStart
-        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-mainFrame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
-end)
+
+    -- ขุดครบ 12 จุดแล้ว ย้ายเซิร์ฟทันที
+    print("ขุดครบแล้ว! กำลังย้ายเซิร์ฟเวอร์...")
+    ServerHop()
+end
+
+---------------------------------------------------------
+-- [ ปุ่มเปิด/ปิด และระบบลาก ]
+---------------------------------------------------------
+local function CreateUI()
+    local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+    sg.Name = "PisitUltraFarm"
+    
+    local frame = Instance.new("Frame", sg)
+    frame.Size = UDim2.new(0, 180, 0, 70)
+    frame.Position = UDim2.new(0.5, -90, 0.05, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    Instance.new("UICorner", frame)
+
+    local btn = Instance.new("TextButton", frame)
+    btn.Size = UDim2.new(0.9, 0, 0.7, 0)
+    btn.Position = UDim2.new(0.05, 0, 0.15, 0)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+    btn.Text = "AUTO FARM: ON"
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.Font = "SourceSansBold"
+    Instance.new("UICorner", btn)
+
+    btn.MouseButton1Click:Connect(function()
+        Config.Enabled = not Config.Enabled
+        btn.Text = Config.Enabled and "AUTO FARM: ON" or "AUTO FARM: OFF"
+        btn.BackgroundColor3 = Config.Enabled and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
+        if Config.Enabled then task.spawn(StartAutoFarm) end
+    end)
+    
+    -- ระบบลาก UI (Drag)
+    local uis = game:GetService("UserInputService")
+    local drag, dragInput, startPos, startInput
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then drag = true; startInput = input.Position; startPos = frame.Position end
+    end)
+    uis.InputChanged:Connect(function(input)
+        if drag and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - startInput
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    uis.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then drag = false end end)
+end
+
+-- รันระบบ
+CreateUI()
+task.spawn(StartAutoFarm)
