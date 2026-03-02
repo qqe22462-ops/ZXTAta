@@ -1,4 +1,4 @@
--- [[ ᴘɪꜱɪᴛ  ꜱᴏᴜʟ  ᴘʀᴏᴊᴇᴄᴛɪᴏɴ - ร่างจำลอง ]]
+-- [[ ᴘɪꜱɪᴛ  ꜱᴏᴜʟ  ᴘʀᴏᴊᴇᴄᴛɪᴏɴ - FIXED MOVEMENT ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 
 local Players = game:GetService("Players")
@@ -9,6 +9,7 @@ local LocalPlayer = Players.LocalPlayer
 local IsActive = false
 local FakeChar = nil
 local RealPos = nil
+local Speed = 1.5 -- ความเร็วในการเคลื่อนที่ของร่างวิญญาณ
 
 ---------------------------------------------------------
 -- [ ระบบจัดการร่างจำลอง ]
@@ -18,29 +19,28 @@ local function CreateSoul()
     if not Character or not Character:FindFirstChild("HumanoidRootPart") then return end
     
     Character.Archivable = true
-    RealPos = Character.HumanoidRootPart.CFrame
+    RealPos = Character.HumanoidRootPart.CFrame -- จำตำแหน่งร่างจริง
     
     -- สร้างร่างจำลอง
     FakeChar = Character:Clone()
     FakeChar.Parent = workspace
-    FakeChar.Name = "Soul_Projection"
+    FakeChar.Name = "Soul_Projection_Pisit"
     
-    -- ทำให้ร่างจำลองใสเหมือนวิญญาณ
+    -- ปลดล็อคทุกส่วนให้ขยับได้ และทำให้ใส
     for _, part in pairs(FakeChar:GetDescendants()) do
         if part:IsA("BasePart") then
             part.CanCollide = false
+            part.Anchored = false -- มั่นใจว่าไม่ได้ล็อคไว้
             part.Transparency = 0.5
-            part.Color = Color3.fromRGB(0, 255, 255) -- สีวิญญาณฟ้าๆ
+            part.Color = Color3.fromRGB(0, 255, 255)
         end
     end
     
-    -- ล็อคร่างจริงไว้ที่เดิมและทำให้ล่องหน
+    -- จัดการร่างจริง
     for _, part in pairs(Character:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.Transparency = 1
-        end
+        if part:IsA("BasePart") then part.Transparency = 1 end
     end
-    Character.HumanoidRootPart.Anchored = true
+    Character.HumanoidRootPart.Anchored = true -- ล็อคร่างจริงไว้ที่เดิม
 end
 
 local function RemoveSoul()
@@ -49,50 +49,46 @@ local function RemoveSoul()
         FakeChar = nil
     end
     
-    -- เอาร่างจริงกลับมา
     local Character = LocalPlayer.Character
     if Character then
         for _, part in pairs(Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.Transparency = 0
-            end
+            if part:IsA("BasePart") then part.Transparency = 0 end
         end
         Character.HumanoidRootPart.Anchored = false
-        Character.HumanoidRootPart.CFrame = RealPos
+        Character.HumanoidRootPart.CFrame = RealPos -- กลับมาร่างเดิม
     end
+    workspace.CurrentCamera.CameraSubject = LocalPlayer.Character.Humanoid
 end
 
--- ระบบควบคุมร่างวิญญาณเดินตามกล้อง
+---------------------------------------------------------
+-- [ ระบบควบคุมการเคลื่อนที่ (Fixed) ]
+---------------------------------------------------------
 RunService.RenderStepped:Connect(function()
     if IsActive and FakeChar and FakeChar:FindFirstChild("HumanoidRootPart") then
         local cam = workspace.CurrentCamera
+        local hrp = FakeChar.HumanoidRootPart
         local moveDir = Vector3.new(0,0,0)
         
-        -- ตรวจสอบการกดปุ่มเดิน
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + cam.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - cam.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - cam.CFrame.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cam.CFrame.RightVector end
+        -- ใช้ CFrame ในการขยับแทน Velocity เพื่อความชัวร์
+        local look = cam.CFrame.LookVector
+        local right = cam.CFrame.RightVector
+        
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Vector3.new(look.X, 0, look.Z) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - Vector3.new(look.X, 0, look.Z) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - Vector3.new(right.X, 0, right.Z) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + Vector3.new(right.X, 0, right.Z) end
         
         if moveDir.Magnitude > 0 then
-            moveDir = Vector3.new(moveDir.X, 0, moveDir.Z).Unit
-            FakeChar.HumanoidRootPart.Velocity = moveDir * 50 -- ความเร็วร่างวิญญาณ
-            FakeChar.HumanoidRootPart.CFrame = CFrame.new(FakeChar.HumanoidRootPart.Position, FakeChar.HumanoidRootPart.Position + moveDir)
-        else
-            FakeChar.HumanoidRootPart.Velocity = Vector3.new(0,0,0)
+            hrp.CFrame = CFrame.new(hrp.Position, hrp.Position + moveDir) * CFrame.new(0, 0, -Speed)
         end
         
-        -- ให้กล้องตามร่างวิญญาณ
+        -- บังคับกล้องจ้องที่ร่างวิญญาณ
         cam.CameraSubject = FakeChar.Humanoid
-    else
-        if LocalPlayer.Character then
-            workspace.CurrentCamera.CameraSubject = LocalPlayer.Character.Humanoid
-        end
     end
 end)
 
 ---------------------------------------------------------
--- [ ระบบ UI ปุ่มลอย ]
+-- [ ระบบ UI ]
 ---------------------------------------------------------
 if LocalPlayer.PlayerGui:FindFirstChild("PisitSoulUI") then
     LocalPlayer.PlayerGui.PisitSoulUI:Destroy()
@@ -103,13 +99,13 @@ screenGui.Name = "PisitSoulUI"
 screenGui.ResetOnSpawn = false
 
 local mainBtn = Instance.new("TextButton", screenGui)
-mainBtn.Size = UDim2.new(0, 120, 0, 50)
+mainBtn.Size = UDim2.new(0, 130, 0, 50)
 mainBtn.Position = UDim2.new(0.1, 0, 0.2, 0)
 mainBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-mainBtn.Text = "SOUL: OFF"
+mainBtn.Text = "ร่างทดลอง: OFF"
 mainBtn.TextColor3 = Color3.new(1, 1, 1)
 mainBtn.Font = "SourceSansBold"
-mainBtn.TextSize = 18
+mainBtn.TextSize = 16
 Instance.new("UICorner", mainBtn)
 
 -- ระบบลากปุ่ม
@@ -119,26 +115,25 @@ mainBtn.InputBegan:Connect(function(input)
         dragging = true; dragStart = input.Position; startPos = mainBtn.Position
     end
 end)
-mainBtn.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
-end)
 UserInputService.InputChanged:Connect(function(input)
     if input == dragInput and dragging then
         local delta = input.Position - dragStart
         mainBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
-UserInputService.InputEnded:Connect(function(input) if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
+mainBtn.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
+end)
 
--- ปุ่มคลิกเปิด/ปิด
+-- คลิกเปิด/ปิด
 mainBtn.MouseButton1Click:Connect(function()
     IsActive = not IsActive
     if IsActive then
-        mainBtn.Text = "SOUL: ON"
+        mainBtn.Text = "ร่างทดลอง: ON"
         mainBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
         CreateSoul()
     else
-        mainBtn.Text = "SOUL: OFF"
+        mainBtn.Text = "ร่างทดลอง: OFF"
         mainBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
         RemoveSoul()
     end
