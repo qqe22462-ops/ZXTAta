@@ -1,70 +1,86 @@
--- [[ ᴘɪꜱɪᴛ  ɪɴᴠɪꜱɪʙʟᴇ  ꜱᴇʀᴠᴇʀ  ʜᴏᴘᴘᴇʀ ]]
+-- [[ ᴘɪꜱɪᴛ  ꜱᴇᴀᴍʟᴇꜱꜱ  ʜᴏᴘᴘᴇʀ ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
--- ไฟล์สำหรับจำเซิร์ฟเวอร์ที่เคยไปมาแล้ว (เพื่อไม่ให้กลับไปที่เดิม)
-local CacheFile = "PisitVisitedServers.json"
+local PlaceId = game.PlaceId
+local PosCacheFile = "PisitLastPos_" .. PlaceId .. ".json"
+local ServerCacheFile = "PisitVisitedServers.json"
 
-local function GetVisitedServers()
-    if isfile and isfile(CacheFile) then
-        local success, result = pcall(function()
-            return HttpService:JSONDecode(readfile(CacheFile))
-        end)
-        if success then return result end
+---------------------------------------------------------
+-- [ ฟังก์ชันจัดการตำแหน่ง (Save/Load) ]
+---------------------------------------------------------
+
+local function SaveCurrentPos()
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        local cf = char.HumanoidRootPart.CFrame
+        local data = {cf:GetComponents()}
+        writefile(PosCacheFile, HttpService:JSONEncode(data))
     end
-    return {}
 end
 
-local function SaveVisitedServer(jobId)
-    local visited = GetVisitedServers()
-    visited[jobId] = os.time()
-    
-    -- ล้างข้อมูลเซิร์ฟที่บันทึกไว้นานเกิน 1 ชั่วโมง (เพื่อไม่ให้ไฟล์ใหญ่เกินไป)
-    for id, timestamp in pairs(visited) do
-        if os.time() - timestamp > 3600 then
-            visited[id] = nil
+local function LoadAndTeleport()
+    if isfile(PosCacheFile) then
+        local success, result = pcall(function()
+            return HttpService:JSONDecode(readfile(PosCacheFile))
+        end)
+        if success and result then
+            local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+            local hrp = char:WaitForChild("HumanoidRootPart")
+            task.wait(0.5) -- รอให้ตัวละครนิ่งก่อนวาร์ป
+            hrp.CFrame = CFrame.new(unpack(result))
+            print("กลับมาที่จุดเดิมเรียบร้อย!")
+            -- ลบไฟล์ตำแหน่งทิ้งเพื่อไม่ให้วาร์ปค้างรอบหน้า
+            delfile(PosCacheFile)
         end
     end
-    
-    if writefile then
-        writefile(CacheFile, HttpService:JSONEncode(visited))
-    end
 end
 
+---------------------------------------------------------
+-- [ ฟังก์ชันย้ายเซิร์ฟเวอร์แบบไม่ซ้ำเดิม ]
+---------------------------------------------------------
+
 local function Hop()
-    local visited = GetVisitedServers()
-    local placeId = game.PlaceId
-    local selfJobId = game.JobId
+    local visited = {}
+    if isfile(ServerCacheFile) then
+        pcall(function() visited = HttpService:JSONDecode(readfile(ServerCacheFile)) end)
+    end
     
-    -- ดึงรายการเซิร์ฟเวอร์จาก API ของ Roblox
-    local url = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Desc&limit=100"
-    local success, result = pcall(function()
-        return HttpService:JSONDecode(game:HttpGet(url))
-    end)
+    local url = "https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Desc&limit=100"
+    local success, result = pcall(function() return HttpService:JSONDecode(game:HttpGet(url)) end)
     
-    if success and result and result.data then
+    if success and result.data then
         for _, server in pairs(result.data) do
-            -- เงื่อนไข: 
-            -- 1. ต้องไม่ใช่เซิร์ฟเวอร์ปัจจุบัน
-            -- 2. ต้องไม่เคยไปมาก่อน (ตามที่บันทึกไว้ในไฟล์)
-            -- 3. เซิร์ฟเวอร์ต้องไม่เต็ม
-            if server.id ~= selfJobId and not visited[server.id] and server.playing < server.maxPlayers then
-                SaveVisitedServer(selfJobId) -- บันทึกเซิร์ฟปัจจุบันก่อนจากไป
-                TeleportService:TeleportToPlaceInstance(placeId, server.id, Players.LocalPlayer)
+            if server.id ~= game.JobId and not visited[server.id] and server.playing < server.maxPlayers then
+                -- บันทึกเซิร์ฟนี้ว่าเคยมาแล้ว
+                visited[game.JobId] = os.time()
+                writefile(ServerCacheFile, HttpService:JSONEncode(visited))
+                
+                -- บันทึกตำแหน่งก่อนวาร์ป
+                SaveCurrentPos()
+                
+                -- ย้ายเซิร์ฟเวอร์
+                TeleportService:TeleportToPlaceInstance(PlaceId, server.id, LocalPlayer)
                 return
             end
         end
     end
-    
-    -- ถ้าวนหาจนครบ 100 เซิร์ฟแล้วยังไม่เจอที่ถูกใจ ให้สุ่มไปเซิร์ฟที่คนน้อยที่สุดแทน
     task.wait(1)
-    print("หาเซิร์ฟเวอร์ใหม่ที่ยังไม่เคยไปไม่ได้, กำลังลองใหม่...")
-    -- วนลูปค้นหาใหม่จนกว่าจะสำเร็จ
     Hop()
 end
 
--- รันทันทีที่กด Run Script
-Hop()
+---------------------------------------------------------
+-- [ เริ่มการทำงาน ]
+---------------------------------------------------------
+
+-- 1. เช็คก่อนว่าเพิ่งวาร์ปมาจากเซิร์ฟอื่นหรือเปล่า ถ้าใช่ให้กลับจุดเดิม
+if isfile(PosCacheFile) then
+    LoadAndTeleport()
+else
+    -- 2. ถ้าไม่ได้เพิ่งวาร์ปมา (รันสคริปต์ครั้งแรก) ให้สั่งย้ายเซิร์ฟทันที
+    Hop()
+end
