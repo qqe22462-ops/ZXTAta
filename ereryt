@@ -1,148 +1,130 @@
--- [[ ᴘɪꜱɪᴛ  ɪɴꜰɪɴɪᴛᴇ  ꜰᴀʀᴍ  (ᴀᴜᴛᴏ ʜᴏᴘᴘᴇʀ) ]]
+-- [[ ᴘɪꜱɪᴛ  ᴛᴇʟᴇᴘᴏʀᴛ  ᴍᴀʀᴋᴇʀ ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TeleportService = game:GetService("TeleportService")
-local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
--- [[ ตั้งค่าระบบ ]]
-local Config = {
-    Enabled = true, -- เปิดใช้งานทันทีที่รัน
-    MineSpamRate = 0.05, -- ความเร็วในการรัน Remote (รัวมาก)
-    CheckOreDelay = 0.1, -- ความถี่ในการเช็คว่าแร่หมดหรือยัง
-}
-
-local MinePoints = {
-    CFrame.new(244.637, 1308.860, -382.648),
-    CFrame.new(236.195, 1306.692, -409.792),
-    CFrame.new(347.330, 1374.914, -315.731),
-    CFrame.new(267.250, 1295.463, -320.000),
-    CFrame.new(60.117, 1188.191, -302.319),
-    CFrame.new(91.089, 1192.837, -333.126),
-    CFrame.new(97.882, 1192.999, -326.213),
-    CFrame.new(1.620, 1180.207, -270.927),
-    CFrame.new(23.018, 1184.838, -292.028),
-    CFrame.new(-18.821, 1179.593, -260.221),
-    CFrame.new(-5.044, 1180.888, -275.077),
-    CFrame.new(-18.821, 1179.593, -260.221)
-}
+local MarkedCFrame = nil -- ตัวแปรเก็บตำแหน่งที่มาร์คไว้
+local MarkerPart = nil   -- ตัวแสดงผลแสงตรงจุดที่มาร์ค
 
 ---------------------------------------------------------
--- [ ฟังก์ชันระบบวาร์ปเซิร์ฟเวอร์ ]
+-- [ ฟังก์ชันการทำงาน ]
 ---------------------------------------------------------
-local function ServerHop()
-    print("กำลังหาเซิร์ฟเวอร์ใหม่...")
-    local sfUrl = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=100"
-    local success, result = pcall(function()
-        return HttpService:JSONDecode(game:HttpGet(sfUrl))
-    end)
 
-    if success then
-        for _, server in pairs(result.data) do
-            if server.playing < server.maxPlayers and server.id ~= game.JobId then
-                TeleportService:TeleportToPlaceInstance(game.PlaceId, server.id, LocalPlayer)
-                return
-            end
-        end
-    end
-    -- ถ้าหาไม่เจอให้ลองใหม่
-    task.wait(2)
-    ServerHop()
-end
-
----------------------------------------------------------
--- [ ฟังก์ชันเช็คแร่และขุด ]
----------------------------------------------------------
-local function GetOreAt(pos)
-    for _, v in pairs(workspace:GetDescendants()) do
-        if v:IsA("BasePart") and (v.Name:find("Coal") or v.Name:find("Iron") or v.Name:find("Ore")) then
-            if (v.Position - pos).Magnitude < 10 then return v end
-        end
-    end
-    return nil
-end
-
-local function StartAutoFarm()
-    local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    local HRP = Character:WaitForChild("HumanoidRootPart")
-
-    print("เริ่มวงรอบการขุด 12 จุด...")
-
-    for i, targetCF in ipairs(MinePoints) do
-        if not Config.Enabled then break end
+-- 1. ฟังก์ชันมาร์คจุด
+local function SetMarker()
+    local Character = LocalPlayer.Character
+    if Character and Character:FindFirstChild("HumanoidRootPart") then
+        MarkedCFrame = Character.HumanoidRootPart.CFrame
         
-        -- วาร์ปไปจุดแร่
-        HRP.CFrame = targetCF + Vector3.new(0, 3, 0)
-        task.wait(0.3) -- รอให้แร่โหลด
+        -- สร้างแสงบอกตำแหน่ง (ถ้ามีของเก่าให้ลบก่อน)
+        if MarkerPart then MarkerPart:Destroy() end
+        
+        MarkerPart = Instance.new("Part")
+        MarkerPart.Name = "PisitMarker"
+        MarkerPart.Size = Vector3.new(4, 0.5, 4)
+        MarkerPart.CFrame = MarkedCFrame * CFrame.new(0, -3, 0) -- วางไว้ที่พื้น
+        MarkerPart.Anchored = true
+        MarkerPart.CanCollide = false
+        MarkerPart.Color = Color3.fromRGB(0, 255, 100) -- สีเขียวเรืองแสง
+        MarkerPart.Material = Enum.Material.Neon
+        MarkerPart.Parent = workspace
+        
+        -- ใส่ Effect แสงพุ่งขึ้นฟ้า
+        local attachment = Instance.new("Attachment", MarkerPart)
+        local beam = Instance.new("Beam", MarkerPart)
+        beam.Attachment0 = attachment
+        local topAttach = Instance.new("Attachment", MarkerPart)
+        topAttach.Position = Vector3.new(0, 50, 0)
+        beam.Attachment1 = topAttach
+        beam.Width0 = 1
+        beam.Width1 = 0
+        beam.Color = ColorSequence.new(Color3.fromRGB(0, 255, 100))
+        
+        print("บันทึกตำแหน่งเรียบร้อย!")
+    end
+end
 
-        -- ขุดจนกว่าแร่จะหาย
-        while Config.Enabled do
-            local ore = GetOreAt(targetCF.Position)
-            if ore and ore.Parent then
-                -- สั่งขุดรัวๆ
-                pcall(function()
-                    ReplicatedStorage.Remotes.UsePickaxe:InvokeServer(targetCF)
-                end)
-                task.wait(Config.MineSpamRate) 
-            else
-                -- แร่แตกแล้ว ไปจุดต่อไป
-                print("จุดที่ " .. i .. " เคลียร์!")
-                break
-            end
+-- 2. ฟังก์ชันวาร์ปกลับจุดมาร์ค
+local function TeleportToMarker()
+    local Character = LocalPlayer.Character
+    if Character and Character:FindFirstChild("HumanoidRootPart") then
+        if MarkedCFrame then
+            Character.HumanoidRootPart.CFrame = MarkedCFrame
+            print("วาร์ปกลับจุดมาร์คแล้ว!")
+        else
+            print("คุณยังไม่ได้มาร์คจุดเลย!")
         end
     end
-
-    -- ขุดครบ 12 จุดแล้ว ย้ายเซิร์ฟทันที
-    print("ขุดครบแล้ว! กำลังย้ายเซิร์ฟเวอร์...")
-    ServerHop()
 end
 
 ---------------------------------------------------------
--- [ ปุ่มเปิด/ปิด และระบบลาก ]
+-- [ ระบบ UI (ลากได้) ]
 ---------------------------------------------------------
-local function CreateUI()
-    local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-    sg.Name = "PisitUltraFarm"
-    
-    local frame = Instance.new("Frame", sg)
-    frame.Size = UDim2.new(0, 180, 0, 70)
-    frame.Position = UDim2.new(0.5, -90, 0.05, 0)
-    frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    Instance.new("UICorner", frame)
-
-    local btn = Instance.new("TextButton", frame)
-    btn.Size = UDim2.new(0.9, 0, 0.7, 0)
-    btn.Position = UDim2.new(0.05, 0, 0.15, 0)
-    btn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
-    btn.Text = "AUTO FARM: ON"
-    btn.TextColor3 = Color3.new(1,1,1)
-    btn.Font = "SourceSansBold"
-    Instance.new("UICorner", btn)
-
-    btn.MouseButton1Click:Connect(function()
-        Config.Enabled = not Config.Enabled
-        btn.Text = Config.Enabled and "AUTO FARM: ON" or "AUTO FARM: OFF"
-        btn.BackgroundColor3 = Config.Enabled and Color3.fromRGB(50, 200, 50) or Color3.fromRGB(200, 50, 50)
-        if Config.Enabled then task.spawn(StartAutoFarm) end
-    end)
-    
-    -- ระบบลาก UI (Drag)
-    local uis = game:GetService("UserInputService")
-    local drag, dragInput, startPos, startInput
-    frame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then drag = true; startInput = input.Position; startPos = frame.Position end
-    end)
-    uis.InputChanged:Connect(function(input)
-        if drag and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - startInput
-            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-    uis.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then drag = false end end)
+if LocalPlayer.PlayerGui:FindFirstChild("PisitMarkerUI") then
+    LocalPlayer.PlayerGui.PisitMarkerUI:Destroy()
 end
 
--- รันระบบ
-CreateUI()
-task.spawn(StartAutoFarm)
+local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+screenGui.Name = "PisitMarkerUI"
+screenGui.ResetOnSpawn = false
+
+local mainFrame = Instance.new("Frame", screenGui)
+mainFrame.Size = UDim2.new(0, 150, 0, 110)
+mainFrame.Position = UDim2.new(0.8, 0, 0.5, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.Active = true
+Instance.new("UICorner", mainFrame)
+
+local title = Instance.new("TextLabel", mainFrame)
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Text = "TELEPORT MARKER"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.BackgroundTransparency = 1
+title.Font = "SourceSansBold"
+title.TextSize = 14
+
+-- ปุ่มมาร์คจุด
+local setBtn = Instance.new("TextButton", mainFrame)
+setBtn.Size = UDim2.new(0.9, 0, 0, 30)
+setBtn.Position = UDim2.new(0.05, 0, 0.3, 0)
+setBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
+setBtn.Text = "SET POINT (มาร์ค)"
+setBtn.TextColor3 = Color3.new(1, 1, 1)
+setBtn.Font = "SourceSansBold"
+Instance.new("UICorner", setBtn)
+
+-- ปุ่มวาร์ป
+local tpBtn = Instance.new("TextButton", mainFrame)
+tpBtn.Size = UDim2.new(0.9, 0, 0, 30)
+tpBtn.Position = UDim2.new(0.05, 0, 0.65, 0)
+tpBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+tpBtn.Text = "WARP BACK (กลับ)"
+tpBtn.TextColor3 = Color3.new(1, 1, 1)
+tpBtn.Font = "SourceSansBold"
+Instance.new("UICorner", tpBtn)
+
+---------------------------------------------------------
+-- [ เชื่อมต่อระบบ ]
+---------------------------------------------------------
+setBtn.MouseButton1Click:Connect(SetMarker)
+tpBtn.MouseButton1Click:Connect(TeleportToMarker)
+
+-- ระบบลาก UI
+local dragging, dragInput, dragStart, startPos
+mainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true; dragStart = input.Position; startPos = mainFrame.Position
+    end
+end)
+mainFrame.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end end)
