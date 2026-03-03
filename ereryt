@@ -1,152 +1,162 @@
--- [[ ᴘɪꜱɪᴛ  ᴘᴇʀᴍᴀɴᴇɴᴛ  ꜱᴀᴠᴇ  ꜱʏꜱᴛᴇᴍ ]]
+-- [[ ᴘɪꜱɪᴛ  ᴜʟᴛɪᴍᴀᴛᴇ  ᴅᴜᴀʟ-ꜱᴀᴠᴇʀ ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
 local PlaceId = game.PlaceId
-local FileName = "PisitSave_" .. PlaceId .. ".txt" -- ชื่อไฟล์แยกตามแมพ
+local FileName = "PisitDualSave_" .. PlaceId .. ".json" -- เซฟเป็น JSON แยกแมพ
 
-local SavedCFrame = nil
+-- ตัวแปรเก็บพิกัดและแสง
+local Points = {A = nil, B = nil}
+local Visuals = {A = nil, B = nil}
 
 ---------------------------------------------------------
--- [ ฟังก์ชันจัดการไฟล์ (Save/Load) ]
+-- [ ฟังก์ชันระบบจัดการไฟล์ JSON ]
 ---------------------------------------------------------
 
--- ฟังก์ชันบันทึกลงเครื่อง
-local function SaveToFile(cf)
-    local data = tostring(cf)
+local function SaveData()
     if writefile then
-        writefile(FileName, data)
-        return true
+        local data = {
+            A = Points.A and {Points.A:GetComponents()} or nil,
+            B = Points.B and {Points.B:GetComponents()} or nil
+        }
+        writefile(FileName, HttpService:JSONEncode(data))
     end
-    return false
 end
 
--- ฟังก์ชันโหลดจากเครื่อง
-local function LoadFromFile()
+local function LoadData()
     if isfile and isfile(FileName) then
-        local data = readfile(FileName)
-        -- แปลงข้อความกลับเป็น CFrame
-        local components = {}
-        for val in data:gmatch("[^, ]+") do
-            table.insert(components, tonumber(val))
+        local success, result = pcall(function()
+            return HttpService:JSONDecode(readfile(FileName))
+        end)
+        if success and result then
+            if result.A then Points.A = CFrame.new(unpack(result.A)) end
+            if result.B then Points.B = CFrame.new(unpack(result.B)) end
         end
-        return CFrame.new(unpack(components))
     end
-    return nil
+end
+
+---------------------------------------------------------
+-- [ ฟังก์ชันการทำงานวาร์ปและแสง ]
+---------------------------------------------------------
+
+local function CreateVisual(pos, color, name)
+    local p = Instance.new("Part", workspace)
+    p.Name = "Visual_"..name; p.Size = Vector3.new(4, 0.5, 4)
+    p.CFrame = pos * CFrame.new(0, -3.2, 0)
+    p.Anchored = true; p.CanCollide = false; p.Transparency = 0.4
+    p.Material = Enum.Material.Neon; p.Color = color
+    
+    local bgu = Instance.new("BillboardGui", p)
+    bgu.Size = UDim2.new(0, 100, 0, 50); bgu.Adornee = p; bgu.AlwaysOnTop = true
+    bgu.ExtentsOffset = Vector3.new(0, 3, 0)
+    local tl = Instance.new("TextLabel", bgu)
+    tl.Size = UDim2.new(1, 0, 1, 0); tl.BackgroundTransparency = 1
+    tl.Text = name; tl.TextColor3 = color; tl.Font = "SourceSansBold"; tl.TextSize = 18
+    return p
+end
+
+local function UpdatePoint(pointName)
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        Points[pointName] = char.HumanoidRootPart.CFrame
+        if Visuals[pointName] then Visuals[pointName]:Destroy() end
+        local color = (pointName == "A") and Color3.fromRGB(0, 255, 255) or Color3.fromRGB(255, 170, 0)
+        Visuals[pointName] = CreateVisual(Points[pointName], color, "POINT "..pointName)
+        SaveData() -- บันทึกลงเครื่องทันที
+    end
 end
 
 ---------------------------------------------------------
 -- [ ระบบ UI ]
 ---------------------------------------------------------
+
 local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "PisitPermanentUI"
-sg.ResetOnSpawn = false
+sg.Name = "PisitUltimateUI"; sg.ResetOnSpawn = false
 
--- 1. ปุ่มหลัก (E)
-local eButton = Instance.new("TextButton", sg)
-eButton.Size = UDim2.new(0, 50, 0, 50)
-eButton.Position = UDim2.new(0.1, 0, 0.5, 0)
-eButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-eButton.Text = "E"
-eButton.TextColor3 = Color3.new(1, 1, 1)
-eButton.TextSize = 24
-Instance.new("UICorner", eButton).CornerRadius = UDim.new(1, 0)
+-- 1. ปุ่ม E หลัก (ลากได้)
+local eBtn = Instance.new("TextButton", sg)
+eBtn.Size = UDim2.new(0, 55, 0, 55); eBtn.Position = UDim2.new(0.1, 0, 0.5, 0)
+eBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40); eBtn.Text = "E"
+eBtn.TextColor3 = Color3.new(1, 1, 1); eBtn.TextSize = 25; eBtn.Font = "SourceSansBold"
+Instance.new("UICorner", eBtn).CornerRadius = UDim.new(1, 0)
+Instance.new("UIStroke", eBtn).Thickness = 2
 
--- 2. เมนูถามยืนยัน (Confirm Menu)
-local confirmFrame = Instance.new("Frame", sg)
-confirmFrame.Size = UDim2.new(0, 200, 0, 120)
-confirmFrame.Position = UDim2.new(0.5, -100, 0.4, 0)
-confirmFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-confirmFrame.Visible = false
-Instance.new("UICorner", confirmFrame)
+-- 2. เมนูหลัก (A & B)
+local menu = Instance.new("Frame", sg)
+menu.Size = UDim2.new(0, 180, 0, 160); menu.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+menu.Visible = false; Instance.new("UICorner", menu)
 
-local msg = Instance.new("TextLabel", confirmFrame)
-msg.Size = UDim2.new(1, 0, 0.5, 0)
-msg.Text = "คุณต้องการบันทึก\nจุดนี้ในแมพนี้ใช่หรือไม่?"
-msg.TextColor3 = Color3.new(1, 1, 1)
-msg.BackgroundTransparency = 1
+-- 3. หน้าต่างยืนยัน (Confirm Dialog)
+local confirm = Instance.new("Frame", sg)
+confirm.Size = UDim2.new(0, 180, 0, 100); confirm.Position = UDim2.new(0.5, -90, 0.4, 0)
+confirm.BackgroundColor3 = Color3.fromRGB(35, 35, 35); confirm.Visible = false; Instance.new("UICorner", confirm)
+local confirmMsg = Instance.new("TextLabel", confirm)
+confirmMsg.Size = UDim2.new(1, 0, 0.6, 0); confirmMsg.TextColor3 = Color3.new(1,1,1); confirmMsg.BackgroundTransparency = 1
 
-local okBtn = Instance.new("TextButton", confirmFrame)
-okBtn.Size = UDim2.new(0.4, 0, 0, 30)
-okBtn.Position = UDim2.new(0.08, 0, 0.65, 0)
-okBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
-okBtn.Text = "ตกลง"
-okBtn.TextColor3 = Color3.new(1, 1, 1)
+local pendingPoint = "" -- เก็บไว้ว่ากำลังจะเซฟจุดไหน
 
-local cancelBtn = Instance.new("TextButton", confirmFrame)
-cancelBtn.Size = UDim2.new(0.4, 0, 0, 30)
-cancelBtn.Position = UDim2.new(0.52, 0, 0.65, 0)
-cancelBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
-cancelBtn.Text = "ยกเลิก"
-cancelBtn.TextColor3 = Color3.new(1, 1, 1)
+local function createBtn(text, pos, color, parent, func)
+    local b = Instance.new("TextButton", parent)
+    b.Size = UDim2.new(0.44, 0, 0, 35); b.Position = pos; b.BackgroundColor3 = color
+    b.Text = text; b.TextColor3 = Color3.new(1, 1, 1); b.Font = "SourceSansBold"; b.TextSize = 12
+    Instance.new("UICorner", b); b.MouseButton1Click:Connect(func); return b
+end
 
--- 3. ปุ่มวาร์ป (โผล่มาเมื่อมีจุดบันทึก)
-local tpBtn = Instance.new("TextButton", sg)
-tpBtn.Size = UDim2.new(0, 120, 0, 40)
-tpBtn.Position = UDim2.new(0.1, 60, 0.5, 5)
-tpBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-tpBtn.Text = "วาร์ปไปจุดที่เซฟ"
-tpBtn.Visible = false
-Instance.new("UICorner", tpBtn)
+-- ปุ่มในเมนู A & B
+createBtn("SET A", UDim2.new(0.04, 0, 0.2, 0), Color3.fromRGB(0, 100, 150), menu, function() 
+    pendingPoint = "A"; confirmMsg.Text = "บันทึกจุด A ลงเครื่อง?"; confirm.Visible = true 
+end)
+createBtn("GO A", UDim2.new(0.52, 0, 0.2, 0), Color3.fromRGB(0, 150, 220), menu, function() 
+    if Points.A then LocalPlayer.Character.HumanoidRootPart.CFrame = Points.A end 
+end)
+createBtn("SET B", UDim2.new(0.04, 0, 0.6, 0), Color3.fromRGB(150, 100, 0), menu, function() 
+    pendingPoint = "B"; confirmMsg.Text = "บันทึกจุด B ลงเครื่อง?"; confirm.Visible = true 
+end)
+createBtn("GO B", UDim2.new(0.52, 0, 0.6, 0), Color3.fromRGB(220, 140, 0), menu, function() 
+    if Points.B then LocalPlayer.Character.HumanoidRootPart.CFrame = Points.B end 
+end)
+
+-- ปุ่มในหน้าต่างยืนยัน
+createBtn("ตกลง", UDim2.new(0.05, 0, 0.6, 0), Color3.fromRGB(50, 150, 50), confirm, function()
+    UpdatePoint(pendingPoint); confirm.Visible = false
+end)
+createBtn("ยกเลิก", UDim2.new(0.53, 0, 0.6, 0), Color3.fromRGB(150, 50, 50), confirm, function()
+    confirm.Visible = false
+end)
 
 ---------------------------------------------------------
--- [ ระบบการทำงาน ]
+-- [ ระบบ Drag & Auto Load ]
 ---------------------------------------------------------
 
--- คลิกปุ่ม E เพื่อขอเซฟ
-eButton.MouseButton1Click:Connect(function()
-    confirmFrame.Visible = true
-end)
+local function MoveMenu()
+    menu.Position = UDim2.new(eBtn.Position.X.Scale, eBtn.Position.X.Offset + 65, eBtn.Position.Y.Scale, eBtn.Position.Y.Offset - 50)
+end
 
--- กดยกเลิก
-cancelBtn.MouseButton1Click:Connect(function()
-    confirmFrame.Visible = false
-end)
+eBtn.MouseButton1Click:Connect(function() menu.Visible = not menu.Visible; MoveMenu() end)
 
--- กดตกลง (บันทึกจริง)
-okBtn.MouseButton1Click:Connect(function()
-    local char = LocalPlayer.Character
-    if char and char:FindFirstChild("HumanoidRootPart") then
-        SavedCFrame = char.HumanoidRootPart.CFrame
-        SaveToFile(SavedCFrame)
-        tpBtn.Visible = true
-        confirmFrame.Visible = false
-        print("บันทึกพิกัดแมพ " .. PlaceId .. " เรียบร้อย!")
-    end
-end)
-
--- กดวาร์ป
-tpBtn.MouseButton1Click:Connect(function()
-    local char = LocalPlayer.Character
-    if char and char:FindFirstChild("HumanoidRootPart") and SavedCFrame then
-        char.HumanoidRootPart.CFrame = SavedCFrame
-    end
-end)
-
--- [[ AUTO LOAD: ทันทีที่รันสคริปต์ ]]
-task.spawn(function()
-    local loadedPos = LoadFromFile()
-    if loadedPos then
-        SavedCFrame = loadedPos
-        tpBtn.Visible = true
-        print("โหลดจุดเดิมจากแมพ " .. PlaceId .. " สำเร็จ!")
-    end
-end)
-
--- ระบบลากปุ่ม E
+-- ลากปุ่ม E
 local dragStart, startPos, dragging
-eButton.InputBegan:Connect(function(input)
+eBtn.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = true; dragStart = input.Position; startPos = eButton.Position
+        dragging = true; dragStart = input.Position; startPos = eBtn.Position
     end
 end)
 UserInputService.InputChanged:Connect(function(input)
     if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
         local delta = input.Position - dragStart
-        eButton.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        tpBtn.Position = UDim2.new(eButton.Position.X.Scale, eButton.Position.X.Offset + 60, eButton.Position.Y.Scale, eButton.Position.Y.Offset + 5)
+        eBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        MoveMenu()
     end
 end)
 UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
+
+-- [[ โหลดข้อมูลทันทีเมื่อรันสคริปต์ ]]
+task.spawn(function()
+    LoadData()
+    if Points.A then Visuals.A = CreateVisual(Points.A, Color3.fromRGB(0, 255, 255), "POINT A") end
+    if Points.B then Visuals.B = CreateVisual(Points.B, Color3.fromRGB(255, 170, 0), "POINT B") end
+    print("โหลดข้อมูลถาวรของแมพ " .. PlaceId .. " เรียบร้อย!")
+end)
