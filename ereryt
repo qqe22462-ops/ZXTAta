@@ -1,23 +1,18 @@
--- [[ ᴘɪꜱɪᴛ  ᴅᴜᴀʟ-ᴍᴀʀᴋᴇʀ - NO CONFUSION ]]
+-- [[ ᴘɪꜱɪᴛ  ᴇ-ᴍᴇɴᴜ  ᴅʀᴀɢɢᴀʙʟᴇ ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
--- ตัวแปรเก็บพิกัดแยกกัน
-local PointA = nil
-local PointB = nil
-
--- ตัวแสดงผลในแมพ (Visuals)
-local VisualA = nil
-local VisualB = nil
+-- ตัวแปรเก็บพิกัด
+local PointA, PointB = nil, nil
+local VisualA, VisualB = nil, nil
 
 ---------------------------------------------------------
--- [ ฟังก์ชันการทำงาน ]
+-- [ ฟังก์ชันการทำงานระบบวาร์ป ]
 ---------------------------------------------------------
 
--- สร้างแผ่นมาร์คบอกตำแหน่งบนพื้น
 local function CreateVisual(pos, color, name)
     local p = Instance.new("Part")
     p.Name = name
@@ -30,29 +25,19 @@ local function CreateVisual(pos, color, name)
     p.Color = color
     p.Parent = workspace
     
-    -- ใส่ตัวหนังสือบอกบนหัว Part
     local bgu = Instance.new("BillboardGui", p)
-    bgu.Size = UDim2.new(0, 100, 0, 50)
-    bgu.Adornee = p
-    bgu.AlwaysOnTop = true
+    bgu.Size = UDim2.new(0, 100, 0, 50); bgu.Adornee = p; bgu.AlwaysOnTop = true
     bgu.ExtentsOffset = Vector3.new(0, 3, 0)
     
     local tl = Instance.new("TextLabel", bgu)
-    tl.Size = UDim2.new(1, 0, 1, 0)
-    tl.BackgroundTransparency = 1
-    tl.Text = name
-    tl.TextColor3 = color
-    tl.Font = "SourceSansBold"
-    tl.TextSize = 20
-    
+    tl.Size = UDim2.new(1, 0, 1, 0); tl.BackgroundTransparency = 1
+    tl.Text = name; tl.TextColor3 = color; tl.Font = "SourceSansBold"; tl.TextSize = 20
     return p
 end
 
--- ระบบจัดการจุด A
 local function HandleA(mode)
     local char = LocalPlayer.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    
     if mode == "SET" then
         PointA = char.HumanoidRootPart.CFrame
         if VisualA then VisualA:Destroy() end
@@ -62,11 +47,9 @@ local function HandleA(mode)
     end
 end
 
--- ระบบจัดการจุด B
 local function HandleB(mode)
     local char = LocalPlayer.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    
     if mode == "SET" then
         PointB = char.HumanoidRootPart.CFrame
         if VisualB then VisualB:Destroy() end
@@ -77,65 +60,103 @@ local function HandleB(mode)
 end
 
 ---------------------------------------------------------
--- [ ระบบ UI (แยกโซนสีชัดเจน) ]
+-- [ ระบบ UI: ปุ่ม E ลากได้ และ เมนู ]
 ---------------------------------------------------------
-if LocalPlayer.PlayerGui:FindFirstChild("PisitDualUI") then
-    LocalPlayer.PlayerGui.PisitDualUI:Destroy()
+if LocalPlayer.PlayerGui:FindFirstChild("PisitDraggableUI") then
+    LocalPlayer.PlayerGui.PisitDraggableUI:Destroy()
 end
 
 local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "PisitDualUI"
+sg.Name = "PisitDraggableUI"
 sg.ResetOnSpawn = false
 
-local main = Instance.new("Frame", sg)
-main.Size = UDim2.new(0, 200, 0, 180)
-main.Position = UDim2.new(0.8, 0, 0.4, 0)
-main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-main.Active = true
-Instance.new("UICorner", main)
+-- 1. ตัวปุ่ม E (Main Button)
+local eButton = Instance.new("TextButton", sg)
+eButton.Name = "MainE"
+eButton.Size = UDim2.new(0, 55, 0, 55)
+eButton.Position = UDim2.new(0.1, 0, 0.5, 0)
+eButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+eButton.Text = "E"
+eButton.TextColor3 = Color3.new(1, 1, 1)
+eButton.TextSize = 28
+eButton.Font = "SourceSansBold"
+eButton.ZIndex = 10
+Instance.new("UICorner", eButton).CornerRadius = UDim.new(1, 0) -- วงกลมเป๊ะๆ
+local stroke = Instance.new("UIStroke", eButton)
+stroke.Thickness = 2
+stroke.Color = Color3.new(1, 1, 1)
 
-local function createBtn(text, pos, color, func)
-    local b = Instance.new("TextButton", main)
-    b.Size = UDim2.new(0.42, 0, 0, 35)
+-- 2. เมนูควบคุม (เด้งตามปุ่ม E)
+local menuFrame = Instance.new("Frame", sg)
+menuFrame.Name = "MenuFrame"
+menuFrame.Size = UDim2.new(0, 190, 0, 150)
+menuFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+menuFrame.Visible = false
+menuFrame.BorderSizePixel = 0
+Instance.new("UICorner", menuFrame)
+local menuStroke = Instance.new("UIStroke", menuFrame)
+menuStroke.Color = Color3.fromRGB(80, 80, 80)
+
+local function createMenuBtn(text, pos, color, func)
+    local b = Instance.new("TextButton", menuFrame)
+    b.Size = UDim2.new(0.44, 0, 0, 38)
     b.Position = pos
     b.BackgroundColor3 = color
     b.Text = text
     b.TextColor3 = Color3.new(1, 1, 1)
     b.Font = "SourceSansBold"
-    b.TextSize = 12
+    b.TextSize = 13
     Instance.new("UICorner", b)
     b.MouseButton1Click:Connect(func)
-    return b
 end
 
--- แถวที่ 1: จัดการจุด A (สีฟ้า)
-local titleA = Instance.new("TextLabel", main)
-titleA.Size = UDim2.new(1, 0, 0, 25); titleA.Text = "--- ZONE A ---"; titleA.TextColor3 = Color3.fromRGB(0, 255, 255); titleA.BackgroundTransparency = 1
-
-createBtn("SET A", UDim2.new(0.05, 0, 0.15, 0), Color3.fromRGB(0, 100, 150), function() HandleA("SET") end)
-createBtn("GO TO A", UDim2.new(0.53, 0, 0.15, 0), Color3.fromRGB(0, 150, 200), function() HandleA("TP") end)
-
--- แถวที่ 2: จัดการจุด B (สีส้ม)
-local titleB = Instance.new("TextLabel", main)
-titleB.Size = UDim2.new(1, 0, 0, 25); titleB.Position = UDim2.new(0, 0, 0.45, 0); titleB.Text = "--- ZONE B ---"; titleB.TextColor3 = Color3.fromRGB(255, 170, 0); titleB.BackgroundTransparency = 1
-
-createBtn("SET B", UDim2.new(0.05, 0, 0.6, 0), Color3.fromRGB(150, 100, 0), function() HandleB("SET") end)
-createBtn("GO TO B", UDim2.new(0.53, 0, 0.6, 0), Color3.fromRGB(200, 130, 0), function() HandleB("TP") end)
+createMenuBtn("SET A", UDim2.new(0.04, 0, 0.2, 0), Color3.fromRGB(0, 110, 170), function() HandleA("SET") end)
+createMenuBtn("WARP A", UDim2.new(0.52, 0, 0.2, 0), Color3.fromRGB(0, 150, 210), function() HandleA("TP") end)
+createMenuBtn("SET B", UDim2.new(0.04, 0, 0.6, 0), Color3.fromRGB(170, 90, 0), function() HandleB("SET") end)
+createMenuBtn("WARP B", UDim2.new(0.52, 0, 0.6, 0), Color3.fromRGB(210, 130, 0), function() HandleB("TP") end)
 
 ---------------------------------------------------------
--- [ ระบบลาก UI ]
+-- [ ระบบ Drag & Toggle (ลากและเปิดปิด) ]
 ---------------------------------------------------------
-local dragging, dragInput, dragStart, startPos
-main.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true; dragStart = input.Position; startPos = main.Position end
+
+local dragging = false
+local dragInput, dragStart, startPos
+
+-- ฟังก์ชันอัปเดตตำแหน่งเมนูให้ตามปุ่ม E
+local function UpdateMenuPosition()
+    menuFrame.Position = UDim2.new(eButton.Position.X.Scale, eButton.Position.X.Offset + 65, eButton.Position.Y.Scale, eButton.Position.Y.Offset - 45)
+end
+
+eButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = eButton.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
 end)
-main.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then dragInput = input end
+
+eButton.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
 end)
+
 UserInputService.InputChanged:Connect(function(input)
     if input == dragInput and dragging then
         local delta = input.Position - dragStart
-        main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        eButton.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        UpdateMenuPosition()
     end
 end)
-UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
+
+-- คลิกเปิดปิดเมนู (ตรวจสอบว่าไม่ได้กำลังลากอยู่ค่อยเปิด)
+eButton.MouseButton1Click:Connect(function()
+    menuFrame.Visible = not menuFrame.Visible
+    UpdateMenuPosition()
+end)
