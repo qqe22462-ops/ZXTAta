@@ -1,130 +1,141 @@
--- [[ ᴘɪꜱɪᴛ  ᴛᴇʟᴇᴘᴏʀᴛ  ᴍᴀʀᴋᴇʀ ]]
+-- [[ ᴘɪꜱɪᴛ  ᴅᴜᴀʟ-ᴍᴀʀᴋᴇʀ - NO CONFUSION ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
-local MarkedCFrame = nil -- ตัวแปรเก็บตำแหน่งที่มาร์คไว้
-local MarkerPart = nil   -- ตัวแสดงผลแสงตรงจุดที่มาร์ค
+-- ตัวแปรเก็บพิกัดแยกกัน
+local PointA = nil
+local PointB = nil
+
+-- ตัวแสดงผลในแมพ (Visuals)
+local VisualA = nil
+local VisualB = nil
 
 ---------------------------------------------------------
 -- [ ฟังก์ชันการทำงาน ]
 ---------------------------------------------------------
 
--- 1. ฟังก์ชันมาร์คจุด
-local function SetMarker()
-    local Character = LocalPlayer.Character
-    if Character and Character:FindFirstChild("HumanoidRootPart") then
-        MarkedCFrame = Character.HumanoidRootPart.CFrame
-        
-        -- สร้างแสงบอกตำแหน่ง (ถ้ามีของเก่าให้ลบก่อน)
-        if MarkerPart then MarkerPart:Destroy() end
-        
-        MarkerPart = Instance.new("Part")
-        MarkerPart.Name = "PisitMarker"
-        MarkerPart.Size = Vector3.new(4, 0.5, 4)
-        MarkerPart.CFrame = MarkedCFrame * CFrame.new(0, -3, 0) -- วางไว้ที่พื้น
-        MarkerPart.Anchored = true
-        MarkerPart.CanCollide = false
-        MarkerPart.Color = Color3.fromRGB(0, 255, 100) -- สีเขียวเรืองแสง
-        MarkerPart.Material = Enum.Material.Neon
-        MarkerPart.Parent = workspace
-        
-        -- ใส่ Effect แสงพุ่งขึ้นฟ้า
-        local attachment = Instance.new("Attachment", MarkerPart)
-        local beam = Instance.new("Beam", MarkerPart)
-        beam.Attachment0 = attachment
-        local topAttach = Instance.new("Attachment", MarkerPart)
-        topAttach.Position = Vector3.new(0, 50, 0)
-        beam.Attachment1 = topAttach
-        beam.Width0 = 1
-        beam.Width1 = 0
-        beam.Color = ColorSequence.new(Color3.fromRGB(0, 255, 100))
-        
-        print("บันทึกตำแหน่งเรียบร้อย!")
+-- สร้างแผ่นมาร์คบอกตำแหน่งบนพื้น
+local function CreateVisual(pos, color, name)
+    local p = Instance.new("Part")
+    p.Name = name
+    p.Size = Vector3.new(4, 0.5, 4)
+    p.CFrame = pos * CFrame.new(0, -3.2, 0)
+    p.Anchored = true
+    p.CanCollide = false
+    p.Transparency = 0.4
+    p.Material = Enum.Material.Neon
+    p.Color = color
+    p.Parent = workspace
+    
+    -- ใส่ตัวหนังสือบอกบนหัว Part
+    local bgu = Instance.new("BillboardGui", p)
+    bgu.Size = UDim2.new(0, 100, 0, 50)
+    bgu.Adornee = p
+    bgu.AlwaysOnTop = true
+    bgu.ExtentsOffset = Vector3.new(0, 3, 0)
+    
+    local tl = Instance.new("TextLabel", bgu)
+    tl.Size = UDim2.new(1, 0, 1, 0)
+    tl.BackgroundTransparency = 1
+    tl.Text = name
+    tl.TextColor3 = color
+    tl.Font = "SourceSansBold"
+    tl.TextSize = 20
+    
+    return p
+end
+
+-- ระบบจัดการจุด A
+local function HandleA(mode)
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    
+    if mode == "SET" then
+        PointA = char.HumanoidRootPart.CFrame
+        if VisualA then VisualA:Destroy() end
+        VisualA = CreateVisual(PointA, Color3.fromRGB(0, 255, 255), "POINT A")
+    elseif mode == "TP" then
+        if PointA then char.HumanoidRootPart.CFrame = PointA end
     end
 end
 
--- 2. ฟังก์ชันวาร์ปกลับจุดมาร์ค
-local function TeleportToMarker()
-    local Character = LocalPlayer.Character
-    if Character and Character:FindFirstChild("HumanoidRootPart") then
-        if MarkedCFrame then
-            Character.HumanoidRootPart.CFrame = MarkedCFrame
-            print("วาร์ปกลับจุดมาร์คแล้ว!")
-        else
-            print("คุณยังไม่ได้มาร์คจุดเลย!")
-        end
+-- ระบบจัดการจุด B
+local function HandleB(mode)
+    local char = LocalPlayer.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    
+    if mode == "SET" then
+        PointB = char.HumanoidRootPart.CFrame
+        if VisualB then VisualB:Destroy() end
+        VisualB = CreateVisual(PointB, Color3.fromRGB(255, 170, 0), "POINT B")
+    elseif mode == "TP" then
+        if PointB then char.HumanoidRootPart.CFrame = PointB end
     end
 end
 
 ---------------------------------------------------------
--- [ ระบบ UI (ลากได้) ]
+-- [ ระบบ UI (แยกโซนสีชัดเจน) ]
 ---------------------------------------------------------
-if LocalPlayer.PlayerGui:FindFirstChild("PisitMarkerUI") then
-    LocalPlayer.PlayerGui.PisitMarkerUI:Destroy()
+if LocalPlayer.PlayerGui:FindFirstChild("PisitDualUI") then
+    LocalPlayer.PlayerGui.PisitDualUI:Destroy()
 end
 
-local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-screenGui.Name = "PisitMarkerUI"
-screenGui.ResetOnSpawn = false
+local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+sg.Name = "PisitDualUI"
+sg.ResetOnSpawn = false
 
-local mainFrame = Instance.new("Frame", screenGui)
-mainFrame.Size = UDim2.new(0, 150, 0, 110)
-mainFrame.Position = UDim2.new(0.8, 0, 0.5, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-mainFrame.Active = true
-Instance.new("UICorner", mainFrame)
+local main = Instance.new("Frame", sg)
+main.Size = UDim2.new(0, 200, 0, 180)
+main.Position = UDim2.new(0.8, 0, 0.4, 0)
+main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+main.Active = true
+Instance.new("UICorner", main)
 
-local title = Instance.new("TextLabel", mainFrame)
-title.Size = UDim2.new(1, 0, 0, 30)
-title.Text = "TELEPORT MARKER"
-title.TextColor3 = Color3.new(1, 1, 1)
-title.BackgroundTransparency = 1
-title.Font = "SourceSansBold"
-title.TextSize = 14
+local function createBtn(text, pos, color, func)
+    local b = Instance.new("TextButton", main)
+    b.Size = UDim2.new(0.42, 0, 0, 35)
+    b.Position = pos
+    b.BackgroundColor3 = color
+    b.Text = text
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.Font = "SourceSansBold"
+    b.TextSize = 12
+    Instance.new("UICorner", b)
+    b.MouseButton1Click:Connect(func)
+    return b
+end
 
--- ปุ่มมาร์คจุด
-local setBtn = Instance.new("TextButton", mainFrame)
-setBtn.Size = UDim2.new(0.9, 0, 0, 30)
-setBtn.Position = UDim2.new(0.05, 0, 0.3, 0)
-setBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
-setBtn.Text = "SET POINT (มาร์ค)"
-setBtn.TextColor3 = Color3.new(1, 1, 1)
-setBtn.Font = "SourceSansBold"
-Instance.new("UICorner", setBtn)
+-- แถวที่ 1: จัดการจุด A (สีฟ้า)
+local titleA = Instance.new("TextLabel", main)
+titleA.Size = UDim2.new(1, 0, 0, 25); titleA.Text = "--- ZONE A ---"; titleA.TextColor3 = Color3.fromRGB(0, 255, 255); titleA.BackgroundTransparency = 1
 
--- ปุ่มวาร์ป
-local tpBtn = Instance.new("TextButton", mainFrame)
-tpBtn.Size = UDim2.new(0.9, 0, 0, 30)
-tpBtn.Position = UDim2.new(0.05, 0, 0.65, 0)
-tpBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
-tpBtn.Text = "WARP BACK (กลับ)"
-tpBtn.TextColor3 = Color3.new(1, 1, 1)
-tpBtn.Font = "SourceSansBold"
-Instance.new("UICorner", tpBtn)
+createBtn("SET A", UDim2.new(0.05, 0, 0.15, 0), Color3.fromRGB(0, 100, 150), function() HandleA("SET") end)
+createBtn("GO TO A", UDim2.new(0.53, 0, 0.15, 0), Color3.fromRGB(0, 150, 200), function() HandleA("TP") end)
+
+-- แถวที่ 2: จัดการจุด B (สีส้ม)
+local titleB = Instance.new("TextLabel", main)
+titleB.Size = UDim2.new(1, 0, 0, 25); titleB.Position = UDim2.new(0, 0, 0.45, 0); titleB.Text = "--- ZONE B ---"; titleB.TextColor3 = Color3.fromRGB(255, 170, 0); titleB.BackgroundTransparency = 1
+
+createBtn("SET B", UDim2.new(0.05, 0, 0.6, 0), Color3.fromRGB(150, 100, 0), function() HandleB("SET") end)
+createBtn("GO TO B", UDim2.new(0.53, 0, 0.6, 0), Color3.fromRGB(200, 130, 0), function() HandleB("TP") end)
 
 ---------------------------------------------------------
--- [ เชื่อมต่อระบบ ]
+-- [ ระบบลาก UI ]
 ---------------------------------------------------------
-setBtn.MouseButton1Click:Connect(SetMarker)
-tpBtn.MouseButton1Click:Connect(TeleportToMarker)
-
--- ระบบลาก UI
 local dragging, dragInput, dragStart, startPos
-mainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true; dragStart = input.Position; startPos = mainFrame.Position
-    end
+main.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true; dragStart = input.Position; startPos = main.Position end
 end)
-mainFrame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
+main.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then dragInput = input end
 end)
 UserInputService.InputChanged:Connect(function(input)
     if input == dragInput and dragging then
         local delta = input.Position - dragStart
-        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
-UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end end)
+UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
