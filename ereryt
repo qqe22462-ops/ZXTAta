@@ -1,9 +1,10 @@
--- [[ ᴘɪꜱɪᴛ  ᴘʀᴏ  ʀᴇᴄᴏʀᴅᴇʀ  ᴠ2 ]]
+-- [[ ᴘɪꜱɪᴛ  ʀᴇᴀʟ-ʙᴏᴅʏ  ʀᴇᴄᴏʀᴅᴇʀ ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 
 local RecordedData = {} 
@@ -13,10 +14,9 @@ local IsPlaying = false
 local Timer = 0
 
 ---------------------------------------------------------
--- [ ฟังก์ชันการบันทึกและทำซ้ำ ]
+-- [ ระบบบันทึก (High-Res 0.1s) ]
 ---------------------------------------------------------
 
--- 1. ลอจิกการบันทึก (ทำงานเบื้องหลัง)
 task.spawn(function()
     while true do
         if IsRecording and not IsPaused and Timer < 60 then
@@ -28,16 +28,18 @@ task.spawn(function()
                 table.insert(RecordedData, {
                     cf = hrp.CFrame,
                     speed = (hum and hum.WalkSpeed) or 16,
-                    jump = (hum and hum.JumpPower) or 50,
                 })
                 Timer = Timer + 0.1
             end
         end
-        task.wait(0.1) -- ความละเอียด 0.1 วินาที
+        task.wait(0.1)
     end
 end)
 
--- 2. ฟังก์ชันทำซ้ำ (Replay)
+---------------------------------------------------------
+-- [ ระบบทำซ้ำ (ร่างจริง - Real Body) ]
+---------------------------------------------------------
+
 local function StartPlayback()
     if IsRecording or #RecordedData == 0 or IsPlaying then return end
     IsPlaying = true
@@ -47,19 +49,23 @@ local function StartPlayback()
         local hrp = char.HumanoidRootPart
         local hum = char:FindFirstChildOfClass("Humanoid")
         
-        hrp.Anchored = true -- ล็อคตัวละครเพื่อให้บิน/ลอยตามพิกัดได้แม่นยำ
-        
-        for _, data in ipairs(RecordedData) do
+        -- วาร์ปไปจุดเริ่มต้นก่อน
+        hrp.CFrame = RecordedData[1].cf
+        task.wait(0.2)
+
+        for i = 1, #RecordedData do
             if not IsPlaying then break end
-            hrp.CFrame = data.cf
-            if hum then
-                hum.WalkSpeed = data.speed
-                hum.JumpPower = data.jump
-            end
-            task.wait(0.1)
+            local data = RecordedData[i]
+            
+            -- ใช้ Tween เพื่อให้ร่างจริงขยับอย่างนุ่มนวลไปยังพิกัดถัดไป
+            local tweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Linear)
+            local tween = TweenService:Create(hrp, tweenInfo, {CFrame = data.cf})
+            
+            if hum then hum.WalkSpeed = data.speed end
+            
+            tween:Play()
+            task.wait(0.1) -- ขยับตามความถี่ที่บันทึก
         end
-        
-        hrp.Anchored = false
     end
     IsPlaying = false
 end
@@ -69,89 +75,67 @@ end
 ---------------------------------------------------------
 
 local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "PisitRecorderV2"
-sg.ResetOnSpawn = false
+sg.Name = "PisitRealBodyUI"; sg.ResetOnSpawn = false
 
 local main = Instance.new("Frame", sg)
-main.Size = UDim2.new(0, 220, 0, 200)
-main.Position = UDim2.new(0.5, -110, 0.2, 0)
-main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-main.Active = true
-main.Draggable = true -- เปิดการลากแบบพื้นฐาน (หรือใช้สคริปต์ลากด้านล่างเพื่อให้เสถียรขึ้น)
-Instance.new("UICorner", main)
+main.Size = UDim2.new(0, 220, 0, 210); main.Position = UDim2.new(0.5, -110, 0.2, 0)
+main.BackgroundColor3 = Color3.fromRGB(15, 15, 15); main.Active = true; Instance.new("UICorner", main)
+local stroke = Instance.new("UIStroke", main); stroke.Color = Color3.new(1,1,1); stroke.Thickness = 2
 
 local title = Instance.new("TextLabel", main)
-title.Size = UDim2.new(1, 0, 0, 30); title.Text = "PISIT RECORDER V2"; title.TextColor3 = Color3.new(1,1,1); title.BackgroundTransparency = 1; title.Font = "SourceSansBold"
+title.Size = UDim2.new(1, 0, 0, 35); title.Text = "REAL BODY RECORDER"; title.TextColor3 = Color3.new(1,1,1); title.BackgroundTransparency = 1; title.Font = "SourceSansBold"
 
 local function createBtn(text, pos, color, func)
     local b = Instance.new("TextButton", main)
     b.Size = UDim2.new(0.9, 0, 0, 35); b.Position = pos; b.BackgroundColor3 = color
-    b.Text = text; b.TextColor3 = Color3.new(1, 1, 1); b.Font = "SourceSansBold"; b.TextSize = 14
+    b.Text = text; b.TextColor3 = Color3.new(1, 1, 1); b.Font = "SourceSansBold"; b.TextSize = 13
     Instance.new("UICorner", b); b.MouseButton1Click:Connect(func)
     return b
 end
 
--- ปุ่มเริ่ม/หยุดบันทึกหลัก
-local recBtn = createBtn("เริ่มบันทึก (START)", UDim2.new(0.05, 0, 0.2, 0), Color3.fromRGB(40, 160, 40), function()
-    if not IsRecording then
-        RecordedData = {}
-        Timer = 0
-        IsPaused = false
-        IsRecording = true
-    else
-        IsRecording = false
-    end
+local recBtn = createBtn("เริ่มบันทึก (START)", UDim2.new(0.05, 0, 0.2, 0), Color3.fromRGB(45, 140, 45), function()
+    if not IsRecording then RecordedData = {}; Timer = 0; IsPaused = false; IsRecording = true
+    else IsRecording = false end
 end)
 
--- ปุ่ม Pause / Resume (หยุดชั่วคราว)
-local pauseBtn = createBtn("หยุดชั่วคราว (PAUSE)", UDim2.new(0.05, 0, 0.4, 0), Color3.fromRGB(180, 150, 0), function()
-    if IsRecording then
-        IsPaused = not IsPaused
-    end
+local pauseBtn = createBtn("หยุดชั่วคราว (PAUSE)", UDim2.new(0.05, 0, 0.4, 0), Color3.fromRGB(160, 130, 0), function()
+    if IsRecording then IsPaused = not IsPaused end
 end)
 
--- ปุ่ม Replay
-local playBtn = createBtn("ทำซ้ำ (REPLAY)", UDim2.new(0.05, 0, 0.6, 0), Color3.fromRGB(0, 100, 200), StartPlayback)
+local playBtn = createBtn("ทำซ้ำร่างจริง (REPLAY)", UDim2.new(0.05, 0, 0.6, 0), Color3.fromRGB(0, 110, 190), StartPlayback)
 
--- ปุ่มล้างข้อมูล / ยกเลิก
-createBtn("ยกเลิก / RESET", UDim2.new(0.05, 0, 0.8, 0), Color3.fromRGB(150, 50, 50), function()
+createBtn("ล้างข้อมูล / RESET", UDim2.new(0.05, 0, 0.8, 0), Color3.fromRGB(140, 45, 45), function()
     IsRecording = false; IsPlaying = false; IsPaused = false; RecordedData = {}; Timer = 0
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        LocalPlayer.Character.HumanoidRootPart.Anchored = false
-    end
 end)
 
 -- อัปเดตสถานะปุ่ม
 RunService.RenderStepped:Connect(function()
     if IsRecording then
         if IsPaused then
-            recBtn.Text = "กำลังบันทึก (PAUSED) - " .. string.format("%.1f", Timer) .. "s"
+            recBtn.Text = "บันทึก (PAUSED) - " .. string.format("%.1f", Timer) .. "s"
             pauseBtn.Text = "ดำเนินต่อ (RESUME)"
-            pauseBtn.BackgroundColor3 = Color3.fromRGB(40, 160, 40)
         else
-            recBtn.Text = "บันทึกอยู่ (STOP) - " .. string.format("%.1f", Timer) .. "s"
+            recBtn.Text = "หยุดบันทึก (STOP) - " .. string.format("%.1f", Timer) .. "s"
             pauseBtn.Text = "หยุดชั่วคราว (PAUSE)"
-            pauseBtn.BackgroundColor3 = Color3.fromRGB(180, 150, 0)
         end
     else
         recBtn.Text = "เริ่มบันทึกใหม่ (START)"
-        recBtn.BackgroundColor3 = Color3.fromRGB(40, 160, 40)
-        pauseBtn.Text = "หยุดชั่วคราว (PAUSE)"
     end
 end)
 
 ---------------------------------------------------------
--- [ ระบบลาก UI (Smooth Drag) ]
+-- [ ระบบลาก UI แบบสากล ]
 ---------------------------------------------------------
 local dragging, dragInput, dragStart, startPos
 main.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true; dragStart = input.Position; startPos = main.Position end
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true; dragStart = input.Position; startPos = main.Position
+    end
 end)
-main.InputChanged:Connect(function(input) if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then dragInput = input end end)
 UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local delta = input.Position - dragStart
         main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
-UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
+UserInputService.InputEnded:Connect(function(input) dragging = false end)
