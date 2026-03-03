@@ -1,4 +1,4 @@
--- [[ ᴘɪꜱɪᴛ  ꜱᴇᴀᴍʟᴇꜱꜱ  ʜᴏᴘᴘᴇʀ ]]
+-- [[ ᴘɪꜱɪᴛ  ꜱᴇᴀᴍʟᴇꜱꜱ  ʜᴏᴘᴘᴇʀ  ᴠ2 (ꜱᴘᴇᴇᴅ ʙᴜꜰꜰ) ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 
 local HttpService = game:GetService("HttpService")
@@ -11,7 +11,7 @@ local PosCacheFile = "PisitLastPos_" .. PlaceId .. ".json"
 local ServerCacheFile = "PisitVisitedServers.json"
 
 ---------------------------------------------------------
--- [ ฟังก์ชันจัดการตำแหน่ง (Save/Load) ]
+-- [ ฟังก์ชันจัดการตำแหน่ง และ Speed Buff ]
 ---------------------------------------------------------
 
 local function SaveCurrentPos()
@@ -28,13 +28,29 @@ local function LoadAndTeleport()
         local success, result = pcall(function()
             return HttpService:JSONDecode(readfile(PosCacheFile))
         end)
+        
         if success and result then
             local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
             local hrp = char:WaitForChild("HumanoidRootPart")
-            task.wait(0.5) -- รอให้ตัวละครนิ่งก่อนวาร์ป
+            local hum = char:WaitForChild("Humanoid")
+            
+            task.wait(0.5) -- รอให้ตัวละครนิ่ง
             hrp.CFrame = CFrame.new(unpack(result))
             print("กลับมาที่จุดเดิมเรียบร้อย!")
-            -- ลบไฟล์ตำแหน่งทิ้งเพื่อไม่ให้วาร์ปค้างรอบหน้า
+            
+            -- [[ ส่วนที่เพิ่มใหม่: Speed Buff 60 ]]
+            hum.WalkSpeed = 60
+            print("ได้รับบัฟวิ่งเร็ว 60! (20 วินาที)")
+            
+            task.spawn(function()
+                task.wait(20) -- บัฟทำงาน 20 วินาที
+                if hum and hum.Parent then
+                    hum.WalkSpeed = 16 -- กลับเป็นความเร็วปกติ
+                    print("หมดเวลาบัฟ วิ่งเร็วปกติ")
+                end
+            end)
+            
+            -- ลบไฟล์ตำแหน่งทิ้งเพื่อป้องกันการวาร์ปค้าง
             delfile(PosCacheFile)
         end
     end
@@ -56,7 +72,7 @@ local function Hop()
     if success and result.data then
         for _, server in pairs(result.data) do
             if server.id ~= game.JobId and not visited[server.id] and server.playing < server.maxPlayers then
-                -- บันทึกเซิร์ฟนี้ว่าเคยมาแล้ว
+                -- บันทึกเซิร์ฟปัจจุบันก่อนย้าย
                 visited[game.JobId] = os.time()
                 writefile(ServerCacheFile, HttpService:JSONEncode(visited))
                 
@@ -77,10 +93,10 @@ end
 -- [ เริ่มการทำงาน ]
 ---------------------------------------------------------
 
--- 1. เช็คก่อนว่าเพิ่งวาร์ปมาจากเซิร์ฟอื่นหรือเปล่า ถ้าใช่ให้กลับจุดเดิม
 if isfile(PosCacheFile) then
+    -- ถ้ามีไฟล์ค้างอยู่ แสดงว่าเพิ่งย้ายเซิร์ฟมา ให้วาร์ปกลับจุดเดิมและให้บัฟ
     LoadAndTeleport()
 else
-    -- 2. ถ้าไม่ได้เพิ่งวาร์ปมา (รันสคริปต์ครั้งแรก) ให้สั่งย้ายเซิร์ฟทันที
+    -- ถ้าเปิดสคริปต์ครั้งแรก ให้ย้ายเซิร์ฟทันที
     Hop()
 end
