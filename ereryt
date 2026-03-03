@@ -1,4 +1,4 @@
--- [[ ᴘɪꜱɪᴛ  ᴀᴄᴛɪᴏɴ  ʀᴇᴄᴏʀᴅᴇʀ ]]
+-- [[ ᴘɪꜱɪᴛ  ᴘʀᴏ  ʀᴇᴄᴏʀᴅᴇʀ  (0.1ꜱ ᴅᴇᴛᴀɪʟ) ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 
 local Players = game:GetService("Players")
@@ -6,7 +6,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
-local RecordedData = {} -- ที่เก็บข้อมูลที่บันทึกไว้
+local RecordedData = {} 
 local IsRecording = false
 local IsPlaying = false
 local Timer = 0
@@ -15,64 +15,64 @@ local Timer = 0
 -- [ ฟังก์ชันหลัก ]
 ---------------------------------------------------------
 
--- 1. เริ่มบันทึก
+-- 1. เริ่มบันทึก (ความละเอียด 0.1 วินาที)
 local function StartRecording()
     if IsPlaying then return end
-    RecordedData = {} -- ล้างข้อมูลเก่า
+    RecordedData = {} 
     Timer = 0
     IsRecording = true
-    print("เริ่มบันทึกข้อมูล...")
+    print("เริ่มบันทึกแบบละเอียด 0.1s...")
     
     task.spawn(function()
         while IsRecording and Timer < 60 do
             local char = LocalPlayer.Character
-            if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
+            if char and char:FindFirstChild("HumanoidRootPart") then
                 local hrp = char.HumanoidRootPart
-                local hum = char.Humanoid
+                local hum = char:FindFirstChildOfClass("Humanoid")
                 
-                -- บันทึกค่าที่จุดเวลานั้นๆ
+                -- บันทึกพิกัดแบบละเอียด (รองรับทั้งเดินและบิน)
                 table.insert(RecordedData, {
                     cf = hrp.CFrame,
-                    speed = hum.WalkSpeed,
-                    jump = hum.JumpPower,
-                    time = Timer
+                    speed = (hum and hum.WalkSpeed) or 16,
+                    jump = (hum and hum.JumpPower) or 50,
                 })
             end
-            task.wait(0.1) -- บันทึกความละเอียดสูง (ทุก 0.1 วินาที)
+            task.wait(0.1) -- บันทึกทุกๆ 0.1 วินาทีตามสั่ง
             Timer = Timer + 0.1
         end
-        if IsRecording then StopRecording() end
+        if IsRecording then IsRecording = false end
     end)
 end
 
--- 2. หยุดบันทึก
-function StopRecording()
-    IsRecording = false
-    print("หยุดบันทึก! บันทึกได้ทั้งหมด " .. #RecordedData .. " จุด")
-end
-
--- 3. ทำซ้ำ (Playback)
+-- 2. ทำซ้ำ (Playback แบบรองรับการลอยตัว/บิน)
 local function StartPlayback()
     if IsRecording or #RecordedData == 0 then return end
     IsPlaying = true
-    print("กำลังทำซ้ำการเล่น...")
+    print("กำลังทำซ้ำการเล่น (รวมสถานะการบิน)...")
     
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("HumanoidRootPart") then
         local hrp = char.HumanoidRootPart
         local hum = char:FindFirstChildOfClass("Humanoid")
         
+        -- ปิดระบบฟิสิกส์ชั่วคราวเพื่อให้ลอยตัวได้เหมือนตอนบิน
+        hrp.Anchored = true 
+        
         for _, data in ipairs(RecordedData) do
             if not IsPlaying then break end
             
-            -- บังคับตัวละครให้มีค่าตามที่บันทึกไว้
+            -- ย้ายตำแหน่งไปยังพิกัดที่บันทึกไว้ (รวมถึงความสูงตอนบิน)
             hrp.CFrame = data.cf
+            
             if hum then
                 hum.WalkSpeed = data.speed
                 hum.JumpPower = data.jump
             end
-            task.wait(0.1) -- เล่นคืนตามความเร็วที่บันทึก
+            
+            task.wait(0.1) -- เล่นคืนที่ความเร็ว 0.1 วินาที
         end
+        
+        hrp.Anchored = false -- เปิดระบบฟิสิกส์คืนเมื่อจบ
     end
     IsPlaying = false
     print("ทำซ้ำเสร็จสิ้น!")
@@ -82,14 +82,18 @@ end
 -- [ ระบบ UI ]
 ---------------------------------------------------------
 local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "PisitRecorderUI"
+sg.Name = "PisitProRecorderUI"
 sg.ResetOnSpawn = false
 
 local main = Instance.new("Frame", sg)
-main.Size = UDim2.new(0, 180, 0, 150)
-main.Position = UDim2.new(0.5, -90, 0.1, 0)
-main.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+main.Size = UDim2.new(0, 200, 0, 160)
+main.Position = UDim2.new(0.5, -100, 0.2, 0)
+main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+main.Active = true
 Instance.new("UICorner", main)
+local stroke = Instance.new("UIStroke", main)
+stroke.Color = Color3.new(1,1,1)
+stroke.Thickness = 1.5
 
 local function createBtn(text, pos, color, func)
     local b = Instance.new("TextButton", main)
@@ -99,34 +103,34 @@ local function createBtn(text, pos, color, func)
     b.Text = text
     b.TextColor3 = Color3.new(1, 1, 1)
     b.Font = "SourceSansBold"
-    b.TextSize = 16
+    b.TextSize = 14
     Instance.new("UICorner", b)
     b.MouseButton1Click:Connect(func)
     return b
 end
 
-local recordBtn = createBtn("เริ่มบันทึก (สีเขียว)", UDim2.new(0.05, 0, 0.1, 0), Color3.fromRGB(50, 150, 50), function()
-    if not IsRecording then
-        StartRecording()
-    else
-        StopRecording()
+local recBtn = createBtn("เริ่มบันทึก (0.1s)", UDim2.new(0.05, 0, 0.1, 0), Color3.fromRGB(40, 160, 40), function()
+    if not IsRecording then StartRecording() else IsRecording = false end
+end)
+
+local playBtn = createBtn("ทำซ้ำ (REPLAY)", UDim2.new(0.05, 0, 0.4, 0), Color3.fromRGB(0, 100, 200), StartPlayback)
+
+local stopBtn = createBtn("หยุด / ยกเลิก", UDim2.new(0.05, 0, 0.7, 0), Color3.fromRGB(180, 40, 40), function()
+    IsPlaying = false
+    IsRecording = false
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        LocalPlayer.Character.HumanoidRootPart.Anchored = false
     end
 end)
 
-local playBtn = createBtn("ทำซ้ำ (Replay)", UDim2.new(0.05, 0, 0.4, 0), Color3.fromRGB(0, 120, 200), StartPlayback)
-
-local stopPlayBtn = createBtn("หยุดทำซ้ำ", UDim2.new(0.05, 0, 0.7, 0), Color3.fromRGB(150, 50, 50), function()
-    IsPlaying = false
-end)
-
--- ระบบอัปเดตข้อความปุ่มบันทึก
+-- แสดงสถานะเวลา
 RunService.RenderStepped:Connect(function()
     if IsRecording then
-        recordBtn.Text = "กำลังบันทึก.. " .. math.floor(Timer) .. "s (กดหยุด)"
-        recordBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        recBtn.Text = "กำลังบันทึก: " .. string.format("%.1f", Timer) .. " วินาที"
+        recBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
     else
-        recordBtn.Text = "เริ่มบันทึกสีเขียว"
-        recordBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
+        recBtn.Text = "เริ่มบันทึก (0.1s)"
+        recBtn.BackgroundColor3 = Color3.fromRGB(40, 160, 40)
     end
 end)
 
@@ -135,8 +139,9 @@ local dragging, dragInput, dragStart, startPos
 main.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true; dragStart = input.Position; startPos = main.Position end
 end)
+main.InputChanged:Connect(function(input) if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then dragInput = input end end)
 UserInputService.InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+    if input == dragInput and dragging then
         local delta = input.Position - dragStart
         main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
