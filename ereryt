@@ -1,102 +1,144 @@
--- [[ ᴘɪꜱɪᴛ  ꜱᴇᴀᴍʟᴇꜱꜱ  ʜᴏᴘᴘᴇʀ  ᴠ2 (ꜱᴘᴇᴇᴅ ʙᴜꜰꜰ) ]]
+-- [[ ᴘɪꜱɪᴛ  ᴀᴄᴛɪᴏɴ  ʀᴇᴄᴏʀᴅᴇʀ ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 
-local HttpService = game:GetService("HttpService")
-local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 
-local PlaceId = game.PlaceId
-local PosCacheFile = "PisitLastPos_" .. PlaceId .. ".json"
-local ServerCacheFile = "PisitVisitedServers.json"
+local RecordedData = {} -- ที่เก็บข้อมูลที่บันทึกไว้
+local IsRecording = false
+local IsPlaying = false
+local Timer = 0
 
 ---------------------------------------------------------
--- [ ฟังก์ชันจัดการตำแหน่ง และ Speed Buff ]
+-- [ ฟังก์ชันหลัก ]
 ---------------------------------------------------------
 
-local function SaveCurrentPos()
+-- 1. เริ่มบันทึก
+local function StartRecording()
+    if IsPlaying then return end
+    RecordedData = {} -- ล้างข้อมูลเก่า
+    Timer = 0
+    IsRecording = true
+    print("เริ่มบันทึกข้อมูล...")
+    
+    task.spawn(function()
+        while IsRecording and Timer < 60 do
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") then
+                local hrp = char.HumanoidRootPart
+                local hum = char.Humanoid
+                
+                -- บันทึกค่าที่จุดเวลานั้นๆ
+                table.insert(RecordedData, {
+                    cf = hrp.CFrame,
+                    speed = hum.WalkSpeed,
+                    jump = hum.JumpPower,
+                    time = Timer
+                })
+            end
+            task.wait(0.1) -- บันทึกความละเอียดสูง (ทุก 0.1 วินาที)
+            Timer = Timer + 0.1
+        end
+        if IsRecording then StopRecording() end
+    end)
+end
+
+-- 2. หยุดบันทึก
+function StopRecording()
+    IsRecording = false
+    print("หยุดบันทึก! บันทึกได้ทั้งหมด " .. #RecordedData .. " จุด")
+end
+
+-- 3. ทำซ้ำ (Playback)
+local function StartPlayback()
+    if IsRecording or #RecordedData == 0 then return end
+    IsPlaying = true
+    print("กำลังทำซ้ำการเล่น...")
+    
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("HumanoidRootPart") then
-        local cf = char.HumanoidRootPart.CFrame
-        local data = {cf:GetComponents()}
-        writefile(PosCacheFile, HttpService:JSONEncode(data))
-    end
-end
-
-local function LoadAndTeleport()
-    if isfile(PosCacheFile) then
-        local success, result = pcall(function()
-            return HttpService:JSONDecode(readfile(PosCacheFile))
-        end)
+        local hrp = char.HumanoidRootPart
+        local hum = char:FindFirstChildOfClass("Humanoid")
         
-        if success and result then
-            local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-            local hrp = char:WaitForChild("HumanoidRootPart")
-            local hum = char:WaitForChild("Humanoid")
+        for _, data in ipairs(RecordedData) do
+            if not IsPlaying then break end
             
-            task.wait(0.5) -- รอให้ตัวละครนิ่ง
-            hrp.CFrame = CFrame.new(unpack(result))
-            print("กลับมาที่จุดเดิมเรียบร้อย!")
-            
-            -- [[ ส่วนที่เพิ่มใหม่: Speed Buff 60 ]]
-            hum.WalkSpeed = 60
-            print("ได้รับบัฟวิ่งเร็ว 60! (20 วินาที)")
-            
-            task.spawn(function()
-                task.wait(20) -- บัฟทำงาน 20 วินาที
-                if hum and hum.Parent then
-                    hum.WalkSpeed = 16 -- กลับเป็นความเร็วปกติ
-                    print("หมดเวลาบัฟ วิ่งเร็วปกติ")
-                end
-            end)
-            
-            -- ลบไฟล์ตำแหน่งทิ้งเพื่อป้องกันการวาร์ปค้าง
-            delfile(PosCacheFile)
-        end
-    end
-end
-
----------------------------------------------------------
--- [ ฟังก์ชันย้ายเซิร์ฟเวอร์แบบไม่ซ้ำเดิม ]
----------------------------------------------------------
-
-local function Hop()
-    local visited = {}
-    if isfile(ServerCacheFile) then
-        pcall(function() visited = HttpService:JSONDecode(readfile(ServerCacheFile)) end)
-    end
-    
-    local url = "https://games.roblox.com/v1/games/" .. PlaceId .. "/servers/Public?sortOrder=Desc&limit=100"
-    local success, result = pcall(function() return HttpService:JSONDecode(game:HttpGet(url)) end)
-    
-    if success and result.data then
-        for _, server in pairs(result.data) do
-            if server.id ~= game.JobId and not visited[server.id] and server.playing < server.maxPlayers then
-                -- บันทึกเซิร์ฟปัจจุบันก่อนย้าย
-                visited[game.JobId] = os.time()
-                writefile(ServerCacheFile, HttpService:JSONEncode(visited))
-                
-                -- บันทึกตำแหน่งก่อนวาร์ป
-                SaveCurrentPos()
-                
-                -- ย้ายเซิร์ฟเวอร์
-                TeleportService:TeleportToPlaceInstance(PlaceId, server.id, LocalPlayer)
-                return
+            -- บังคับตัวละครให้มีค่าตามที่บันทึกไว้
+            hrp.CFrame = data.cf
+            if hum then
+                hum.WalkSpeed = data.speed
+                hum.JumpPower = data.jump
             end
+            task.wait(0.1) -- เล่นคืนตามความเร็วที่บันทึก
         end
     end
-    task.wait(1)
-    Hop()
+    IsPlaying = false
+    print("ทำซ้ำเสร็จสิ้น!")
 end
 
 ---------------------------------------------------------
--- [ เริ่มการทำงาน ]
+-- [ ระบบ UI ]
 ---------------------------------------------------------
+local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+sg.Name = "PisitRecorderUI"
+sg.ResetOnSpawn = false
 
-if isfile(PosCacheFile) then
-    -- ถ้ามีไฟล์ค้างอยู่ แสดงว่าเพิ่งย้ายเซิร์ฟมา ให้วาร์ปกลับจุดเดิมและให้บัฟ
-    LoadAndTeleport()
-else
-    -- ถ้าเปิดสคริปต์ครั้งแรก ให้ย้ายเซิร์ฟทันที
-    Hop()
+local main = Instance.new("Frame", sg)
+main.Size = UDim2.new(0, 180, 0, 150)
+main.Position = UDim2.new(0.5, -90, 0.1, 0)
+main.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Instance.new("UICorner", main)
+
+local function createBtn(text, pos, color, func)
+    local b = Instance.new("TextButton", main)
+    b.Size = UDim2.new(0.9, 0, 0, 35)
+    b.Position = pos
+    b.BackgroundColor3 = color
+    b.Text = text
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.Font = "SourceSansBold"
+    b.TextSize = 16
+    Instance.new("UICorner", b)
+    b.MouseButton1Click:Connect(func)
+    return b
 end
+
+local recordBtn = createBtn("เริ่มบันทึก (สีเขียว)", UDim2.new(0.05, 0, 0.1, 0), Color3.fromRGB(50, 150, 50), function()
+    if not IsRecording then
+        StartRecording()
+    else
+        StopRecording()
+    end
+end)
+
+local playBtn = createBtn("ทำซ้ำ (Replay)", UDim2.new(0.05, 0, 0.4, 0), Color3.fromRGB(0, 120, 200), StartPlayback)
+
+local stopPlayBtn = createBtn("หยุดทำซ้ำ", UDim2.new(0.05, 0, 0.7, 0), Color3.fromRGB(150, 50, 50), function()
+    IsPlaying = false
+end)
+
+-- ระบบอัปเดตข้อความปุ่มบันทึก
+RunService.RenderStepped:Connect(function()
+    if IsRecording then
+        recordBtn.Text = "กำลังบันทึก.. " .. math.floor(Timer) .. "s (กดหยุด)"
+        recordBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    else
+        recordBtn.Text = "เริ่มบันทึกสีเขียว"
+        recordBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
+    end
+end)
+
+-- ระบบลาก UI
+local dragging, dragInput, dragStart, startPos
+main.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true; dragStart = input.Position; startPos = main.Position end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
