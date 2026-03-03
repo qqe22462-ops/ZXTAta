@@ -1,162 +1,70 @@
--- [[ ᴘɪꜱɪᴛ  ᴇ-ᴍᴇɴᴜ  ᴅʀᴀɢɢᴀʙʟᴇ ]]
+-- [[ ᴘɪꜱɪᴛ  ɪɴᴠɪꜱɪʙʟᴇ  ꜱᴇʀᴠᴇʀ  ʜᴏᴘᴘᴇʀ ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local LocalPlayer = Players.LocalPlayer
 
--- ตัวแปรเก็บพิกัด
-local PointA, PointB = nil, nil
-local VisualA, VisualB = nil, nil
+-- ไฟล์สำหรับจำเซิร์ฟเวอร์ที่เคยไปมาแล้ว (เพื่อไม่ให้กลับไปที่เดิม)
+local CacheFile = "PisitVisitedServers.json"
 
----------------------------------------------------------
--- [ ฟังก์ชันการทำงานระบบวาร์ป ]
----------------------------------------------------------
-
-local function CreateVisual(pos, color, name)
-    local p = Instance.new("Part")
-    p.Name = name
-    p.Size = Vector3.new(4, 0.5, 4)
-    p.CFrame = pos * CFrame.new(0, -3.2, 0)
-    p.Anchored = true
-    p.CanCollide = false
-    p.Transparency = 0.4
-    p.Material = Enum.Material.Neon
-    p.Color = color
-    p.Parent = workspace
-    
-    local bgu = Instance.new("BillboardGui", p)
-    bgu.Size = UDim2.new(0, 100, 0, 50); bgu.Adornee = p; bgu.AlwaysOnTop = true
-    bgu.ExtentsOffset = Vector3.new(0, 3, 0)
-    
-    local tl = Instance.new("TextLabel", bgu)
-    tl.Size = UDim2.new(1, 0, 1, 0); tl.BackgroundTransparency = 1
-    tl.Text = name; tl.TextColor3 = color; tl.Font = "SourceSansBold"; tl.TextSize = 20
-    return p
-end
-
-local function HandleA(mode)
-    local char = LocalPlayer.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    if mode == "SET" then
-        PointA = char.HumanoidRootPart.CFrame
-        if VisualA then VisualA:Destroy() end
-        VisualA = CreateVisual(PointA, Color3.fromRGB(0, 255, 255), "POINT A")
-    elseif mode == "TP" then
-        if PointA then char.HumanoidRootPart.CFrame = PointA end
-    end
-end
-
-local function HandleB(mode)
-    local char = LocalPlayer.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    if mode == "SET" then
-        PointB = char.HumanoidRootPart.CFrame
-        if VisualB then VisualB:Destroy() end
-        VisualB = CreateVisual(PointB, Color3.fromRGB(255, 170, 0), "POINT B")
-    elseif mode == "TP" then
-        if PointB then char.HumanoidRootPart.CFrame = PointB end
-    end
-end
-
----------------------------------------------------------
--- [ ระบบ UI: ปุ่ม E ลากได้ และ เมนู ]
----------------------------------------------------------
-if LocalPlayer.PlayerGui:FindFirstChild("PisitDraggableUI") then
-    LocalPlayer.PlayerGui.PisitDraggableUI:Destroy()
-end
-
-local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "PisitDraggableUI"
-sg.ResetOnSpawn = false
-
--- 1. ตัวปุ่ม E (Main Button)
-local eButton = Instance.new("TextButton", sg)
-eButton.Name = "MainE"
-eButton.Size = UDim2.new(0, 55, 0, 55)
-eButton.Position = UDim2.new(0.1, 0, 0.5, 0)
-eButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-eButton.Text = "E"
-eButton.TextColor3 = Color3.new(1, 1, 1)
-eButton.TextSize = 28
-eButton.Font = "SourceSansBold"
-eButton.ZIndex = 10
-Instance.new("UICorner", eButton).CornerRadius = UDim.new(1, 0) -- วงกลมเป๊ะๆ
-local stroke = Instance.new("UIStroke", eButton)
-stroke.Thickness = 2
-stroke.Color = Color3.new(1, 1, 1)
-
--- 2. เมนูควบคุม (เด้งตามปุ่ม E)
-local menuFrame = Instance.new("Frame", sg)
-menuFrame.Name = "MenuFrame"
-menuFrame.Size = UDim2.new(0, 190, 0, 150)
-menuFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-menuFrame.Visible = false
-menuFrame.BorderSizePixel = 0
-Instance.new("UICorner", menuFrame)
-local menuStroke = Instance.new("UIStroke", menuFrame)
-menuStroke.Color = Color3.fromRGB(80, 80, 80)
-
-local function createMenuBtn(text, pos, color, func)
-    local b = Instance.new("TextButton", menuFrame)
-    b.Size = UDim2.new(0.44, 0, 0, 38)
-    b.Position = pos
-    b.BackgroundColor3 = color
-    b.Text = text
-    b.TextColor3 = Color3.new(1, 1, 1)
-    b.Font = "SourceSansBold"
-    b.TextSize = 13
-    Instance.new("UICorner", b)
-    b.MouseButton1Click:Connect(func)
-end
-
-createMenuBtn("SET A", UDim2.new(0.04, 0, 0.2, 0), Color3.fromRGB(0, 110, 170), function() HandleA("SET") end)
-createMenuBtn("WARP A", UDim2.new(0.52, 0, 0.2, 0), Color3.fromRGB(0, 150, 210), function() HandleA("TP") end)
-createMenuBtn("SET B", UDim2.new(0.04, 0, 0.6, 0), Color3.fromRGB(170, 90, 0), function() HandleB("SET") end)
-createMenuBtn("WARP B", UDim2.new(0.52, 0, 0.6, 0), Color3.fromRGB(210, 130, 0), function() HandleB("TP") end)
-
----------------------------------------------------------
--- [ ระบบ Drag & Toggle (ลากและเปิดปิด) ]
----------------------------------------------------------
-
-local dragging = false
-local dragInput, dragStart, startPos
-
--- ฟังก์ชันอัปเดตตำแหน่งเมนูให้ตามปุ่ม E
-local function UpdateMenuPosition()
-    menuFrame.Position = UDim2.new(eButton.Position.X.Scale, eButton.Position.X.Offset + 65, eButton.Position.Y.Scale, eButton.Position.Y.Offset - 45)
-end
-
-eButton.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = eButton.Position
-        
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
+local function GetVisitedServers()
+    if isfile and isfile(CacheFile) then
+        local success, result = pcall(function()
+            return HttpService:JSONDecode(readfile(CacheFile))
         end)
+        if success then return result end
     end
-end)
+    return {}
+end
 
-eButton.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
+local function SaveVisitedServer(jobId)
+    local visited = GetVisitedServers()
+    visited[jobId] = os.time()
+    
+    -- ล้างข้อมูลเซิร์ฟที่บันทึกไว้นานเกิน 1 ชั่วโมง (เพื่อไม่ให้ไฟล์ใหญ่เกินไป)
+    for id, timestamp in pairs(visited) do
+        if os.time() - timestamp > 3600 then
+            visited[id] = nil
+        end
     end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - dragStart
-        eButton.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        UpdateMenuPosition()
+    
+    if writefile then
+        writefile(CacheFile, HttpService:JSONEncode(visited))
     end
-end)
+end
 
--- คลิกเปิดปิดเมนู (ตรวจสอบว่าไม่ได้กำลังลากอยู่ค่อยเปิด)
-eButton.MouseButton1Click:Connect(function()
-    menuFrame.Visible = not menuFrame.Visible
-    UpdateMenuPosition()
-end)
+local function Hop()
+    local visited = GetVisitedServers()
+    local placeId = game.PlaceId
+    local selfJobId = game.JobId
+    
+    -- ดึงรายการเซิร์ฟเวอร์จาก API ของ Roblox
+    local url = "https://games.roblox.com/v1/games/" .. placeId .. "/servers/Public?sortOrder=Desc&limit=100"
+    local success, result = pcall(function()
+        return HttpService:JSONDecode(game:HttpGet(url))
+    end)
+    
+    if success and result and result.data then
+        for _, server in pairs(result.data) do
+            -- เงื่อนไข: 
+            -- 1. ต้องไม่ใช่เซิร์ฟเวอร์ปัจจุบัน
+            -- 2. ต้องไม่เคยไปมาก่อน (ตามที่บันทึกไว้ในไฟล์)
+            -- 3. เซิร์ฟเวอร์ต้องไม่เต็ม
+            if server.id ~= selfJobId and not visited[server.id] and server.playing < server.maxPlayers then
+                SaveVisitedServer(selfJobId) -- บันทึกเซิร์ฟปัจจุบันก่อนจากไป
+                TeleportService:TeleportToPlaceInstance(placeId, server.id, Players.LocalPlayer)
+                return
+            end
+        end
+    end
+    
+    -- ถ้าวนหาจนครบ 100 เซิร์ฟแล้วยังไม่เจอที่ถูกใจ ให้สุ่มไปเซิร์ฟที่คนน้อยที่สุดแทน
+    task.wait(1)
+    print("หาเซิร์ฟเวอร์ใหม่ที่ยังไม่เคยไปไม่ได้, กำลังลองใหม่...")
+    -- วนลูปค้นหาใหม่จนกว่าจะสำเร็จ
+    Hop()
+end
+
+-- รันทันทีที่กด Run Script
+Hop()
