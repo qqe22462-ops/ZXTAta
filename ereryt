@@ -1,162 +1,152 @@
--- [[ ᴘɪꜱɪᴛ  ᴇ-ᴍᴇɴᴜ  ᴅʀᴀɢɢᴀʙʟᴇ ]]
+-- [[ ᴘɪꜱɪᴛ  ᴘᴇʀᴍᴀɴᴇɴᴛ  ꜱᴀᴠᴇ  ꜱʏꜱᴛᴇᴍ ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
+local PlaceId = game.PlaceId
+local FileName = "PisitSave_" .. PlaceId .. ".txt" -- ชื่อไฟล์แยกตามแมพ
 
--- ตัวแปรเก็บพิกัด
-local PointA, PointB = nil, nil
-local VisualA, VisualB = nil, nil
+local SavedCFrame = nil
 
 ---------------------------------------------------------
--- [ ฟังก์ชันการทำงานระบบวาร์ป ]
+-- [ ฟังก์ชันจัดการไฟล์ (Save/Load) ]
 ---------------------------------------------------------
 
-local function CreateVisual(pos, color, name)
-    local p = Instance.new("Part")
-    p.Name = name
-    p.Size = Vector3.new(4, 0.5, 4)
-    p.CFrame = pos * CFrame.new(0, -3.2, 0)
-    p.Anchored = true
-    p.CanCollide = false
-    p.Transparency = 0.4
-    p.Material = Enum.Material.Neon
-    p.Color = color
-    p.Parent = workspace
-    
-    local bgu = Instance.new("BillboardGui", p)
-    bgu.Size = UDim2.new(0, 100, 0, 50); bgu.Adornee = p; bgu.AlwaysOnTop = true
-    bgu.ExtentsOffset = Vector3.new(0, 3, 0)
-    
-    local tl = Instance.new("TextLabel", bgu)
-    tl.Size = UDim2.new(1, 0, 1, 0); tl.BackgroundTransparency = 1
-    tl.Text = name; tl.TextColor3 = color; tl.Font = "SourceSansBold"; tl.TextSize = 20
-    return p
-end
-
-local function HandleA(mode)
-    local char = LocalPlayer.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    if mode == "SET" then
-        PointA = char.HumanoidRootPart.CFrame
-        if VisualA then VisualA:Destroy() end
-        VisualA = CreateVisual(PointA, Color3.fromRGB(0, 255, 255), "POINT A")
-    elseif mode == "TP" then
-        if PointA then char.HumanoidRootPart.CFrame = PointA end
+-- ฟังก์ชันบันทึกลงเครื่อง
+local function SaveToFile(cf)
+    local data = tostring(cf)
+    if writefile then
+        writefile(FileName, data)
+        return true
     end
+    return false
 end
 
-local function HandleB(mode)
-    local char = LocalPlayer.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    if mode == "SET" then
-        PointB = char.HumanoidRootPart.CFrame
-        if VisualB then VisualB:Destroy() end
-        VisualB = CreateVisual(PointB, Color3.fromRGB(255, 170, 0), "POINT B")
-    elseif mode == "TP" then
-        if PointB then char.HumanoidRootPart.CFrame = PointB end
+-- ฟังก์ชันโหลดจากเครื่อง
+local function LoadFromFile()
+    if isfile and isfile(FileName) then
+        local data = readfile(FileName)
+        -- แปลงข้อความกลับเป็น CFrame
+        local components = {}
+        for val in data:gmatch("[^, ]+") do
+            table.insert(components, tonumber(val))
+        end
+        return CFrame.new(unpack(components))
     end
+    return nil
 end
 
 ---------------------------------------------------------
--- [ ระบบ UI: ปุ่ม E ลากได้ และ เมนู ]
+-- [ ระบบ UI ]
 ---------------------------------------------------------
-if LocalPlayer.PlayerGui:FindFirstChild("PisitDraggableUI") then
-    LocalPlayer.PlayerGui.PisitDraggableUI:Destroy()
-end
-
 local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "PisitDraggableUI"
+sg.Name = "PisitPermanentUI"
 sg.ResetOnSpawn = false
 
--- 1. ตัวปุ่ม E (Main Button)
+-- 1. ปุ่มหลัก (E)
 local eButton = Instance.new("TextButton", sg)
-eButton.Name = "MainE"
-eButton.Size = UDim2.new(0, 55, 0, 55)
+eButton.Size = UDim2.new(0, 50, 0, 50)
 eButton.Position = UDim2.new(0.1, 0, 0.5, 0)
-eButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+eButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 eButton.Text = "E"
 eButton.TextColor3 = Color3.new(1, 1, 1)
-eButton.TextSize = 28
-eButton.Font = "SourceSansBold"
-eButton.ZIndex = 10
-Instance.new("UICorner", eButton).CornerRadius = UDim.new(1, 0) -- วงกลมเป๊ะๆ
-local stroke = Instance.new("UIStroke", eButton)
-stroke.Thickness = 2
-stroke.Color = Color3.new(1, 1, 1)
+eButton.TextSize = 24
+Instance.new("UICorner", eButton).CornerRadius = UDim.new(1, 0)
 
--- 2. เมนูควบคุม (เด้งตามปุ่ม E)
-local menuFrame = Instance.new("Frame", sg)
-menuFrame.Name = "MenuFrame"
-menuFrame.Size = UDim2.new(0, 190, 0, 150)
-menuFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-menuFrame.Visible = false
-menuFrame.BorderSizePixel = 0
-Instance.new("UICorner", menuFrame)
-local menuStroke = Instance.new("UIStroke", menuFrame)
-menuStroke.Color = Color3.fromRGB(80, 80, 80)
+-- 2. เมนูถามยืนยัน (Confirm Menu)
+local confirmFrame = Instance.new("Frame", sg)
+confirmFrame.Size = UDim2.new(0, 200, 0, 120)
+confirmFrame.Position = UDim2.new(0.5, -100, 0.4, 0)
+confirmFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+confirmFrame.Visible = false
+Instance.new("UICorner", confirmFrame)
 
-local function createMenuBtn(text, pos, color, func)
-    local b = Instance.new("TextButton", menuFrame)
-    b.Size = UDim2.new(0.44, 0, 0, 38)
-    b.Position = pos
-    b.BackgroundColor3 = color
-    b.Text = text
-    b.TextColor3 = Color3.new(1, 1, 1)
-    b.Font = "SourceSansBold"
-    b.TextSize = 13
-    Instance.new("UICorner", b)
-    b.MouseButton1Click:Connect(func)
-end
+local msg = Instance.new("TextLabel", confirmFrame)
+msg.Size = UDim2.new(1, 0, 0.5, 0)
+msg.Text = "คุณต้องการบันทึก\nจุดนี้ในแมพนี้ใช่หรือไม่?"
+msg.TextColor3 = Color3.new(1, 1, 1)
+msg.BackgroundTransparency = 1
 
-createMenuBtn("SET A", UDim2.new(0.04, 0, 0.2, 0), Color3.fromRGB(0, 110, 170), function() HandleA("SET") end)
-createMenuBtn("WARP A", UDim2.new(0.52, 0, 0.2, 0), Color3.fromRGB(0, 150, 210), function() HandleA("TP") end)
-createMenuBtn("SET B", UDim2.new(0.04, 0, 0.6, 0), Color3.fromRGB(170, 90, 0), function() HandleB("SET") end)
-createMenuBtn("WARP B", UDim2.new(0.52, 0, 0.6, 0), Color3.fromRGB(210, 130, 0), function() HandleB("TP") end)
+local okBtn = Instance.new("TextButton", confirmFrame)
+okBtn.Size = UDim2.new(0.4, 0, 0, 30)
+okBtn.Position = UDim2.new(0.08, 0, 0.65, 0)
+okBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 50)
+okBtn.Text = "ตกลง"
+okBtn.TextColor3 = Color3.new(1, 1, 1)
+
+local cancelBtn = Instance.new("TextButton", confirmFrame)
+cancelBtn.Size = UDim2.new(0.4, 0, 0, 30)
+cancelBtn.Position = UDim2.new(0.52, 0, 0.65, 0)
+cancelBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 50)
+cancelBtn.Text = "ยกเลิก"
+cancelBtn.TextColor3 = Color3.new(1, 1, 1)
+
+-- 3. ปุ่มวาร์ป (โผล่มาเมื่อมีจุดบันทึก)
+local tpBtn = Instance.new("TextButton", sg)
+tpBtn.Size = UDim2.new(0, 120, 0, 40)
+tpBtn.Position = UDim2.new(0.1, 60, 0.5, 5)
+tpBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+tpBtn.Text = "วาร์ปไปจุดที่เซฟ"
+tpBtn.Visible = false
+Instance.new("UICorner", tpBtn)
 
 ---------------------------------------------------------
--- [ ระบบ Drag & Toggle (ลากและเปิดปิด) ]
+-- [ ระบบการทำงาน ]
 ---------------------------------------------------------
 
-local dragging = false
-local dragInput, dragStart, startPos
+-- คลิกปุ่ม E เพื่อขอเซฟ
+eButton.MouseButton1Click:Connect(function()
+    confirmFrame.Visible = true
+end)
 
--- ฟังก์ชันอัปเดตตำแหน่งเมนูให้ตามปุ่ม E
-local function UpdateMenuPosition()
-    menuFrame.Position = UDim2.new(eButton.Position.X.Scale, eButton.Position.X.Offset + 65, eButton.Position.Y.Scale, eButton.Position.Y.Offset - 45)
-end
+-- กดยกเลิก
+cancelBtn.MouseButton1Click:Connect(function()
+    confirmFrame.Visible = false
+end)
 
+-- กดตกลง (บันทึกจริง)
+okBtn.MouseButton1Click:Connect(function()
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        SavedCFrame = char.HumanoidRootPart.CFrame
+        SaveToFile(SavedCFrame)
+        tpBtn.Visible = true
+        confirmFrame.Visible = false
+        print("บันทึกพิกัดแมพ " .. PlaceId .. " เรียบร้อย!")
+    end
+end)
+
+-- กดวาร์ป
+tpBtn.MouseButton1Click:Connect(function()
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") and SavedCFrame then
+        char.HumanoidRootPart.CFrame = SavedCFrame
+    end
+end)
+
+-- [[ AUTO LOAD: ทันทีที่รันสคริปต์ ]]
+task.spawn(function()
+    local loadedPos = LoadFromFile()
+    if loadedPos then
+        SavedCFrame = loadedPos
+        tpBtn.Visible = true
+        print("โหลดจุดเดิมจากแมพ " .. PlaceId .. " สำเร็จ!")
+    end
+end)
+
+-- ระบบลากปุ่ม E
+local dragStart, startPos, dragging
 eButton.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = eButton.Position
-        
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true; dragStart = input.Position; startPos = eButton.Position
     end
 end)
-
-eButton.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-    end
-end)
-
 UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
         local delta = input.Position - dragStart
         eButton.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        UpdateMenuPosition()
+        tpBtn.Position = UDim2.new(eButton.Position.X.Scale, eButton.Position.X.Offset + 60, eButton.Position.Y.Scale, eButton.Position.Y.Offset + 5)
     end
 end)
-
--- คลิกเปิดปิดเมนู (ตรวจสอบว่าไม่ได้กำลังลากอยู่ค่อยเปิด)
-eButton.MouseButton1Click:Connect(function()
-    menuFrame.Visible = not menuFrame.Visible
-    UpdateMenuPosition()
-end)
+UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end end)
