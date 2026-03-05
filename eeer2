@@ -1,126 +1,145 @@
--- [[ ᴘɪꜱɪᴛ  ᴛᴇʟᴇᴘᴏʀᴛ  sᴇʟᴇᴄᴛᴏʀ  ᴠ3 ]]
--- OWNER: ไกรสร พิสิษฐ์ 🫡
--- ระบบ: กดเลือกชื่อจากลิสต์ + เซฟจุดเดิมอัตโนมัติ
+-- [[ ᴘɪꜱɪᴛ  ᴛᴇʟᴇᴘᴏʀᴛ  ᴠ4 ]]
+-- 3 ปุ่ม: [เลือกชื่อ] [วาร์ปไปหา] [วาร์ปกลับ]
+-- วิธีลาก: ให้กดค้างที่ "แถบสีเทาด้านบนสุด" เพื่อลาก
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 
-local LastPos = nil -- เก็บพิกัดเดิม
-local ListVisible = false -- สถานะการเปิด/ปิดลิสต์ชื่อ
+local LastPos = nil 
+local SelectedPlayer = nil
 
 -- [[ สร้าง UI หลัก ]]
 local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "PisitSelectorUI"
+sg.Name = "PisitV4"
 sg.ResetOnSpawn = false
 
--- แถบเมนูหลัก (ลากได้)
-local MainFrame = Instance.new("Frame", sg)
-MainFrame.Size = UDim2.new(0, 150, 0, 100)
-MainFrame.Position = UDim2.new(0.5, -75, 0.4, 0)
-MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-MainFrame.Active = true
-Instance.new("UICorner", MainFrame)
+-- ตัวโครง (Frame หลัก)
+local Main = Instance.new("Frame", sg)
+Main.Size = UDim2.new(0, 200, 0, 180)
+Main.Position = UDim2.new(0.5, -100, 0.4, 0)
+Main.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Main.BorderSizePixel = 0
+Main.Active = true
+Instance.new("UICorner", Main)
 
--- ปุ่มเปิด/ปิด รายชื่อผู้เล่น
-local toggleListBtn = Instance.new("TextButton", MainFrame)
-toggleListBtn.Size = UDim2.new(0, 130, 0, 35)
-toggleListBtn.Position = UDim2.new(0.5, -65, 0.1, 0)
-toggleListBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-toggleListBtn.Text = "เลือกผู้เล่น 👥"
-toggleListBtn.TextColor3 = Color3.new(1, 1, 1)
-toggleListBtn.Font = "SourceSansBold"
-Instance.new("UICorner", toggleListBtn)
+-- แถบสำหรับลาก (Drag Handle)
+local DragBar = Instance.new("Frame", Main)
+DragBar.Size = UDim2.new(1, 0, 0, 25)
+DragBar.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+DragBar.BorderSizePixel = 0
+local dragCorner = Instance.new("UICorner", DragBar)
+local label = Instance.new("TextLabel", DragBar)
+label.Size = UDim2.new(1, 0, 1, 0)
+label.Text = "จับลากตรงนี้"
+label.TextColor3 = Color3.new(0.7, 0.7, 0.7)
+label.BackgroundTransparency = 1
+label.TextSize = 12
 
--- ปุ่มวาร์ปกลับจุดเดิม
-local backBtn = Instance.new("TextButton", MainFrame)
-backBtn.Size = UDim2.new(0, 130, 0, 35)
-backBtn.Position = UDim2.new(0.5, -65, 0.55, 0)
-backBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-backBtn.Text = "กลับจุดเดิม (BACK)"
+-- 1. ปุ่มเลือกชื่อ (แสดงชื่อคนที่เลือกอยู่ด้วย)
+local selectBtn = Instance.new("TextButton", Main)
+selectBtn.Size = UDim2.new(0, 180, 0, 40)
+selectBtn.Position = UDim2.new(0.5, -90, 0.2, 0)
+selectBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+selectBtn.Text = "1. เลือกผู้เล่น (ยังไม่ได้เลือก)"
+selectBtn.TextColor3 = Color3.new(1, 1, 1)
+selectBtn.Font = "SourceSansBold"
+selectBtn.TextSize = 14
+Instance.new("UICorner", selectBtn)
+
+-- 2. ปุ่มวาร์ปไปหา (สีแดง)
+local goBtn = Instance.new("TextButton", Main)
+goBtn.Size = UDim2.new(0, 180, 0, 40)
+goBtn.Position = UDim2.new(0.5, -90, 0.45, 0)
+goBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+goBtn.Text = "2. วาร์ปไปหา (GO)"
+goBtn.TextColor3 = Color3.new(1, 1, 1)
+goBtn.Font = "SourceSansBold"
+Instance.new("UICorner", goBtn)
+
+-- 3. ปุ่มวาร์ปกลับ (สีเขียว)
+local backBtn = Instance.new("TextButton", Main)
+backBtn.Size = UDim2.new(0, 180, 0, 40)
+backBtn.Position = UDim2.new(0.5, -90, 0.7, 0)
+backBtn.BackgroundColor3 = Color3.fromRGB(0, 130, 0)
+backBtn.Text = "3. วาร์ปกลับ (BACK)"
 backBtn.TextColor3 = Color3.new(1, 1, 1)
 backBtn.Font = "SourceSansBold"
 Instance.new("UICorner", backBtn)
 
--- [[ สร้าง ScrollingFrame สำหรับรายชื่อผู้เล่น (อยู่ข้างๆ แถบหลัก) ]]
-local PlayerListFrame = Instance.new("ScrollingFrame", MainFrame)
-PlayerListFrame.Size = UDim2.new(0, 150, 0, 200)
-PlayerListFrame.Position = UDim2.new(1.1, 0, 0, 0) -- เด้งออกไปทางขวา
-PlayerListFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-PlayerListFrame.Visible = false
-PlayerListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-PlayerListFrame.ScrollBarThickness = 5
-Instance.new("UICorner", PlayerListFrame)
-local listLayout = Instance.new("UIListLayout", PlayerListFrame)
-listLayout.Padding = UDim.new(0, 5)
+-- รายชื่อผู้เล่น (Scrolling List)
+local List = Instance.new("ScrollingFrame", Main)
+List.Size = UDim2.new(0, 180, 0, 150)
+List.Position = UDim2.new(1.1, 0, 0, 0)
+List.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+List.Visible = false
+List.ScrollBarThickness = 4
+Instance.new("UICorner", List)
+local layout = Instance.new("UIListLayout", List)
+layout.Padding = UDim.new(0, 3)
 
 ---------------------------------------------------------
--- [ ฟังก์ชันการทำงาน ]
+-- [ ฟังก์ชัน ]
 ---------------------------------------------------------
 
--- 1. ฟังก์ชันอัปเดตรายชื่อผู้เล่น
-local function UpdatePlayerList()
-    -- ลบปุ่มชื่อเก่าออกก่อน
-    for _, child in pairs(PlayerListFrame:GetChildren()) do
-        if child:IsA("TextButton") then child:Destroy() end
-    end
-    
-    -- สร้างปุ่มใหม่ตามจำนวนคนในเซิร์ฟ
+-- อัปเดตรายชื่อ
+local function ShowNames()
+    for _, c in pairs(List:GetChildren()) do if c:IsA("TextButton") then c:Destroy() end end
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer then
-            local pBtn = Instance.new("TextButton", PlayerListFrame)
-            pBtn.Size = UDim2.new(1, -10, 0, 30)
-            pBtn.BackgroundColor3 = Color3.fromRGB(100, 40, 40) -- สีแดง
-            pBtn.Text = p.DisplayName -- แสดงชื่อเล่น (Display Name)
-            pBtn.TextColor3 = Color3.new(1, 1, 1)
-            pBtn.Font = "SourceSans"
-            pBtn.TextSize = 14
-            Instance.new("UICorner", pBtn)
-            
-            -- เมื่อคลิกชื่อคนนั้น
-            pBtn.MouseButton1Click:Connect(function()
-                local char = LocalPlayer.Character
-                if char and char:FindFirstChild("HumanoidRootPart") and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                    LastPos = char.HumanoidRootPart.CFrame -- เซฟจุดเดิม
-                    char.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame * CFrame.new(0, 3, 0) -- วาร์ปไปหา
-                    print("วาร์ปไปหา: " .. p.Name)
-                end
+            local b = Instance.new("TextButton", List)
+            b.Size = UDim2.new(1, -10, 0, 30)
+            b.Text = p.DisplayName
+            b.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            b.TextColor3 = Color3.new(1, 1, 1)
+            Instance.new("UICorner", b)
+            b.MouseButton1Click:Connect(function()
+                SelectedPlayer = p
+                selectBtn.Text = "เป้าหมาย: " .. p.DisplayName
+                List.Visible = false
             end)
-            
-            PlayerListFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y)
         end
     end
+    List.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y)
 end
 
--- 2. เปิด/ปิดลิสต์รายชื่อ
-toggleListBtn.MouseButton1Click:Connect(function()
-    ListVisible = not ListVisible
-    PlayerListFrame.Visible = ListVisible
-    if ListVisible then UpdatePlayerList() end -- อัปเดตชื่อทุกครั้งที่เปิด
+selectBtn.MouseButton1Click:Connect(function()
+    List.Visible = not List.Visible
+    if List.Visible then ShowNames() end
 end)
 
--- 3. วาร์ปกลับจุดเดิม
+goBtn.MouseButton1Click:Connect(function()
+    local char = LocalPlayer.Character
+    if SelectedPlayer and SelectedPlayer.Character and char then
+        local targetHRP = SelectedPlayer.Character:FindFirstChild("HumanoidRootPart")
+        local myHRP = char:FindFirstChild("HumanoidRootPart")
+        if targetHRP and myHRP then
+            LastPos = myHRP.CFrame -- บันทึกจุดเดิม
+            myHRP.CFrame = targetHRP.CFrame * CFrame.new(0, 3, 0)
+        end
+    end
+end)
+
 backBtn.MouseButton1Click:Connect(function()
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("HumanoidRootPart") and LastPos then
         char.HumanoidRootPart.CFrame = LastPos
-        print("กลับจุดเดิมแล้ว")
     end
 end)
 
 ---------------------------------------------------------
--- [ ระบบลาก UI ทั้งแผง ]
+-- [ ระบบลาก (Drag) ]
 ---------------------------------------------------------
 local dragging, dragStart, startPos
-MainFrame.InputBegan:Connect(function(input)
+DragBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true; dragStart = input.Position; startPos = MainFrame.Position
+        dragging = true; dragStart = input.Position; startPos = Main.Position
     end
 end)
 UserInputService.InputChanged:Connect(function(input)
     if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local delta = input.Position - dragStart
-        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
 UserInputService.InputEnded:Connect(function(input) dragging = false end)
