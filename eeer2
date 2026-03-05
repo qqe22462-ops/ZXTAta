@@ -1,113 +1,102 @@
--- [[ ᴘɪꜱɪᴛ  ɢʜᴏꜱᴛ  ɪɴᴠɪꜱɪʙʟᴇ ]]
+-- [[ ᴘɪꜱɪᴛ  ɢʜᴏꜱᴛ  ꜱᴛᴀᴛɪᴄ  ᴇᴅɪᴛɪᴏɴ ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
 local IsInvisible = false
 local FakeChar = nil
-local RealHRP = nil
-local RemoteCam = nil
+local SavedPos = nil
 
 ---------------------------------------------------------
--- [ ฟังก์ชันล่องหน (Ghost Logic) ]
+-- [ ฟังก์ชันล่องหนแบบหยุดนิ่ง ]
 ---------------------------------------------------------
 
 local function ToggleInvis()
     local char = LocalPlayer.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    RealHRP = char.HumanoidRootPart
-    local hum = char:FindFirstChildOfClass("Humanoid")
-
+    local hrp = char.HumanoidRootPart
+    
     IsInvisible = not IsInvisible
 
     if IsInvisible then
-        -- 1. สร้างร่างวิญญาณจำลอง
+        -- 1. บันทึกจุดเดิมและสร้างร่างวิญญาณไว้ที่นี่
+        SavedPos = hrp.CFrame
+        
         char.Archivable = true
-        FakeChar = char:Clone()
-        char.Archivable = false
-        FakeChar.Parent = workspace
+        FakeChar = Instance.new("Model", workspace)
+        FakeChar.Name = "Ghost_Pisit"
         
-        -- ปรับให้โปร่งใสนิดๆ เหมือนวิญญาณ
-        for _, part in pairs(FakeChar:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.Transparency = 0.5
-                part.CanCollide = false
-            elseif part:IsA("Decal") then
-                part.Transparency = 0.5
-            end
-        end
-        
-        -- 2. วาร์ปตัวจริงไปโคตรไกล (สูง 5 หมื่นบล็อก)
-        local originalPos = RealHRP.CFrame
-        RealHRP.CFrame = CFrame.new(0, 50000, 0)
-        RealHRP.Anchored = true -- ล็อคตัวจริงไว้บนฟ้า
-        
-        -- 3. ล็อคกล้องไว้ที่ร่างวิญญาณ
-        workspace.CurrentCamera.CameraSubject = FakeChar:FindFirstChildOfClass("Humanoid")
-        
-        -- 4. ระบบบังคับร่างวิญญาณ (เดินตามจริง)
-        _G.GhostLoop = RunService.RenderStepped:Connect(function()
-            if FakeChar and hum then
-                local moveDir = hum.MoveDirection
-                FakeChar:FindFirstChildOfClass("Humanoid"):Move(moveDir, false)
-                
-                -- ถ้ากดกระโดด
-                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-                    FakeChar:FindFirstChildOfClass("Humanoid").Jump = true
+        -- ก๊อปปี้รูปร่างหน้าตามาทำร่างวิญญาณ
+        for _, obj in pairs(char:GetChildren()) do
+            if obj:IsA("BasePart") then
+                local clone = obj:Clone()
+                clone.Parent = FakeChar
+                clone.Transparency = 0.6 -- ให้ดูเป็นวิญญาณใสๆ
+                clone.CanCollide = false
+                clone.Anchored = true
+            elseif obj:IsA("Accessory") then
+                local clone = obj:Clone()
+                clone.Parent = FakeChar
+                if clone:FindFirstChild("Handle") then
+                    clone.Handle.Transparency = 0.6
+                    clone.Handle.Anchored = true
                 end
             end
-        end)
+        end
+
+        -- 2. ดีดตัวจริงไปแสนไกล (Y = 100,000)
+        hrp.CFrame = CFrame.new(0, 100000, 0)
+        hrp.Anchored = true -- ล็อคตัวจริงไม่ให้ตกลงมา
         
-        print("สถานะ: ล่องหน (ตัวจริงอยู่บนฟ้า 50,000)")
+        -- 3. ล็อคกล้องไว้ที่ร่างวิญญาณ (หน้าจอจะไม่วาร์ปตาม)
+        Camera.CameraType = Enum.CameraType.Scriptable
+        Camera.CFrame = SavedPos * CFrame.new(0, 5, 10) -- ให้มองเห็นร่างวิญญาณจากด้านหลัง
+        
+        print("ล่องหน: ตัวจริงอยู่บนฟ้า 100,000 | ร่างวิญญาณหยุดนิ่งที่เดิม")
     else
-        -- [[ ปิดระบบ - กลับร่างเดิม ]]
-        if _G.GhostLoop then _G.GhostLoop:Disconnect() end
+        -- [[ ปิดระบบ - กลับมาที่เดิม ]]
+        hrp.Anchored = false
+        hrp.CFrame = SavedPos -- วาร์ปกลับมาจุดที่ร่างวิญญาณอยู่
+        
         if FakeChar then FakeChar:Destroy() end
         
-        RealHRP.Anchored = false
-        RealHRP.CFrame = FakeChar and FakeChar.PrimaryPart and FakeChar.PrimaryPart.CFrame or RealHRP.CFrame
-        workspace.CurrentCamera.CameraSubject = hum
+        -- คืนค่ากล้องปกติ
+        Camera.CameraType = Enum.CameraType.Custom
+        Camera.CameraSubject = char:FindFirstChildOfClass("Humanoid")
         
-        print("สถานะ: ปรากฏตัว")
+        print("ปรากฏตัว: กลับร่างเดิมแล้ว")
     end
 end
 
 ---------------------------------------------------------
--- [ ระบบ UI ปุ่มแดงลากได้ ]
+-- [ ระบบ UI ปุ่มสี่เหลี่ยมแดงลากได้ ]
 ---------------------------------------------------------
 
 local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "PisitInvisUI"
+sg.Name = "PisitGhostUI"
 sg.ResetOnSpawn = false
 
 local btn = Instance.new("TextButton", sg)
-btn.Name = "InvisBtn"
 btn.Size = UDim2.new(0, 100, 0, 100)
 btn.Position = UDim2.new(0.5, -50, 0.4, 0)
-btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0) -- สีแดงตามสั่ง
+btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0) -- สีแดง
 btn.Text = "ล่องหน\n(OFF)"
 btn.TextColor3 = Color3.new(1, 1, 1)
 btn.Font = "SourceSansBold"
 btn.TextSize = 18
 Instance.new("UICorner", btn)
 
--- ระบบเปิด/ปิด
 btn.MouseButton1Click:Connect(function()
     ToggleInvis()
-    if IsInvisible then
-        btn.Text = "ล่องหน\n(ON)"
-        btn.BackgroundColor3 = Color3.fromRGB(0, 150, 0) -- เปลี่ยนเป็นเขียวเมื่อเปิด
-    else
-        btn.Text = "ล่องหน\n(OFF)"
-        btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-    end
+    btn.Text = IsInvisible and "ล่องหน\n(ON)" or "ล่องหน\n(OFF)"
+    btn.BackgroundColor3 = IsInvisible and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(200, 0, 0)
 end)
 
--- ระบบลาก UI (Draggable)
-local dragging, dragInput, dragStart, startPos
+-- ระบบลาก UI
+local dragging, dragStart, startPos
 btn.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true; dragStart = input.Position; startPos = btn.Position
