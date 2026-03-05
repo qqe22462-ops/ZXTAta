@@ -1,129 +1,47 @@
--- [[ ᴘɪꜱɪᴛ  ɢʜᴏꜱᴛ  ᴡᴀʟᴋᴀʙʟᴇ  ᴠ4 ]]
+-- [[ ᴘɪꜱɪᴛ  ɪɴꜱᴛᴀɴᴛ  ʀᴇᴊᴏɪɴ  -  ᴀɴᴛɪ ᴋɪʟʟ ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
+-- ความเร็ว: ระดับสูงสุด (Instant Trigger)
 
+local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
+local PlaceId = game.PlaceId
+local JobId = game.JobId -- ล็อค ID เซิร์ฟเวอร์ปัจจุบันไว้ก่อนเลย
 
-local IsInvisible = false
-local FakeChar = nil
-local GhostHRP = nil
-local GhostHum = nil
-local ControlLoop = nil
-
----------------------------------------------------------
--- [ ฟังก์ชันล่องหนแบบเดินได้ ]
----------------------------------------------------------
-
-local function ToggleInvis()
-    local char = LocalPlayer.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    local realHRP = char.HumanoidRootPart
-    local realHum = char:FindFirstChildOfClass("Humanoid")
-    
-    IsInvisible = not IsInvisible
-
-    if IsInvisible then
-        -- 1. สร้างร่างวิญญาณ (ก๊อปปี้มา)
-        char.Archivable = true
-        FakeChar = char:Clone()
-        char.Archivable = false
-        FakeChar.Name = "Pisit_WalkableGhost"
-        FakeChar.Parent = workspace
-        
-        GhostHRP = FakeChar:FindFirstChild("HumanoidRootPart")
-        GhostHum = FakeChar:FindFirstChildOfClass("Humanoid")
-        
-        -- ปรับความใส 0.4 และตั้งค่าให้ร่างวิญญาณขยับได้ (ไม่ Anchored)
-        for _, part in pairs(FakeChar:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.Transparency = 0.4
-                part.CanCollide = true -- ให้ร่างวิญญาณเดินชนพื้นได้ปกติ
-            elseif part:IsA("Decal") then
-                part.Transparency = 0.4
-            end
-        end
-
-        -- 2. ย้ายตัวจริงไปซ่อนบนฟ้า (กันโดนตี)
-        local startCF = realHRP.CFrame
-        realHRP.CFrame = CFrame.new(0, 200000, 0)
-        realHRP.Anchored = true
-        realHum.PlatformStand = true 
-
-        -- 3. เอาร่างวิญญาณมาไว้ที่จุดเดิม
-        GhostHRP.CFrame = startCF
-
-        -- 4. ล็อคกล้องให้หมุนตามร่างวิญญาณ
-        Camera.CameraSubject = GhostHum
-        
-        -- 5. [[ ระบบเชื่อมการบังคับ ]] : สั่งให้ร่างวิญญาณเดินตามปุ่มที่เรากด
-        ControlLoop = RunService.RenderStepped:Connect(function()
-            if IsInvisible and GhostHum and realHum then
-                -- เชื่อมการเดิน
-                GhostHum:Move(realHum.MoveDirection, false)
-                
-                -- เชื่อมการกระโดด
-                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-                    GhostHum.Jump = true
-                end
-            end
-        end)
-        
-        print("ล่องหน: ร่างวิญญาณเดินได้แล้ว! ตัวจริงปลอดภัยบนฟ้า")
-    else
-        -- [[ ปิดระบบ - กลับคืนร่างเดิม ]]
-        if ControlLoop then ControlLoop:Disconnect() end
-        
-        if FakeChar then
-            local lastGhostPos = GhostHRP.CFrame
-            FakeChar:Destroy()
-            
-            -- วาร์ปตัวจริงลงมาเสียบแทนตำแหน่งล่าสุดของวิญญาณ
-            realHRP.Anchored = false
-            realHum.PlatformStand = false
-            realHRP.CFrame = lastGhostPos
-            
-            -- คืนค่ากล้อง
-            Camera.CameraSubject = realHum
-        end
-        print("ปรากฏตัว: วาร์ปลงมาที่จุดวิญญาณเดินไปล่าสุด")
-    end
-end
-
----------------------------------------------------------
--- [ ระบบ UI ปุ่มสี่เหลี่ยมแดงลากได้ ]
----------------------------------------------------------
-
+-- สร้างปุ่มกดหนี (สีเขียวสว่าง)
 local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "PisitGhostV4UI"; sg.ResetOnSpawn = false
+sg.Name = "FastEscape"
 
 local btn = Instance.new("TextButton", sg)
-btn.Size = UDim2.new(0, 110, 0, 110)
-btn.Position = UDim2.new(0.5, -55, 0.4, 0)
-btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-btn.Text = "ล่องหน\n(OFF)"
-btn.TextColor3 = Color3.new(1, 1, 1); btn.Font = "SourceSansBold"; btn.TextSize = 18
+btn.Size = UDim2.new(0, 140, 0, 60)
+btn.Position = UDim2.new(0.5, -70, 0.15, 0)
+btn.BackgroundColor3 = Color3.fromRGB(0, 255, 100) -- เขียวสว่างเห็นชัด
+btn.Text = "หนี (เซิร์ฟเดิม)"
+btn.TextColor3 = Color3.new(0, 0, 0)
+btn.Font = "SourceSansBold"
+btn.TextSize = 22
 Instance.new("UICorner", btn)
 
-btn.MouseButton1Click:Connect(function()
-    ToggleInvis()
-    btn.Text = IsInvisible and "ล่องหน\n(ON)" or "ล่องหน\n(OFF)"
-    btn.BackgroundColor3 = IsInvisible and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(200, 0, 0)
+-- [ จังหวะหนี ]
+-- ใช้ InputBegan (แค่แตะโดนปุ๊บ วาร์ปปั๊บ ไม่ต้องรอนิ้วยกออก)
+btn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        -- สั่ง Teleport กลับเซิร์ฟเวอร์เดิมทันที
+        TeleportService:TeleportToPlaceInstance(PlaceId, JobId, LocalPlayer)
+    end
 end)
 
--- ระบบลาก UI
+-- ระบบลาก (เผื่อจะย้ายปุ่มไปจุดที่นิ้วกดถนัดที่สุด)
 local dragging, dragStart, startPos
 btn.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true; dragStart = input.Position; startPos = btn.Position
     end
 end)
-UserInputService.InputChanged:Connect(function(input)
+game:GetService("UserInputService").InputChanged:Connect(function(input)
     if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local delta = input.Position - dragStart
         btn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
-UserInputService.InputEnded:Connect(function(input) dragging = false end)
+btn.InputEnded:Connect(function(input) dragging = false end)
