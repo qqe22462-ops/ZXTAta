@@ -1,6 +1,8 @@
--- [[ ᴘɪꜱɪᴛ  ᴛᴇʟᴇᴘᴏʀᴛ  ᴠ4 ]]
--- 3 ปุ่ม: [เลือกชื่อ] [วาร์ปไปหา] [วาร์ปกลับ]
--- วิธีลาก: ให้กดค้างที่ "แถบสีเทาด้านบนสุด" เพื่อลาก
+-- [[ ᴘɪꜱɪᴛ  ᴛᴇʟᴇᴘᴏʀᴛ  ᴠ5 ]]
+-- 1. ปุ่มเลือกชื่อผู้เล่น
+-- 2. ปุ่มวาร์ปไปหาคนที่เลือก (GO)
+-- 3. ปุ่มวาร์ปกลับจุดเดิม (BACK)
+-- * ลากที่แถบสีเทาด้านบนสุด *
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -9,88 +11,90 @@ local UserInputService = game:GetService("UserInputService")
 local LastPos = nil 
 local SelectedPlayer = nil
 
--- [[ สร้าง UI หลัก ]]
+-- [[ สร้าง UI ]]
 local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "PisitV4"
+sg.Name = "PisitV5_Final"
 sg.ResetOnSpawn = false
 
--- ตัวโครง (Frame หลัก)
+-- ตัวหน้าต่างหลัก
 local Main = Instance.new("Frame", sg)
-Main.Size = UDim2.new(0, 200, 0, 180)
-Main.Position = UDim2.new(0.5, -100, 0.4, 0)
+Main.Size = UDim2.new(0, 220, 0, 200) -- เพิ่มความสูงให้พอสำหรับ 3 ปุ่ม
+Main.Position = UDim2.new(0.5, -110, 0.3, 0)
 Main.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 Main.BorderSizePixel = 0
 Main.Active = true
 Instance.new("UICorner", Main)
 
--- แถบสำหรับลาก (Drag Handle)
+-- 🖐️ แถบสำหรับลาก (Drag Handle)
 local DragBar = Instance.new("Frame", Main)
-DragBar.Size = UDim2.new(1, 0, 0, 25)
-DragBar.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+DragBar.Size = UDim2.new(1, 0, 0, 30)
+DragBar.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 DragBar.BorderSizePixel = 0
-local dragCorner = Instance.new("UICorner", DragBar)
-local label = Instance.new("TextLabel", DragBar)
-label.Size = UDim2.new(1, 0, 1, 0)
-label.Text = "จับลากตรงนี้"
-label.TextColor3 = Color3.new(0.7, 0.7, 0.7)
-label.BackgroundTransparency = 1
-label.TextSize = 12
+Instance.new("UICorner", DragBar)
+local dragLabel = Instance.new("TextLabel", DragBar)
+dragLabel.Size = UDim2.new(1, 0, 1, 0)
+dragLabel.Text = "PISIT TP V5 (ลากตรงนี้)"
+dragLabel.TextColor3 = Color3.new(1, 1, 1)
+dragLabel.BackgroundTransparency = 1
+dragLabel.Font = "SourceSansBold"
 
--- 1. ปุ่มเลือกชื่อ (แสดงชื่อคนที่เลือกอยู่ด้วย)
+-- 🔳 ปุ่มที่ 1: เลือกชื่อ
 local selectBtn = Instance.new("TextButton", Main)
-selectBtn.Size = UDim2.new(0, 180, 0, 40)
-selectBtn.Position = UDim2.new(0.5, -90, 0.2, 0)
-selectBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
-selectBtn.Text = "1. เลือกผู้เล่น (ยังไม่ได้เลือก)"
+selectBtn.Name = "Button1"
+selectBtn.Size = UDim2.new(0, 200, 0, 40)
+selectBtn.Position = UDim2.new(0.5, -100, 0.2, 0)
+selectBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+selectBtn.Text = "1. กดเพื่อเลือกชื่อ"
 selectBtn.TextColor3 = Color3.new(1, 1, 1)
 selectBtn.Font = "SourceSansBold"
-selectBtn.TextSize = 14
 Instance.new("UICorner", selectBtn)
 
--- 2. ปุ่มวาร์ปไปหา (สีแดง)
+-- 🔴 ปุ่มที่ 2: วาร์ปไปหา (GO)
 local goBtn = Instance.new("TextButton", Main)
-goBtn.Size = UDim2.new(0, 180, 0, 40)
-goBtn.Position = UDim2.new(0.5, -90, 0.45, 0)
+goBtn.Name = "Button2"
+goBtn.Size = UDim2.new(0, 200, 0, 40)
+goBtn.Position = UDim2.new(0.5, -100, 0.45, 0)
 goBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
 goBtn.Text = "2. วาร์ปไปหา (GO)"
 goBtn.TextColor3 = Color3.new(1, 1, 1)
 goBtn.Font = "SourceSansBold"
 Instance.new("UICorner", goBtn)
 
--- 3. ปุ่มวาร์ปกลับ (สีเขียว)
+-- 🟢 ปุ่มที่ 3: วาร์ปกลับ (BACK)
 local backBtn = Instance.new("TextButton", Main)
-backBtn.Size = UDim2.new(0, 180, 0, 40)
-backBtn.Position = UDim2.new(0.5, -90, 0.7, 0)
+backBtn.Name = "Button3"
+backBtn.Size = UDim2.new(0, 200, 0, 40)
+backBtn.Position = UDim2.new(0.5, -100, 0.7, 0)
 backBtn.BackgroundColor3 = Color3.fromRGB(0, 130, 0)
 backBtn.Text = "3. วาร์ปกลับ (BACK)"
 backBtn.TextColor3 = Color3.new(1, 1, 1)
 backBtn.Font = "SourceSansBold"
 Instance.new("UICorner", backBtn)
 
--- รายชื่อผู้เล่น (Scrolling List)
+-- 📜 รายชื่อผู้เล่น (Scrolling List)
 local List = Instance.new("ScrollingFrame", Main)
-List.Size = UDim2.new(0, 180, 0, 150)
-List.Position = UDim2.new(1.1, 0, 0, 0)
-List.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+List.Size = UDim2.new(0, 200, 0, 150)
+List.Position = UDim2.new(1.05, 0, 0, 0) -- เด้งออกทางขวา
+List.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
 List.Visible = false
-List.ScrollBarThickness = 4
+List.ScrollBarThickness = 5
 Instance.new("UICorner", List)
 local layout = Instance.new("UIListLayout", List)
-layout.Padding = UDim.new(0, 3)
+layout.Padding = UDim.new(0, 4)
 
 ---------------------------------------------------------
--- [ ฟังก์ชัน ]
+-- [ ฟังก์ชันการทำงาน ]
 ---------------------------------------------------------
 
--- อัปเดตรายชื่อ
-local function ShowNames()
-    for _, c in pairs(List:GetChildren()) do if c:IsA("TextButton") then c:Destroy() end end
+-- ฟังก์ชันสร้างรายชื่อคนในเซิร์ฟ
+local function RefreshList()
+    for _, child in pairs(List:GetChildren()) do if child:IsA("TextButton") then child:Destroy() end end
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer then
             local b = Instance.new("TextButton", List)
             b.Size = UDim2.new(1, -10, 0, 30)
-            b.Text = p.DisplayName
             b.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            b.Text = p.DisplayName
             b.TextColor3 = Color3.new(1, 1, 1)
             Instance.new("UICorner", b)
             b.MouseButton1Click:Connect(function()
@@ -103,32 +107,35 @@ local function ShowNames()
     List.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y)
 end
 
+-- กดปุ่ม 1
 selectBtn.MouseButton1Click:Connect(function()
     List.Visible = not List.Visible
-    if List.Visible then ShowNames() end
+    if List.Visible then RefreshList() end
 end)
 
+-- กดปุ่ม 2 (วาร์ปไป)
 goBtn.MouseButton1Click:Connect(function()
-    local char = LocalPlayer.Character
-    if SelectedPlayer and SelectedPlayer.Character and char then
+    local myChar = LocalPlayer.Character
+    if SelectedPlayer and SelectedPlayer.Character and myChar then
+        local myHRP = myChar:FindFirstChild("HumanoidRootPart")
         local targetHRP = SelectedPlayer.Character:FindFirstChild("HumanoidRootPart")
-        local myHRP = char:FindFirstChild("HumanoidRootPart")
-        if targetHRP and myHRP then
-            LastPos = myHRP.CFrame -- บันทึกจุดเดิม
+        if myHRP and targetHRP then
+            LastPos = myHRP.CFrame -- เซฟพิกัดปัจจุบันก่อนไป
             myHRP.CFrame = targetHRP.CFrame * CFrame.new(0, 3, 0)
         end
     end
 end)
 
+-- กดปุ่ม 3 (วาร์ปกลับ)
 backBtn.MouseButton1Click:Connect(function()
-    local char = LocalPlayer.Character
-    if char and char:FindFirstChild("HumanoidRootPart") and LastPos then
-        char.HumanoidRootPart.CFrame = LastPos
+    local myChar = LocalPlayer.Character
+    if myChar and myChar:FindFirstChild("HumanoidRootPart") and LastPos then
+        myChar.HumanoidRootPart.CFrame = LastPos
     end
 end)
 
 ---------------------------------------------------------
--- [ ระบบลาก (Drag) ]
+-- [ ระบบลาก (Drag) - ปรับปรุงใหม่ ]
 ---------------------------------------------------------
 local dragging, dragStart, startPos
 DragBar.InputBegan:Connect(function(input)
