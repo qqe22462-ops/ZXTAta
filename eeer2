@@ -1,163 +1,72 @@
--- [[ ᴘɪꜱɪᴛ  ᴇ-ᴍᴇɴᴜ  ᴅʀᴀɢɢᴀʙʟᴇ ]]
+-- [[ ᴘɪꜱɪᴛ  ᴊᴜᴍᴘꜱᴄᴀʀᴇ  ᴘʀᴀɴᴋ ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
+-- คำเตือน: ระวังเพื่อนตกใจจนโยนโทรศัพท์ทิ้งนะครับ!
 
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
+local ContentProvider = game:GetService("ContentProvider")
 
--- ตัวแปรเก็บพิกัด
-local PointA, PointB = nil, nil
-local VisualA, VisualB = nil, nil
+-- [ ตั้งค่า Asset ]
+local GhostImage = "rbxassetid://4542614539" -- ไอดีรูปผี
+local ScreamSound = "rbxassetid://5567523620" -- ไอดีเสียงกรีดร้อง
 
----------------------------------------------------------
--- [ ฟังก์ชันการทำงานระบบวาร์ป ]
----------------------------------------------------------
-
-local function CreateVisual(pos, color, name)
-    local p = Instance.new("Part")
-    p.Name = name
-    p.Size = Vector3.new(4, 0.5, 4)
-    p.CFrame = pos * CFrame.new(0, -3.2, 0)
-    p.Anchored = true
-    p.CanCollide = false
-    p.Transparency = 0.4
-    p.Material = Enum.Material.Neon
-    p.Color = color
-    p.Parent = workspace
-    
-    local bgu = Instance.new("BillboardGui", p)
-    bgu.Size = UDim2.new(0, 100, 0, 50); bgu.Adornee = p; bgu.AlwaysOnTop = true
-    bgu.ExtentsOffset = Vector3.new(0, 3, 0)
-    
-    local tl = Instance.new("TextLabel", bgu)
-    tl.Size = UDim2.new(1, 0, 1, 0); tl.BackgroundTransparency = 1
-    tl.Text = name; tl.TextColor3 = color; tl.Font = "SourceSansBold"; tl.TextSize = 20
-    return p
-end
-
-local function HandleA(mode)
-    local char = LocalPlayer.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    if mode == "SET" then
-        PointA = char.HumanoidRootPart.CFrame
-        if VisualA then VisualA:Destroy() end
-        VisualA = CreateVisual(PointA, Color3.fromRGB(0, 255, 255), "POINT A")
-    elseif mode == "TP" then
-        if PointA then char.HumanoidRootPart.CFrame = PointA end
-    end
-end
-
-local function HandleB(mode)
-    local char = LocalPlayer.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    if mode == "SET" then
-        PointB = char.HumanoidRootPart.CFrame
-        if VisualB then VisualB:Destroy() end
-        VisualB = CreateVisual(PointB, Color3.fromRGB(255, 170, 0), "POINT B")
-    elseif mode == "TP" then
-        if PointB then char.HumanoidRootPart.CFrame = PointB end
-    end
-end
+-- Preload รอไว้ก่อนเพื่อให้ผีโผล่ทันทีไม่โหลดช้า
+ContentProvider:PreloadAsync({Instance.new("ImageLabel", {Image = GhostImage}), Instance.new("Sound", {SoundId = ScreamSound})})
 
 ---------------------------------------------------------
--- [ ระบบ UI: ปุ่ม E ลากได้ และ เมนู ]
+-- [ สร้างระบบ UI ]
 ---------------------------------------------------------
-if LocalPlayer.PlayerGui:FindFirstChild("PisitDraggableUI") then
-    LocalPlayer.PlayerGui.PisitDraggableUI:Destroy()
-end
-
 local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "PisitDraggableUI"
-sg.ResetOnSpawn = false
+sg.Name = "PisitPrankUI"
+sg.IgnoreGuiInset = true -- ให้เต็มจอจริงๆ
 
--- 1. ตัวปุ่ม E (Main Button)
-local eButton = Instance.new("TextButton", sg)
-eButton.Name = "MainE"
-eButton.Size = UDim2.new(0, 55, 0, 55)
-eButton.Position = UDim2.new(0.1, 0, 0.5, 0)
-eButton.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-eButton.Text = "E"
-eButton.TextColor3 = Color3.new(1, 1, 1)
-eButton.TextSize = 28
-eButton.Font = "SourceSansBold"
-eButton.ZIndex = 10
-Instance.new("UICorner", eButton).CornerRadius = UDim.new(1, 0) -- วงกลมเป๊ะๆ
-local stroke = Instance.new("UIStroke", eButton)
-stroke.Thickness = 2
-stroke.Color = Color3.new(1, 1, 1)
+-- 1. ตัวเลขแผ่นนับถอยหลัง
+local countLabel = Instance.new("TextLabel", sg)
+countLabel.Size = UDim2.new(1, 0, 1, 0)
+countLabel.BackgroundTransparency = 1
+countLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- สีแดงเลือด
+countLabel.TextStrokeTransparency = 0
+countLabel.Font = "SourceSansBold"
+countLabel.TextSize = 200
+countLabel.Text = "10"
+countLabel.ZIndex = 5
 
--- 2. เมนูควบคุม (เด้งตามปุ่ม E)
-local menuFrame = Instance.new("Frame", sg)
-menuFrame.Name = "MenuFrame"
-menuFrame.Size = UDim2.new(0, 190, 0, 150)
-menuFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-menuFrame.Visible = false
-menuFrame.BorderSizePixel = 0
-Instance.new("UICorner", menuFrame)
-local menuStroke = Instance.new("UIStroke", menuFrame)
-menuStroke.Color = Color3.fromRGB(80, 80, 80)
+-- 2. รูปผี (ซ่อนไว้ก่อน)
+local ghostFrame = Instance.new("ImageLabel", sg)
+ghostFrame.Size = UDim2.new(1, 0, 1, 0)
+ghostFrame.Image = GhostImage
+ghostFrame.BackgroundTransparency = 1
+ghostFrame.Visible = false
+ghostFrame.ZIndex = 10
 
-local function createMenuBtn(text, pos, color, func)
-    local b = Instance.new("TextButton", menuFrame)
-    b.Size = UDim2.new(0.44, 0, 0, 38)
-    b.Position = pos
-    b.BackgroundColor3 = color
-    b.Text = text
-    b.TextColor3 = Color3.new(1, 1, 1)
-    b.Font = "SourceSansBold"
-    b.TextSize = 13
-    Instance.new("UICorner", b)
-    b.MouseButton1Click:Connect(func)
-end
-
-createMenuBtn("SET A", UDim2.new(0.04, 0, 0.2, 0), Color3.fromRGB(0, 110, 170), function() HandleA("SET") end)
-createMenuBtn("WARP A", UDim2.new(0.52, 0, 0.2, 0), Color3.fromRGB(0, 150, 210), function() HandleA("TP") end)
-createMenuBtn("SET B", UDim2.new(0.04, 0, 0.6, 0), Color3.fromRGB(170, 90, 0), function() HandleB("SET") end)
-createMenuBtn("WARP B", UDim2.new(0.52, 0, 0.6, 0), Color3.fromRGB(210, 130, 0), function() HandleB("TP") end)
+-- 3. เสียง
+local sound = Instance.new("Sound", sg)
+sound.SoundId = ScreamSound
+sound.Volume = 10 -- เพิ่มเสียงดังๆ (สูงสุดเท่าที่ระบบยอม)
 
 ---------------------------------------------------------
--- [ ระบบ Drag & Toggle (ลากและเปิดปิด) ]
+-- [ เริ่มการนับถอยหลัง ]
 ---------------------------------------------------------
-
-local dragging = false
-local dragInput, dragStart, startPos
-
--- ฟังก์ชันอัปเดตตำแหน่งเมนูให้ตามปุ่ม E
-local function UpdateMenuPosition()
-    menuFrame.Position = UDim2.new(eButton.Position.X.Scale, eButton.Position.X.Offset + 65, eButton.Position.Y.Scale, eButton.Position.Y.Offset - 45)
-end
-
-eButton.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = eButton.Position
+task.spawn(function()
+    for i = 10, 1, -1 do
+        countLabel.Text = tostring(i)
         
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                dragging = false
-            end
-        end)
+        -- เอฟเฟกต์เลขสั่นๆ ให้ดูน่ากลัว
+        local originalPos = countLabel.Position
+        countLabel.Position = UDim2.new(0, math.random(-10,10), 0, math.random(-10,10))
+        
+        task.wait(1)
+        countLabel.Position = originalPos
+    end
+    
+    -- [[ จังหวะผีโผล่ ]]
+    countLabel.Visible = false
+    ghostFrame.Visible = true
+    sound:Play()
+    
+    -- ผีสั่นไปมาแรงๆ
+    while true do
+        ghostFrame.Position = UDim2.new(0, math.random(-20,20), 0, math.random(-20,20))
+        task.wait(0.05)
     end
 end)
-
-eButton.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        local delta = input.Position - dragStart
-        eButton.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        UpdateMenuPosition()
-    end
-end)
-
--- คลิกเปิดปิดเมนู (ตรวจสอบว่าไม่ได้กำลังลากอยู่ค่อยเปิด)
-eButton.MouseButton1Click:Connect(function()
-    menuFrame.Visible = not menuFrame.Visible
-    UpdateMenuPosition()
-end)
-
