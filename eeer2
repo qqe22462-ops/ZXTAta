@@ -1,4 +1,4 @@
--- [[ ᴘɪꜱɪᴛ  ɢʜᴏꜱᴛ  ꜱᴛᴀᴛɪᴄ  ᴇᴅɪᴛɪᴏɴ ]]
+-- [[ ᴘɪꜱɪᴛ  ɢʜᴏꜱᴛ  ᴍᴀꜱᴛᴇʀ  ᴠ3 ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 
 local Players = game:GetService("Players")
@@ -8,66 +8,70 @@ local Camera = workspace.CurrentCamera
 
 local IsInvisible = false
 local FakeChar = nil
-local SavedPos = nil
+local GhostHRP = nil
 
 ---------------------------------------------------------
--- [ ฟังก์ชันล่องหนแบบหยุดนิ่ง ]
+-- [ ฟังก์ชันสลับร่างวิญญาณ ]
 ---------------------------------------------------------
 
 local function ToggleInvis()
     local char = LocalPlayer.Character
     if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    local hrp = char.HumanoidRootPart
+    local realHRP = char.HumanoidRootPart
+    local realHum = char:FindFirstChildOfClass("Humanoid")
     
     IsInvisible = not IsInvisible
 
     if IsInvisible then
-        -- 1. บันทึกจุดเดิมและสร้างร่างวิญญาณไว้ที่นี่
-        SavedPos = hrp.CFrame
-        
+        -- 1. สร้างร่างวิญญาณ (ก๊อปปี้จากตัวเราเป๊ะๆ)
         char.Archivable = true
-        FakeChar = Instance.new("Model", workspace)
-        FakeChar.Name = "Ghost_Pisit"
+        FakeChar = char:Clone()
+        char.Archivable = false
+        FakeChar.Name = "Pisit_GhostBody"
+        FakeChar.Parent = workspace
         
-        -- ก๊อปปี้รูปร่างหน้าตามาทำร่างวิญญาณ
-        for _, obj in pairs(char:GetChildren()) do
-            if obj:IsA("BasePart") then
-                local clone = obj:Clone()
-                clone.Parent = FakeChar
-                clone.Transparency = 0.6 -- ให้ดูเป็นวิญญาณใสๆ
-                clone.CanCollide = false
-                clone.Anchored = true
-            elseif obj:IsA("Accessory") then
-                local clone = obj:Clone()
-                clone.Parent = FakeChar
-                if clone:FindFirstChild("Handle") then
-                    clone.Handle.Transparency = 0.6
-                    clone.Handle.Anchored = true
-                end
+        GhostHRP = FakeChar:FindFirstChild("HumanoidRootPart")
+        local ghostHum = FakeChar:FindFirstChildOfClass("Humanoid")
+        
+        -- ปรับความใส (นิดเดียวตามสั่ง 0.4) และล็อคให้นิ่ง
+        for _, part in pairs(FakeChar:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.Transparency = 0.4
+                part.CanCollide = false
+                part.Anchored = true
+            elseif part:IsA("Decal") then
+                part.Transparency = 0.4
             end
         end
 
-        -- 2. ดีดตัวจริงไปแสนไกล (Y = 100,000)
-        hrp.CFrame = CFrame.new(0, 100000, 0)
-        hrp.Anchored = true -- ล็อคตัวจริงไม่ให้ตกลงมา
+        -- 2. ย้ายตัวจริงไป "โคตรไกล" (2 แสนบล็อก) เพื่อกันโดนตี
+        local originalCF = realHRP.CFrame
+        realHRP.CFrame = CFrame.new(0, 200000, 0)
+        realHRP.Anchored = true
+        realHum.PlatformStand = true -- ทำให้ตัวจริงลอยนิ่งๆ ไม่ขยับ
+
+        -- 3. ย้ายร่างวิญญาณมาไว้ที่จุดเดิม
+        GhostHRP.CFrame = originalCF
+
+        -- 4. ตั้งค่ากล้องให้เกาะร่างวิญญาณ (หมุนได้ปกติ)
+        Camera.CameraSubject = ghostHum
         
-        -- 3. ล็อคกล้องไว้ที่ร่างวิญญาณ (หน้าจอจะไม่วาร์ปตาม)
-        Camera.CameraType = Enum.CameraType.Scriptable
-        Camera.CFrame = SavedPos * CFrame.new(0, 5, 10) -- ให้มองเห็นร่างวิญญาณจากด้านหลัง
-        
-        print("ล่องหน: ตัวจริงอยู่บนฟ้า 100,000 | ร่างวิญญาณหยุดนิ่งที่เดิม")
+        print("ล่องหน: ตัวจริงอยู่ปลอดภัยบนฟ้า 200,000 | กล้องหมุนได้ปกติ")
     else
-        -- [[ ปิดระบบ - กลับมาที่เดิม ]]
-        hrp.Anchored = false
-        hrp.CFrame = SavedPos -- วาร์ปกลับมาจุดที่ร่างวิญญาณอยู่
-        
-        if FakeChar then FakeChar:Destroy() end
-        
-        -- คืนค่ากล้องปกติ
-        Camera.CameraType = Enum.CameraType.Custom
-        Camera.CameraSubject = char:FindFirstChildOfClass("Humanoid")
-        
-        print("ปรากฏตัว: กลับร่างเดิมแล้ว")
+        -- [[ ปิดระบบ - กลับคืนร่างเดิม ]]
+        if FakeChar then
+            local currentGhostPos = GhostHRP.CFrame
+            FakeChar:Destroy()
+            
+            -- วาร์ปตัวจริงกลับมาที่จุดที่ร่างวิญญาณอยู่ล่าสุด
+            realHRP.Anchored = false
+            realHum.PlatformStand = false
+            realHRP.CFrame = currentGhostPos
+            
+            -- คืนค่ากล้องให้ตัวจริง
+            Camera.CameraSubject = realHum
+        end
+        print("ปรากฏตัว: กลับเข้าสู่ร่างจริง")
     end
 end
 
@@ -76,17 +80,14 @@ end
 ---------------------------------------------------------
 
 local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "PisitGhostUI"
-sg.ResetOnSpawn = false
+sg.Name = "PisitGhostV3UI"; sg.ResetOnSpawn = false
 
 local btn = Instance.new("TextButton", sg)
-btn.Size = UDim2.new(0, 100, 0, 100)
-btn.Position = UDim2.new(0.5, -50, 0.4, 0)
-btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0) -- สีแดง
+btn.Size = UDim2.new(0, 110, 0, 110)
+btn.Position = UDim2.new(0.5, -55, 0.4, 0)
+btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
 btn.Text = "ล่องหน\n(OFF)"
-btn.TextColor3 = Color3.new(1, 1, 1)
-btn.Font = "SourceSansBold"
-btn.TextSize = 18
+btn.TextColor3 = Color3.new(1, 1, 1); btn.Font = "SourceSansBold"; btn.TextSize = 18
 Instance.new("UICorner", btn)
 
 btn.MouseButton1Click:Connect(function()
@@ -95,7 +96,7 @@ btn.MouseButton1Click:Connect(function()
     btn.BackgroundColor3 = IsInvisible and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(200, 0, 0)
 end)
 
--- ระบบลาก UI
+-- ระบบลาก UI แบบสมูท
 local dragging, dragStart, startPos
 btn.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
