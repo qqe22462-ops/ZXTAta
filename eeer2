@@ -1,7 +1,8 @@
--- [[ ᴘɪꜱɪᴛ  ɢʜᴏꜱᴛ  ᴍᴀꜱᴛᴇʀ  ᴠ3 ]]
+-- [[ ᴘɪꜱɪᴛ  ɢʜᴏꜱᴛ  ᴡᴀʟᴋᴀʙʟᴇ  ᴠ4 ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
@@ -9,9 +10,11 @@ local Camera = workspace.CurrentCamera
 local IsInvisible = false
 local FakeChar = nil
 local GhostHRP = nil
+local GhostHum = nil
+local ControlLoop = nil
 
 ---------------------------------------------------------
--- [ ฟังก์ชันสลับร่างวิญญาณ ]
+-- [ ฟังก์ชันล่องหนแบบเดินได้ ]
 ---------------------------------------------------------
 
 local function ToggleInvis()
@@ -23,55 +26,69 @@ local function ToggleInvis()
     IsInvisible = not IsInvisible
 
     if IsInvisible then
-        -- 1. สร้างร่างวิญญาณ (ก๊อปปี้จากตัวเราเป๊ะๆ)
+        -- 1. สร้างร่างวิญญาณ (ก๊อปปี้มา)
         char.Archivable = true
         FakeChar = char:Clone()
         char.Archivable = false
-        FakeChar.Name = "Pisit_GhostBody"
+        FakeChar.Name = "Pisit_WalkableGhost"
         FakeChar.Parent = workspace
         
         GhostHRP = FakeChar:FindFirstChild("HumanoidRootPart")
-        local ghostHum = FakeChar:FindFirstChildOfClass("Humanoid")
+        GhostHum = FakeChar:FindFirstChildOfClass("Humanoid")
         
-        -- ปรับความใส (นิดเดียวตามสั่ง 0.4) และล็อคให้นิ่ง
+        -- ปรับความใส 0.4 และตั้งค่าให้ร่างวิญญาณขยับได้ (ไม่ Anchored)
         for _, part in pairs(FakeChar:GetDescendants()) do
             if part:IsA("BasePart") then
                 part.Transparency = 0.4
-                part.CanCollide = false
-                part.Anchored = true
+                part.CanCollide = true -- ให้ร่างวิญญาณเดินชนพื้นได้ปกติ
             elseif part:IsA("Decal") then
                 part.Transparency = 0.4
             end
         end
 
-        -- 2. ย้ายตัวจริงไป "โคตรไกล" (2 แสนบล็อก) เพื่อกันโดนตี
-        local originalCF = realHRP.CFrame
+        -- 2. ย้ายตัวจริงไปซ่อนบนฟ้า (กันโดนตี)
+        local startCF = realHRP.CFrame
         realHRP.CFrame = CFrame.new(0, 200000, 0)
         realHRP.Anchored = true
-        realHum.PlatformStand = true -- ทำให้ตัวจริงลอยนิ่งๆ ไม่ขยับ
+        realHum.PlatformStand = true 
 
-        -- 3. ย้ายร่างวิญญาณมาไว้ที่จุดเดิม
-        GhostHRP.CFrame = originalCF
+        -- 3. เอาร่างวิญญาณมาไว้ที่จุดเดิม
+        GhostHRP.CFrame = startCF
 
-        -- 4. ตั้งค่ากล้องให้เกาะร่างวิญญาณ (หมุนได้ปกติ)
-        Camera.CameraSubject = ghostHum
+        -- 4. ล็อคกล้องให้หมุนตามร่างวิญญาณ
+        Camera.CameraSubject = GhostHum
         
-        print("ล่องหน: ตัวจริงอยู่ปลอดภัยบนฟ้า 200,000 | กล้องหมุนได้ปกติ")
+        -- 5. [[ ระบบเชื่อมการบังคับ ]] : สั่งให้ร่างวิญญาณเดินตามปุ่มที่เรากด
+        ControlLoop = RunService.RenderStepped:Connect(function()
+            if IsInvisible and GhostHum and realHum then
+                -- เชื่อมการเดิน
+                GhostHum:Move(realHum.MoveDirection, false)
+                
+                -- เชื่อมการกระโดด
+                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                    GhostHum.Jump = true
+                end
+            end
+        end)
+        
+        print("ล่องหน: ร่างวิญญาณเดินได้แล้ว! ตัวจริงปลอดภัยบนฟ้า")
     else
         -- [[ ปิดระบบ - กลับคืนร่างเดิม ]]
+        if ControlLoop then ControlLoop:Disconnect() end
+        
         if FakeChar then
-            local currentGhostPos = GhostHRP.CFrame
+            local lastGhostPos = GhostHRP.CFrame
             FakeChar:Destroy()
             
-            -- วาร์ปตัวจริงกลับมาที่จุดที่ร่างวิญญาณอยู่ล่าสุด
+            -- วาร์ปตัวจริงลงมาเสียบแทนตำแหน่งล่าสุดของวิญญาณ
             realHRP.Anchored = false
             realHum.PlatformStand = false
-            realHRP.CFrame = currentGhostPos
+            realHRP.CFrame = lastGhostPos
             
-            -- คืนค่ากล้องให้ตัวจริง
+            -- คืนค่ากล้อง
             Camera.CameraSubject = realHum
         end
-        print("ปรากฏตัว: กลับเข้าสู่ร่างจริง")
+        print("ปรากฏตัว: วาร์ปลงมาที่จุดวิญญาณเดินไปล่าสุด")
     end
 end
 
@@ -80,7 +97,7 @@ end
 ---------------------------------------------------------
 
 local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "PisitGhostV3UI"; sg.ResetOnSpawn = false
+sg.Name = "PisitGhostV4UI"; sg.ResetOnSpawn = false
 
 local btn = Instance.new("TextButton", sg)
 btn.Size = UDim2.new(0, 110, 0, 110)
@@ -96,7 +113,7 @@ btn.MouseButton1Click:Connect(function()
     btn.BackgroundColor3 = IsInvisible and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(200, 0, 0)
 end)
 
--- ระบบลาก UI แบบสมูท
+-- ระบบลาก UI
 local dragging, dragStart, startPos
 btn.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
