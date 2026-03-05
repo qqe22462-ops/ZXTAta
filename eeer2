@@ -1,47 +1,97 @@
--- [[ ᴘɪꜱɪᴛ  ɪɴꜱᴛᴀɴᴛ  ʀᴇᴊᴏɪɴ  -  ᴀɴᴛɪ ᴋɪʟʟ ]]
+-- [[ ᴘɪꜱɪᴛ  ꜱᴀꜰᴇ-ᴇꜱᴄᴀᴘᴇ  ᴠ5 ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
--- ความเร็ว: ระดับสูงสุด (Instant Trigger)
+-- ระบบ: ป้องกันการกดผิดด้วยปุ่ม ON/OFF
 
 local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local PlaceId = game.PlaceId
-local JobId = game.JobId -- ล็อค ID เซิร์ฟเวอร์ปัจจุบันไว้ก่อนเลย
+local UserInputService = game:GetService("UserInputService")
 
--- สร้างปุ่มกดหนี (สีเขียวสว่าง)
+local IsReady = false -- สถานะเตรียมพร้อม
+
+-- [[ สร้าง UI ]]
 local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "FastEscape"
+sg.Name = "SafeEscapeUI"
+sg.ResetOnSpawn = false
 
-local btn = Instance.new("TextButton", sg)
-btn.Size = UDim2.new(0, 140, 0, 60)
-btn.Position = UDim2.new(0.5, -70, 0.15, 0)
-btn.BackgroundColor3 = Color3.fromRGB(0, 255, 100) -- เขียวสว่างเห็นชัด
-btn.Text = "หนี (เซิร์ฟเดิม)"
-btn.TextColor3 = Color3.new(0, 0, 0)
-btn.Font = "SourceSansBold"
-btn.TextSize = 22
-Instance.new("UICorner", btn)
+local main = Instance.new("Frame", sg)
+main.Size = UDim2.new(0, 240, 0, 80)
+main.Position = UDim2.new(0.5, -120, 0.15, 0)
+main.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+main.Active = true
+Instance.new("UICorner", main)
 
--- [ จังหวะหนี ]
--- ใช้ InputBegan (แค่แตะโดนปุ๊บ วาร์ปปั๊บ ไม่ต้องรอนิ้วยกออก)
-btn.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        -- สั่ง Teleport กลับเซิร์ฟเวอร์เดิมทันที
-        TeleportService:TeleportToPlaceInstance(PlaceId, JobId, LocalPlayer)
+-- ปุ่มหนี (ตรงกลาง)
+local escapeBtn = Instance.new("TextButton", main)
+escapeBtn.Size = UDim2.new(0, 100, 0, 60)
+escapeBtn.Position = UDim2.new(0.5, -50, 0.5, -30)
+escapeBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100) -- เริ่มต้นเป็นสีเทา
+escapeBtn.Text = "หนี!"
+escapeBtn.TextColor3 = Color3.new(1, 1, 1)
+escapeBtn.Font = "SourceSansBold"
+escapeBtn.TextSize = 25
+Instance.new("UICorner", escapeBtn)
+
+-- ปุ่ม ON (ด้านซ้าย)
+local onBtn = Instance.new("TextButton", main)
+onBtn.Size = UDim2.new(0, 50, 0, 40)
+onBtn.Position = UDim2.new(0.05, 0, 0.5, -20)
+onBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+onBtn.Text = "ON"
+onBtn.TextColor3 = Color3.new(1, 1, 1)
+onBtn.Font = "SourceSansBold"
+Instance.new("UICorner", onBtn)
+
+-- ปุ่ม OFF (ด้านขวา)
+local offBtn = Instance.new("TextButton", main)
+offBtn.Size = UDim2.new(0, 50, 0, 40)
+offBtn.Position = UDim2.new(0.73, 0, 0.5, -20)
+offBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+offBtn.Text = "OFF"
+offBtn.TextColor3 = Color3.new(1, 1, 1)
+offBtn.Font = "SourceSansBold"
+Instance.new("UICorner", offBtn)
+
+---------------------------------------------------------
+-- [ ระบบการทำงาน ]
+---------------------------------------------------------
+
+-- เปิดระบบ
+onBtn.MouseButton1Click:Connect(function()
+    IsReady = true
+    escapeBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 100) -- เปลี่ยนเป็นสีเขียวสว่าง
+    escapeBtn.Text = "หนีทันที!"
+    print("ระบบหนี: เปิดใช้งาน")
+end)
+
+-- ปิดระบบ
+offBtn.MouseButton1Click:Connect(function()
+    IsReady = false
+    escapeBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100) -- เปลี่ยนเป็นสีเทา
+    escapeBtn.Text = "ล็อคอยู่"
+    print("ระบบหนี: ปิดใช้งาน")
+end)
+
+-- ปุ่มหนี (ทำงานเฉพาะเมื่อ IsReady เป็น true)
+escapeBtn.InputBegan:Connect(function(input)
+    if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and IsReady then
+        TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
     end
 end)
 
--- ระบบลาก (เผื่อจะย้ายปุ่มไปจุดที่นิ้วกดถนัดที่สุด)
+---------------------------------------------------------
+-- [ ระบบลาก UI ทั้งแถบ ]
+---------------------------------------------------------
 local dragging, dragStart, startPos
-btn.InputBegan:Connect(function(input)
+main.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true; dragStart = input.Position; startPos = btn.Position
+        dragging = true; dragStart = input.Position; startPos = main.Position
     end
 end)
-game:GetService("UserInputService").InputChanged:Connect(function(input)
+UserInputService.InputChanged:Connect(function(input)
     if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local delta = input.Position - dragStart
-        btn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
-btn.InputEnded:Connect(function(input) dragging = false end)
+UserInputService.InputEnded:Connect(function(input) dragging = false end)
