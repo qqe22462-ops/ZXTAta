@@ -1,97 +1,126 @@
--- [[ ᴘɪꜱɪᴛ  ꜱᴀꜰᴇ-ᴇꜱᴄᴀᴘᴇ  ᴠ5 ]]
+-- [[ ᴘɪꜱɪᴛ  ᴛᴇʟᴇᴘᴏʀᴛ  sᴇʟᴇᴄᴛᴏʀ  ᴠ3 ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
--- ระบบ: ป้องกันการกดผิดด้วยปุ่ม ON/OFF
+-- ระบบ: กดเลือกชื่อจากลิสต์ + เซฟจุดเดิมอัตโนมัติ
 
-local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 
-local IsReady = false -- สถานะเตรียมพร้อม
+local LastPos = nil -- เก็บพิกัดเดิม
+local ListVisible = false -- สถานะการเปิด/ปิดลิสต์ชื่อ
 
--- [[ สร้าง UI ]]
+-- [[ สร้าง UI หลัก ]]
 local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "SafeEscapeUI"
+sg.Name = "PisitSelectorUI"
 sg.ResetOnSpawn = false
 
-local main = Instance.new("Frame", sg)
-main.Size = UDim2.new(0, 240, 0, 80)
-main.Position = UDim2.new(0.5, -120, 0.15, 0)
-main.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-main.Active = true
-Instance.new("UICorner", main)
+-- แถบเมนูหลัก (ลากได้)
+local MainFrame = Instance.new("Frame", sg)
+MainFrame.Size = UDim2.new(0, 150, 0, 100)
+MainFrame.Position = UDim2.new(0.5, -75, 0.4, 0)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.Active = true
+Instance.new("UICorner", MainFrame)
 
--- ปุ่มหนี (ตรงกลาง)
-local escapeBtn = Instance.new("TextButton", main)
-escapeBtn.Size = UDim2.new(0, 100, 0, 60)
-escapeBtn.Position = UDim2.new(0.5, -50, 0.5, -30)
-escapeBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100) -- เริ่มต้นเป็นสีเทา
-escapeBtn.Text = "หนี!"
-escapeBtn.TextColor3 = Color3.new(1, 1, 1)
-escapeBtn.Font = "SourceSansBold"
-escapeBtn.TextSize = 25
-Instance.new("UICorner", escapeBtn)
+-- ปุ่มเปิด/ปิด รายชื่อผู้เล่น
+local toggleListBtn = Instance.new("TextButton", MainFrame)
+toggleListBtn.Size = UDim2.new(0, 130, 0, 35)
+toggleListBtn.Position = UDim2.new(0.5, -65, 0.1, 0)
+toggleListBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+toggleListBtn.Text = "เลือกผู้เล่น 👥"
+toggleListBtn.TextColor3 = Color3.new(1, 1, 1)
+toggleListBtn.Font = "SourceSansBold"
+Instance.new("UICorner", toggleListBtn)
 
--- ปุ่ม ON (ด้านซ้าย)
-local onBtn = Instance.new("TextButton", main)
-onBtn.Size = UDim2.new(0, 50, 0, 40)
-onBtn.Position = UDim2.new(0.05, 0, 0.5, -20)
-onBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-onBtn.Text = "ON"
-onBtn.TextColor3 = Color3.new(1, 1, 1)
-onBtn.Font = "SourceSansBold"
-Instance.new("UICorner", onBtn)
+-- ปุ่มวาร์ปกลับจุดเดิม
+local backBtn = Instance.new("TextButton", MainFrame)
+backBtn.Size = UDim2.new(0, 130, 0, 35)
+backBtn.Position = UDim2.new(0.5, -65, 0.55, 0)
+backBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+backBtn.Text = "กลับจุดเดิม (BACK)"
+backBtn.TextColor3 = Color3.new(1, 1, 1)
+backBtn.Font = "SourceSansBold"
+Instance.new("UICorner", backBtn)
 
--- ปุ่ม OFF (ด้านขวา)
-local offBtn = Instance.new("TextButton", main)
-offBtn.Size = UDim2.new(0, 50, 0, 40)
-offBtn.Position = UDim2.new(0.73, 0, 0.5, -20)
-offBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
-offBtn.Text = "OFF"
-offBtn.TextColor3 = Color3.new(1, 1, 1)
-offBtn.Font = "SourceSansBold"
-Instance.new("UICorner", offBtn)
+-- [[ สร้าง ScrollingFrame สำหรับรายชื่อผู้เล่น (อยู่ข้างๆ แถบหลัก) ]]
+local PlayerListFrame = Instance.new("ScrollingFrame", MainFrame)
+PlayerListFrame.Size = UDim2.new(0, 150, 0, 200)
+PlayerListFrame.Position = UDim2.new(1.1, 0, 0, 0) -- เด้งออกไปทางขวา
+PlayerListFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+PlayerListFrame.Visible = false
+PlayerListFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+PlayerListFrame.ScrollBarThickness = 5
+Instance.new("UICorner", PlayerListFrame)
+local listLayout = Instance.new("UIListLayout", PlayerListFrame)
+listLayout.Padding = UDim.new(0, 5)
 
 ---------------------------------------------------------
--- [ ระบบการทำงาน ]
+-- [ ฟังก์ชันการทำงาน ]
 ---------------------------------------------------------
 
--- เปิดระบบ
-onBtn.MouseButton1Click:Connect(function()
-    IsReady = true
-    escapeBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 100) -- เปลี่ยนเป็นสีเขียวสว่าง
-    escapeBtn.Text = "หนีทันที!"
-    print("ระบบหนี: เปิดใช้งาน")
+-- 1. ฟังก์ชันอัปเดตรายชื่อผู้เล่น
+local function UpdatePlayerList()
+    -- ลบปุ่มชื่อเก่าออกก่อน
+    for _, child in pairs(PlayerListFrame:GetChildren()) do
+        if child:IsA("TextButton") then child:Destroy() end
+    end
+    
+    -- สร้างปุ่มใหม่ตามจำนวนคนในเซิร์ฟ
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer then
+            local pBtn = Instance.new("TextButton", PlayerListFrame)
+            pBtn.Size = UDim2.new(1, -10, 0, 30)
+            pBtn.BackgroundColor3 = Color3.fromRGB(100, 40, 40) -- สีแดง
+            pBtn.Text = p.DisplayName -- แสดงชื่อเล่น (Display Name)
+            pBtn.TextColor3 = Color3.new(1, 1, 1)
+            pBtn.Font = "SourceSans"
+            pBtn.TextSize = 14
+            Instance.new("UICorner", pBtn)
+            
+            -- เมื่อคลิกชื่อคนนั้น
+            pBtn.MouseButton1Click:Connect(function()
+                local char = LocalPlayer.Character
+                if char and char:FindFirstChild("HumanoidRootPart") and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                    LastPos = char.HumanoidRootPart.CFrame -- เซฟจุดเดิม
+                    char.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame * CFrame.new(0, 3, 0) -- วาร์ปไปหา
+                    print("วาร์ปไปหา: " .. p.Name)
+                end
+            end)
+            
+            PlayerListFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y)
+        end
+    end
+end
+
+-- 2. เปิด/ปิดลิสต์รายชื่อ
+toggleListBtn.MouseButton1Click:Connect(function()
+    ListVisible = not ListVisible
+    PlayerListFrame.Visible = ListVisible
+    if ListVisible then UpdatePlayerList() end -- อัปเดตชื่อทุกครั้งที่เปิด
 end)
 
--- ปิดระบบ
-offBtn.MouseButton1Click:Connect(function()
-    IsReady = false
-    escapeBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100) -- เปลี่ยนเป็นสีเทา
-    escapeBtn.Text = "ล็อคอยู่"
-    print("ระบบหนี: ปิดใช้งาน")
-end)
-
--- ปุ่มหนี (ทำงานเฉพาะเมื่อ IsReady เป็น true)
-escapeBtn.InputBegan:Connect(function(input)
-    if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) and IsReady then
-        TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
+-- 3. วาร์ปกลับจุดเดิม
+backBtn.MouseButton1Click:Connect(function()
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") and LastPos then
+        char.HumanoidRootPart.CFrame = LastPos
+        print("กลับจุดเดิมแล้ว")
     end
 end)
 
 ---------------------------------------------------------
--- [ ระบบลาก UI ทั้งแถบ ]
+-- [ ระบบลาก UI ทั้งแผง ]
 ---------------------------------------------------------
 local dragging, dragStart, startPos
-main.InputBegan:Connect(function(input)
+MainFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true; dragStart = input.Position; startPos = main.Position
+        dragging = true; dragStart = input.Position; startPos = MainFrame.Position
     end
 end)
 UserInputService.InputChanged:Connect(function(input)
     if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local delta = input.Position - dragStart
-        main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
 UserInputService.InputEnded:Connect(function(input) dragging = false end)
