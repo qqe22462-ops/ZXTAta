@@ -1,105 +1,72 @@
--- [[ ᴘɪꜱɪᴛ  ꜱᴍᴀʀᴛ  ᴡᴀʏᴘᴏɪɴᴛ  ᴠ10 ]]
--- ระบบวาร์ปตามพิกัดที่คุณมาร์ค + เช็คปุ่มกดหน้างาน
+-- [[ ᴘɪꜱɪᴛ  ᴜʟᴛʀᴀ  ᴀᴜᴛᴏ-ᴄʟɪᴄᴋᴇʀ ]]
+-- OWNER: ไกรสร พิสิษฐ์ 🫡
+-- ความเร็ว: 20ms (0.02 วินาที)
 
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local Workspace = game:GetService("Workspace")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
 local IsActive = false
-
--- [[ รายชื่อพิกัดที่คุณส่งมา ]]
-local Waypoints = {
-    CFrame.new(-88.003, 5552.998, -221.353),
-    CFrame.new(-135.423, 5555.694, -210.967),
-    CFrame.new(-115.435, 5548.998, -221.574)
-}
+local ClickInterval = 0.02 -- 20 มิลลิวินาที
+local lastClick = 0
 
 -- [[ สร้าง UI ]]
 local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "PisitWaypointUI"
+sg.Name = "PisitAutoClickUI"
 sg.ResetOnSpawn = false
 
-local btn = Instance.new("TextButton", sg)
-btn.Size = UDim2.new(0, 200, 0, 50)
-btn.Position = UDim2.new(0.5, -100, 0.1, 0)
-btn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
-btn.Text = "เริ่มวาร์ปฟาร์ม: OFF"
-btn.TextColor3 = Color3.new(1, 1, 1)
-btn.Font = "SourceSansBold"
-btn.TextSize = 20
-Instance.new("UICorner", btn)
+-- ปุ่มออโต้คลิก (ลากได้)
+local clickBtn = Instance.new("TextButton", sg)
+clickBtn.Size = UDim2.new(0, 120, 0, 120) -- ทรงจัตุรัสเพื่อให้เห็นจุดที่จะคลิกชัดเจน
+clickBtn.Position = UDim2.new(0.5, -60, 0.5, -60)
+clickBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+clickBtn.BackgroundTransparency = 0.5 -- โปร่งแสงนิดนึงเพื่อให้เห็นว่าวางทับอะไรอยู่
+clickBtn.Text = "OFF"
+clickBtn.TextColor3 = Color3.new(1, 1, 1)
+clickBtn.Font = "SourceSansBold"
+clickBtn.TextSize = 25
+clickBtn.Active = true
+clickBtn.Draggable = true -- เปิดระบบลากพื้นฐาน
+Instance.new("UICorner", clickBtn).CornerRadius = UDim.new(1, 0) -- ทำเป็นวงกลม
 
----------------------------------------------------------
--- [ ฟังก์ชันเช็คปุ่มและทำงาน ]
----------------------------------------------------------
-
-local function StartFarming()
-    while IsActive do
-        for i, pos in ipairs(Waypoints) do
-            if not IsActive then break end
-            
-            local char = LocalPlayer.Character
-            local hrp = char and char:FindFirstChild("HumanoidRootPart")
-            
-            if hrp then
-                -- 1. วาร์ปไปที่จุดมาร์ค
-                hrp.CFrame = pos * CFrame.new(0, 2, 0) -- โผล่เหนือพื้นนิดนึง
-                task.wait(0.3) -- รอให้แมพโหลดเสี้ยววินาที
-                
-                -- 2. ตรวจหาปุ่มกด (ProximityPrompt) ในระยะใกล้ๆ จุดนั้น
-                local foundPrompt = nil
-                for _, v in pairs(Workspace:GetDescendants()) do
-                    if v:IsA("ProximityPrompt") then
-                        local dist = (hrp.Position - v.Parent:GetPivot().Position).Magnitude
-                        if dist <= 10 then -- ถ้ารัศมีใกล้ปุ่มไม่เกิน 10 หน่วย
-                            foundPrompt = v
-                            break
-                        end
-                    end
-                end
-                
-                -- 3. ถ้าเจอให้กด ถ้าไม่เจอให้ข้าม
-                if foundPrompt then
-                    print("เจอเป้าหมายที่จุดที่ " .. i .. " กำลังกด...")
-                    fireproximityprompt(foundPrompt)
-                    task.wait(0.5) -- รอให้เก็บเสร็จ
-                else
-                    print("จุดที่ " .. i .. " ไม่มีกล่อง ข้ามไปจุดต่อไป")
-                end
-            end
-            task.wait(0.2)
-        end
-        task.wait(1) -- พักรอบก่อนเริ่มวาร์ปวนใหม่
-    end
-end
-
----------------------------------------------------------
--- [ ระบบปุ่มกด ]
----------------------------------------------------------
-
-btn.MouseButton1Click:Connect(function()
+-- [[ ระบบการทำงาน ]]
+clickBtn.MouseButton1Click:Connect(function()
     IsActive = not IsActive
     if IsActive then
-        btn.Text = "เริ่มวาร์ปฟาร์ม: ON"
-        btn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
-        StartFarming()
+        clickBtn.Text = "ON"
+        clickBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
     else
-        btn.Text = "เริ่มวาร์ปฟาร์ม: OFF"
-        btn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+        clickBtn.Text = "OFF"
+        clickBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
     end
 end)
 
--- ทำให้ปุ่มลากได้
-local dragging, dragStart, startPos
-btn.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true; dragStart = input.Position; startPos = btn.Position
+-- ระบบรัวคลิก (เช็คทุกเฟรม)
+RunService.RenderStepped:Connect(function()
+    if IsActive then
+        local currentTime = tick()
+        if currentTime - lastClick >= ClickInterval then
+            lastClick = currentTime
+            
+            -- จำลองการคลิกโดยใช้ VirtualInputManager (ทำงานได้แม่นยำที่สุด)
+            local vim = game:GetService("VirtualInputManager")
+            vim:SendMouseButtonEvent(clickBtn.AbsolutePosition.X + (clickBtn.AbsoluteSize.X / 2), clickBtn.AbsolutePosition.Y + (clickBtn.AbsoluteSize.Y / 2) + 36, 0, true, game, 1)
+            vim:SendMouseButtonEvent(clickBtn.AbsolutePosition.X + (clickBtn.AbsoluteSize.X / 2), clickBtn.AbsolutePosition.Y + (clickBtn.AbsoluteSize.Y / 2) + 36, 0, false, game, 1)
+        end
     end
 end)
-game:GetService("UserInputService").InputChanged:Connect(function(input)
+
+-- [[ ระบบลาก UI (เพื่อให้เสถียรทั้งในคอมและมือถือ) ]]
+local dragging, dragStart, startPos
+clickBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true; dragStart = input.Position; startPos = clickBtn.Position
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
     if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local delta = input.Position - dragStart
-        btn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        clickBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
-btn.InputEnded:Connect(function() dragging = false end)
+UserInputService.InputEnded:Connect(function() dragging = false end)
