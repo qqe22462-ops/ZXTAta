@@ -1,72 +1,131 @@
--- [[ ᴘɪꜱɪᴛ  ᴜʟᴛʀᴀ  ᴀᴜᴛᴏ-ᴄʟɪᴄᴋᴇʀ ]]
--- OWNER: ไกรสร พิสิษฐ์ 🫡
+-- [[ ᴘɪꜱɪᴛ  ᴀᴜᴛᴏ  ᴄʟɪᴄᴋᴇʀ  ᴠ11 ]]
+-- ปุ่ม 1: เพิ่มจุดคลิกเลข 1 | ปุ่ม 2: เริ่ม/หยุด (สีเขียว)
 -- ความเร็ว: 20ms (0.02 วินาที)
 
-local LocalPlayer = game:GetService("Players").LocalPlayer
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local VIM = game:GetService("VirtualInputManager")
 
 local IsActive = false
+local ClickPoint = nil -- สำหรับเก็บตำแหน่งเลข 1
 local ClickInterval = 0.02 -- 20 มิลลิวินาที
-local lastClick = 0
 
--- [[ สร้าง UI ]]
+-- [[ สร้าง UI หลัก ]]
 local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "PisitAutoClickUI"
+sg.Name = "PisitClickerV11"
 sg.ResetOnSpawn = false
 
--- ปุ่มออโต้คลิก (ลากได้)
-local clickBtn = Instance.new("TextButton", sg)
-clickBtn.Size = UDim2.new(0, 120, 0, 120) -- ทรงจัตุรัสเพื่อให้เห็นจุดที่จะคลิกชัดเจน
-clickBtn.Position = UDim2.new(0.5, -60, 0.5, -60)
-clickBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-clickBtn.BackgroundTransparency = 0.5 -- โปร่งแสงนิดนึงเพื่อให้เห็นว่าวางทับอะไรอยู่
-clickBtn.Text = "OFF"
-clickBtn.TextColor3 = Color3.new(1, 1, 1)
-clickBtn.Font = "SourceSansBold"
-clickBtn.TextSize = 25
-clickBtn.Active = true
-clickBtn.Draggable = true -- เปิดระบบลากพื้นฐาน
-Instance.new("UICorner", clickBtn).CornerRadius = UDim.new(1, 0) -- ทำเป็นวงกลม
+local mainFrame = Instance.new("Frame", sg)
+mainFrame.Size = UDim2.new(0, 150, 0, 120)
+mainFrame.Position = UDim2.new(0.1, 0, 0.4, 0)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.BorderSizePixel = 0
+Instance.new("UICorner", mainFrame)
 
--- [[ ระบบการทำงาน ]]
-clickBtn.MouseButton1Click:Connect(function()
+-- 1. ปุ่มเพิ่มเลข 1
+local addBtn = Instance.new("TextButton", mainFrame)
+addBtn.Size = UDim2.new(0, 130, 0, 40)
+addBtn.Position = UDim2.new(0.5, -65, 0.15, 0)
+addBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+addBtn.Text = "เพิ่มเลข 1"
+addBtn.TextColor3 = Color3.new(1, 1, 1)
+addBtn.Font = "SourceSansBold"
+Instance.new("UICorner", addBtn)
+
+-- 2. ปุ่มเริ่ม (สีเขียว)
+local startBtn = Instance.new("TextButton", mainFrame)
+startBtn.Size = UDim2.new(0, 130, 0, 40)
+startBtn.Position = UDim2.new(0.5, -65, 0.55, 0)
+startBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+startBtn.Text = "เริ่ม (START)"
+startBtn.TextColor3 = Color3.new(1, 1, 1)
+startBtn.Font = "SourceSansBold"
+Instance.new("UICorner", startBtn)
+
+---------------------------------------------------------
+-- [ ฟังก์ชันสร้างเลข 1 ]
+---------------------------------------------------------
+
+local function CreatePoint1()
+    if ClickPoint then ClickPoint:Destroy() end -- ถ้ามีเลข 1 อยู่แล้วให้ลบสร้างใหม่
+    
+    local p = Instance.new("TextButton", sg)
+    p.Size = UDim2.new(0, 50, 0, 50)
+    p.Position = UDim2.new(0.5, 0, 0.5, 0)
+    p.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    p.Text = "1"
+    p.TextColor3 = Color3.new(1, 1, 1)
+    p.TextSize = 30
+    p.Font = "SourceSansBold"
+    p.BackgroundTransparency = 0.3
+    p.BorderSizePixel = 0
+    p.ZIndex = 10
+    
+    local corner = Instance.new("UICorner", p)
+    corner.CornerRadius = UDim.new(1, 0) -- ทำให้กลม
+    
+    -- ทำให้เลข 1 ลากได้
+    local dragging, dragStart, startPos
+    p.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true; dragStart = input.Position; startPos = p.Position
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            p.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    UserInputService.InputEnded:Connect(function() dragging = false end)
+    
+    ClickPoint = p
+end
+
+---------------------------------------------------------
+-- [ ระบบการทำงาน ]
+---------------------------------------------------------
+
+addBtn.MouseButton1Click:Connect(function()
+    CreatePoint1()
+end)
+
+startBtn.MouseButton1Click:Connect(function()
+    if not ClickPoint then return end -- ถ้ายังไม่กดเพิ่มเลข 1 ไม่ให้เริ่ม
+    
     IsActive = not IsActive
     if IsActive then
-        clickBtn.Text = "ON"
-        clickBtn.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+        startBtn.Text = "หยุด (STOP)"
+        startBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
     else
-        clickBtn.Text = "OFF"
-        clickBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+        startBtn.Text = "เริ่ม (START)"
+        startBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
     end
 end)
 
--- ระบบรัวคลิก (เช็คทุกเฟรม)
-RunService.RenderStepped:Connect(function()
-    if IsActive then
+-- ลูปการคลิก
+local lastClick = 0
+RunService.Heartbeat:Connect(function()
+    if IsActive and ClickPoint then
         local currentTime = tick()
         if currentTime - lastClick >= ClickInterval then
             lastClick = currentTime
             
-            -- จำลองการคลิกโดยใช้ VirtualInputManager (ทำงานได้แม่นยำที่สุด)
-            local vim = game:GetService("VirtualInputManager")
-            vim:SendMouseButtonEvent(clickBtn.AbsolutePosition.X + (clickBtn.AbsoluteSize.X / 2), clickBtn.AbsolutePosition.Y + (clickBtn.AbsoluteSize.Y / 2) + 36, 0, true, game, 1)
-            vim:SendMouseButtonEvent(clickBtn.AbsolutePosition.X + (clickBtn.AbsoluteSize.X / 2), clickBtn.AbsolutePosition.Y + (clickBtn.AbsoluteSize.Y / 2) + 36, 0, false, game, 1)
+            -- พิกัดจุดกลางของเลข 1
+            local posX = ClickPoint.AbsolutePosition.X + (ClickPoint.AbsoluteSize.X / 2)
+            local posY = ClickPoint.AbsolutePosition.Y + (ClickPoint.AbsoluteSize.Y / 2) + 36 -- +36 สำหรับระยะขอบหน้าจอ
+            
+            -- ส่งคำสั่งคลิก
+            VIM:SendMouseButtonEvent(posX, posY, 0, true, game, 1)
+            VIM:SendMouseButtonEvent(posX, posY, 0, false, game, 1)
         end
     end
 end)
 
--- [[ ระบบลาก UI (เพื่อให้เสถียรทั้งในคอมและมือถือ) ]]
-local dragging, dragStart, startPos
-clickBtn.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true; dragStart = input.Position; startPos = clickBtn.Position
-    end
-end)
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStart
-        clickBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-UserInputService.InputEnded:Connect(function() dragging = false end)
+-- ลาก UI หลัก
+local d, ds, sp
+mainFrame.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true ds = i.Position sp = mainFrame.Position end end)
+UserInputService.InputChanged:Connect(function(i) if d and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then local del = i.Position - ds mainFrame.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X, sp.Y.Scale, sp.Y.Offset + del.Y) end end)
+UserInputService.InputEnded:Connect(function() d = false end)
