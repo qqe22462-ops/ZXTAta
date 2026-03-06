@@ -1,152 +1,144 @@
--- [[ ᴘɪꜱɪᴛ  ᴛᴇʟᴇᴘᴏʀᴛ  ᴠ5 ]]
--- 1. ปุ่มเลือกชื่อผู้เล่น
--- 2. ปุ่มวาร์ปไปหาคนที่เลือก (GO)
--- 3. ปุ่มวาร์ปกลับจุดเดิม (BACK)
--- * ลากที่แถบสีเทาด้านบนสุด *
+-- [[ ᴘɪꜱɪᴛ  ᴀᴜᴛᴏ-ᴄʜᴇꜱᴛ  ᴠ6 ]]
+-- ระบบเก็บกล่องอัญมณีอัตโนมัติ + ปรับรัศมี + วงกลมแสดงผล
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
-local LastPos = nil 
-local SelectedPlayer = nil
+local IsActive = false
+local Radius = 50 -- ค่าเริ่มต้น
 
 -- [[ สร้าง UI ]]
 local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "PisitV5_Final"
+sg.Name = "PisitChestUI"
 sg.ResetOnSpawn = false
 
--- ตัวหน้าต่างหลัก
-local Main = Instance.new("Frame", sg)
-Main.Size = UDim2.new(0, 220, 0, 200) -- เพิ่มความสูงให้พอสำหรับ 3 ปุ่ม
-Main.Position = UDim2.new(0.5, -110, 0.3, 0)
-Main.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-Main.BorderSizePixel = 0
-Main.Active = true
-Instance.new("UICorner", Main)
+local main = Instance.new("Frame", sg)
+main.Size = UDim2.new(0, 220, 0, 150)
+main.Position = UDim2.new(0.5, -110, 0.2, 0)
+main.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+main.Active = true
+Instance.new("UICorner", main)
 
--- 🖐️ แถบสำหรับลาก (Drag Handle)
-local DragBar = Instance.new("Frame", Main)
-DragBar.Size = UDim2.new(1, 0, 0, 30)
-DragBar.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-DragBar.BorderSizePixel = 0
-Instance.new("UICorner", DragBar)
-local dragLabel = Instance.new("TextLabel", DragBar)
-dragLabel.Size = UDim2.new(1, 0, 1, 0)
-dragLabel.Text = "PISIT TP V5 (ลากตรงนี้)"
-dragLabel.TextColor3 = Color3.new(1, 1, 1)
-dragLabel.BackgroundTransparency = 1
-dragLabel.Font = "SourceSansBold"
+-- ปุ่มเปิด/ปิด (Toggle)
+local toggleBtn = Instance.new("TextButton", main)
+toggleBtn.Size = UDim2.new(0, 180, 0, 40)
+toggleBtn.Position = UDim2.new(0.5, -90, 0.15, 0)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+toggleBtn.Text = "เปิดกล่อง: OFF"
+toggleBtn.TextColor3 = Color3.new(1, 1, 1)
+toggleBtn.Font = "SourceSansBold"
+Instance.new("UICorner", toggleBtn)
 
--- 🔳 ปุ่มที่ 1: เลือกชื่อ
-local selectBtn = Instance.new("TextButton", Main)
-selectBtn.Name = "Button1"
-selectBtn.Size = UDim2.new(0, 200, 0, 40)
-selectBtn.Position = UDim2.new(0.5, -100, 0.2, 0)
-selectBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-selectBtn.Text = "1. กดเพื่อเลือกชื่อ"
-selectBtn.TextColor3 = Color3.new(1, 1, 1)
-selectBtn.Font = "SourceSansBold"
-Instance.new("UICorner", selectBtn)
+-- แถบเลื่อนปรับรัศมี (Slider Frame)
+local sliderFrame = Instance.new("Frame", main)
+sliderFrame.Size = UDim2.new(0, 180, 0, 10)
+sliderFrame.Position = UDim2.new(0.5, -90, 0.65, 0)
+sliderFrame.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 
--- 🔴 ปุ่มที่ 2: วาร์ปไปหา (GO)
-local goBtn = Instance.new("TextButton", Main)
-goBtn.Name = "Button2"
-goBtn.Size = UDim2.new(0, 200, 0, 40)
-goBtn.Position = UDim2.new(0.5, -100, 0.45, 0)
-goBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
-goBtn.Text = "2. วาร์ปไปหา (GO)"
-goBtn.TextColor3 = Color3.new(1, 1, 1)
-goBtn.Font = "SourceSansBold"
-Instance.new("UICorner", goBtn)
+local sliderDot = Instance.new("TextButton", sliderFrame)
+sliderDot.Size = UDim2.new(0, 15, 0, 25)
+sliderDot.Position = UDim2.new(0.5, -7, 0.5, -12)
+sliderDot.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+sliderDot.Text = ""
+Instance.new("UICorner", sliderDot)
 
--- 🟢 ปุ่มที่ 3: วาร์ปกลับ (BACK)
-local backBtn = Instance.new("TextButton", Main)
-backBtn.Name = "Button3"
-backBtn.Size = UDim2.new(0, 200, 0, 40)
-backBtn.Position = UDim2.new(0.5, -100, 0.7, 0)
-backBtn.BackgroundColor3 = Color3.fromRGB(0, 130, 0)
-backBtn.Text = "3. วาร์ปกลับ (BACK)"
-backBtn.TextColor3 = Color3.new(1, 1, 1)
-backBtn.Font = "SourceSansBold"
-Instance.new("UICorner", backBtn)
+local radiusLabel = Instance.new("TextLabel", main)
+radiusLabel.Size = UDim2.new(1, 0, 0, 20)
+radiusLabel.Position = UDim2.new(0, 0, 0.75, 0)
+radiusLabel.BackgroundTransparency = 1
+radiusLabel.Text = "รัศมี: 50"
+radiusLabel.TextColor3 = Color3.new(1, 1, 1)
+radiusLabel.Font = "SourceSansBold"
 
--- 📜 รายชื่อผู้เล่น (Scrolling List)
-local List = Instance.new("ScrollingFrame", Main)
-List.Size = UDim2.new(0, 200, 0, 150)
-List.Position = UDim2.new(1.05, 0, 0, 0) -- เด้งออกทางขวา
-List.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-List.Visible = false
-List.ScrollBarThickness = 5
-Instance.new("UICorner", List)
-local layout = Instance.new("UIListLayout", List)
-layout.Padding = UDim.new(0, 4)
+-- [[ สร้างวงกลมแดงแจ้งเตือนรัศมี ]]
+local highlightCircle = Instance.new("Part")
+highlightCircle.Shape = Enum.PartType.Cylinder
+highlightCircle.Size = Vector3.new(0.5, Radius * 2, Radius * 2)
+highlightCircle.Color = Color3.fromRGB(255, 0, 0)
+highlightCircle.Transparency = 0.7
+highlightCircle.Material = Enum.Material.ForceField
+highlightCircle.CanCollide = false
+highlightCircle.Anchored = true
+highlightCircle.Rotation = Vector3.new(0, 0, 90)
+highlightCircle.Parent = workspace
 
 ---------------------------------------------------------
 -- [ ฟังก์ชันการทำงาน ]
 ---------------------------------------------------------
 
--- ฟังก์ชันสร้างรายชื่อคนในเซิร์ฟ
-local function RefreshList()
-    for _, child in pairs(List:GetChildren()) do if child:IsA("TextButton") then child:Destroy() end end
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer then
-            local b = Instance.new("TextButton", List)
-            b.Size = UDim2.new(1, -10, 0, 30)
-            b.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-            b.Text = p.DisplayName
-            b.TextColor3 = Color3.new(1, 1, 1)
-            Instance.new("UICorner", b)
-            b.MouseButton1Click:Connect(function()
-                SelectedPlayer = p
-                selectBtn.Text = "เป้าหมาย: " .. p.DisplayName
-                List.Visible = false
-            end)
+-- ระบบ Slider (ปรับ 1-100)
+local draggingSlider = false
+sliderDot.MouseButton1Down:Connect(function() draggingSlider = true end)
+UserInputService.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then draggingSlider = false end end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if draggingSlider and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local mouseX = input.Position.X
+        local sliderX = sliderFrame.AbsolutePosition.X
+        local sliderWidth = sliderFrame.AbsoluteSize.X
+        local percent = math.clamp((mouseX - sliderX) / sliderWidth, 0, 1)
+        
+        sliderDot.Position = UDim2.new(percent, -7, 0.5, -12)
+        Radius = math.floor(percent * 100)
+        if Radius < 1 then Radius = 1 end
+        radiusLabel.Text = "รัศมี: " .. Radius
+        highlightCircle.Size = Vector3.new(0.5, Radius * 2, Radius * 2)
+    end
+end)
+
+-- ปุ่มเปิด/ปิด
+toggleBtn.MouseButton1Click:Connect(function()
+    IsActive = not IsActive
+    if IsActive then
+        toggleBtn.Text = "เปิดกล่อง: ON"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+    else
+        toggleBtn.Text = "เปิดกล่อง: OFF"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+    end
+end)
+
+-- ระบบเก็บอัตโนมัติ (วนลูป)
+RunService.RenderStepped:Connect(function()
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        highlightCircle.Position = char.HumanoidRootPart.Position - Vector3.new(0, 3, 0)
+        
+        if IsActive then
+            -- ค้นหากล่องอัญมณีในรัศมี
+            for _, obj in pairs(workspace:GetDescendants()) do
+                -- ตรวจสอบชื่อกล่อง (ปรับชื่อตามในเกมของคุณ)
+                if obj.Name == "กล่องอัญมณี" or obj:FindFirstChild("กล่องอัญมณี") then
+                    local targetPos = obj:IsA("Model") and obj:GetPivot().Position or obj.Position
+                    local distance = (char.HumanoidRootPart.Position - targetPos).Magnitude
+                    
+                    if distance <= Radius then
+                        -- จำลองการกด (Interact)
+                        -- ถ้ามี ProximityPrompt ให้ใช้คำสั่งนี้:
+                        local prompt = obj:FindFirstChildOfClass("ProximityPrompt") or obj.Parent:FindFirstChildOfClass("ProximityPrompt")
+                        if prompt then
+                            fireproximityprompt(prompt)
+                        end
+                    end
+                end
+            end
         end
     end
-    List.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y)
-end
-
--- กดปุ่ม 1
-selectBtn.MouseButton1Click:Connect(function()
-    List.Visible = not List.Visible
-    if List.Visible then RefreshList() end
 end)
 
--- กดปุ่ม 2 (วาร์ปไป)
-goBtn.MouseButton1Click:Connect(function()
-    local myChar = LocalPlayer.Character
-    if SelectedPlayer and SelectedPlayer.Character and myChar then
-        local myHRP = myChar:FindFirstChild("HumanoidRootPart")
-        local targetHRP = SelectedPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if myHRP and targetHRP then
-            LastPos = myHRP.CFrame -- เซฟพิกัดปัจจุบันก่อนไป
-            myHRP.CFrame = targetHRP.CFrame * CFrame.new(0, 3, 0)
-        end
-    end
-end)
-
--- กดปุ่ม 3 (วาร์ปกลับ)
-backBtn.MouseButton1Click:Connect(function()
-    local myChar = LocalPlayer.Character
-    if myChar and myChar:FindFirstChild("HumanoidRootPart") and LastPos then
-        myChar.HumanoidRootPart.CFrame = LastPos
-    end
-end)
-
----------------------------------------------------------
--- [ ระบบลาก (Drag) - ปรับปรุงใหม่ ]
----------------------------------------------------------
+-- ระบบลาก UI
 local dragging, dragStart, startPos
-DragBar.InputBegan:Connect(function(input)
+main.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true; dragStart = input.Position; startPos = Main.Position
+        dragging = true; dragStart = input.Position; startPos = main.Position
     end
 end)
 UserInputService.InputChanged:Connect(function(input)
     if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local delta = input.Position - dragStart
-        Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
-UserInputService.InputEnded:Connect(function(input) dragging = false end)
+UserInputService.InputEnded:Connect(function() dragging = false end)
