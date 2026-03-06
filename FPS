@@ -1,138 +1,105 @@
--- [[ ᴘɪꜱɪᴛ ꜰᴘꜱ ʙᴏᴏꜱᴛᴇʀ - DRAG FIXED ]]
--- OWNER: ไกรสร พิสิษฐ์ 🫡
+-- [[ ᴘɪꜱɪᴛ  ꜱᴍᴀʀᴛ  ᴡᴀʏᴘᴏɪɴᴛ  ᴠ10 ]]
+-- ระบบวาร์ปตามพิกัดที่คุณมาร์ค + เช็คปุ่มกดหน้างาน
 
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local Lighting = game:GetService("Lighting")
-local Terrain = game:GetService("Workspace"):FindFirstChildOfClass("Terrain")
 local LocalPlayer = Players.LocalPlayer
+local Workspace = game:GetService("Workspace")
 
--- ลบ UI เก่าถ้ามี
-if LocalPlayer.PlayerGui:FindFirstChild("PisitPotatoUI") then
-    LocalPlayer.PlayerGui.PisitPotatoUI:Destroy()
-end
+local IsActive = false
 
-local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-screenGui.Name = "PisitPotatoUI"
-screenGui.ResetOnSpawn = false
+-- [[ รายชื่อพิกัดที่คุณส่งมา ]]
+local Waypoints = {
+    CFrame.new(-88.003, 5552.998, -221.353),
+    CFrame.new(-135.423, 5555.694, -210.967),
+    CFrame.new(-115.435, 5548.998, -221.574)
+}
 
--- ตัวกลุ่มหลัก (Parent ของทั้งสองปุ่ม)
-local MainFrame = Instance.new("Frame", screenGui)
-MainFrame.Size = UDim2.new(0, 110, 0, 50)
-MainFrame.Position = UDim2.new(0.8, 0, 0.5, 0)
-MainFrame.BackgroundTransparency = 1
-MainFrame.Active = true -- ทำให้รับ Input ได้
+-- [[ สร้าง UI ]]
+local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+sg.Name = "PisitWaypointUI"
+sg.ResetOnSpawn = false
 
--- ปุ่มกลมด้านซ้าย (FPS)
-local mainBtn = Instance.new("TextButton", MainFrame)
-mainBtn.Size = UDim2.new(0, 50, 0, 50)
-mainBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-mainBtn.Text = "FPS"
-mainBtn.Font = "SourceSansBold"
-mainBtn.TextSize = 16
-mainBtn.TextColor3 = Color3.new(1, 1, 1)
-Instance.new("UICorner", mainBtn).CornerRadius = UDim.new(1, 0)
-local stroke = Instance.new("UIStroke", mainBtn); stroke.Thickness = 2; stroke.Color = Color3.new(1,1,1)
-
--- ปุ่มสถานะด้านขวา (OFF/ON)
-local toggleBtn = Instance.new("TextButton", MainFrame)
-toggleBtn.Size = UDim2.new(0, 50, 0, 30)
-toggleBtn.Position = UDim2.new(0, 55, 0.5, -15)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-toggleBtn.Text = "OFF"
-toggleBtn.Font = "SourceSansBold"
-toggleBtn.TextSize = 14
-toggleBtn.TextColor3 = Color3.new(1, 1, 1)
-Instance.new("UICorner", toggleBtn).CornerRadius = UDim.new(0, 8)
+local btn = Instance.new("TextButton", sg)
+btn.Size = UDim2.new(0, 200, 0, 50)
+btn.Position = UDim2.new(0.5, -100, 0.1, 0)
+btn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+btn.Text = "เริ่มวาร์ปฟาร์ม: OFF"
+btn.TextColor3 = Color3.new(1, 1, 1)
+btn.Font = "SourceSansBold"
+btn.TextSize = 20
+Instance.new("UICorner", btn)
 
 ---------------------------------------------------------
--- [ ระบบลากใหม่ (ลื่นกว่าเดิม และกดได้ปกติ) ]
+-- [ ฟังก์ชันเช็คปุ่มและทำงาน ]
 ---------------------------------------------------------
-local dragging, dragInput, dragStart, startPos
 
-local function update(input)
-    local delta = input.Position - dragStart
-    MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-end
-
--- ฟังก์ชันดักจับการเริ่มลากจากทุุกปุ่มในกลุ่ม
-local function setupDrag(obj)
-    obj.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = MainFrame.Position
+local function StartFarming()
+    while IsActive do
+        for i, pos in ipairs(Waypoints) do
+            if not IsActive then break end
             
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
+            local char = LocalPlayer.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            
+            if hrp then
+                -- 1. วาร์ปไปที่จุดมาร์ค
+                hrp.CFrame = pos * CFrame.new(0, 2, 0) -- โผล่เหนือพื้นนิดนึง
+                task.wait(0.3) -- รอให้แมพโหลดเสี้ยววินาที
+                
+                -- 2. ตรวจหาปุ่มกด (ProximityPrompt) ในระยะใกล้ๆ จุดนั้น
+                local foundPrompt = nil
+                for _, v in pairs(Workspace:GetDescendants()) do
+                    if v:IsA("ProximityPrompt") then
+                        local dist = (hrp.Position - v.Parent:GetPivot().Position).Magnitude
+                        if dist <= 10 then -- ถ้ารัศมีใกล้ปุ่มไม่เกิน 10 หน่วย
+                            foundPrompt = v
+                            break
+                        end
+                    end
                 end
-            end)
+                
+                -- 3. ถ้าเจอให้กด ถ้าไม่เจอให้ข้าม
+                if foundPrompt then
+                    print("เจอเป้าหมายที่จุดที่ " .. i .. " กำลังกด...")
+                    fireproximityprompt(foundPrompt)
+                    task.wait(0.5) -- รอให้เก็บเสร็จ
+                else
+                    print("จุดที่ " .. i .. " ไม่มีกล่อง ข้ามไปจุดต่อไป")
+                end
+            end
+            task.wait(0.2)
         end
-    end)
-    
-    obj.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
+        task.wait(1) -- พักรอบก่อนเริ่มวาร์ปวนใหม่
+    end
 end
 
-setupDrag(mainBtn)
-setupDrag(toggleBtn)
-
-UserInputService.InputChanged:Connect(function(input)
-    if input == dragInput and dragging then
-        update(input)
-    end
-end)
-
 ---------------------------------------------------------
--- [ ฟังก์ชันปรับภาพดินน้ำมัน ]
+-- [ ระบบปุ่มกด ]
 ---------------------------------------------------------
-local isPotato = false
 
-local function SetPotato(state)
-    if state then
-        toggleBtn.Text = "ON"
-        toggleBtn.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
-        stroke.Color = Color3.fromRGB(50, 200, 50)
-        
-        -- ปรับ Material ทั้งแมพ (ดินน้ำมัน)
-        for _, v in pairs(game:GetDescendants()) do
-            pcall(function()
-                if v:IsA("Part") or v:IsA("UnionOperation") or v:IsA("MeshPart") then
-                    v.Material = Enum.Material.SmoothPlastic
-                    v.Reflectance = 0
-                elseif v:IsA("Decal") or v:IsA("Texture") then
-                    v.Transparency = 1
-                elseif v:IsA("ParticleEmitter") or v:IsA("Trail") then
-                    v.Enabled = false
-                end
-            end)
-        end
-        Lighting.GlobalShadows = false
-        settings().Rendering.QualityLevel = 1
-        if Terrain then Terrain.WaterWaveSize = 0; Terrain.WaterWaveSpeed = 0 end
+btn.MouseButton1Click:Connect(function()
+    IsActive = not IsActive
+    if IsActive then
+        btn.Text = "เริ่มวาร์ปฟาร์ม: ON"
+        btn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+        StartFarming()
     else
-        toggleBtn.Text = "OFF"
-        toggleBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-        stroke.Color = Color3.new(1,1,1)
-        -- หมายเหตุ: การแก้ภาพกลับอาจต้องใช้ทรัพยากรมาก ส่วนใหญ่จะเน้นเปิดแล้วยาวเลย
-    end
-end
-
--- ระบบคลิก (แยกออกจากลาก)
-mainBtn.MouseButton1Up:Connect(function()
-    if not dragging then -- ป้องกันการเปลี่ยนสถานะขณะกำลังลาก
-        isPotato = not isPotato
-        SetPotato(isPotato)
+        btn.Text = "เริ่มวาร์ปฟาร์ม: OFF"
+        btn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
     end
 end)
 
-toggleBtn.MouseButton1Up:Connect(function()
-    if not dragging then
-        isPotato = not isPotato
-        SetPotato(isPotato)
+-- ทำให้ปุ่มลากได้
+local dragging, dragStart, startPos
+btn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true; dragStart = input.Position; startPos = btn.Position
     end
 end)
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        btn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+btn.InputEnded:Connect(function() dragging = false end)
