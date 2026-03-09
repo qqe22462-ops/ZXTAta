@@ -1,6 +1,6 @@
--- [[ ᴘɪꜱɪᴛ  ᴀꜰᴋ  ᴄʟɪᴄᴋᴇʀ  ᴠ12 ]]
--- แก้ไข: ไม่ให้คลิกโดนปุ่มตัวเอง + รองรับการ AFK ระยะยาว
--- ความเร็ว: 20ms (0.02 วินาที)
+-- [[ ᴘɪꜱɪᴛ  ᴄᴇɴᴛᴇʀ  ᴀꜰᴋ  ᴄʟɪᴄᴋᴇʀ  ᴠ13 ]]
+-- ระบบรัวคลิกกลางหน้าจออัตโนมัติ (20ms)
+-- ออกแบบมาเพื่อการ AFK โดยเฉพาะ
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -9,126 +9,67 @@ local RunService = game:GetService("RunService")
 local VIM = game:GetService("VirtualInputManager")
 
 local IsActive = false
-local ClickPoint1 = nil 
-local ClickInterval = 0.02 
+local ClickInterval = 0.02 -- ความเร็ว 20 มิลลิวินาที
 
--- [[ สร้าง UI หลัก ]]
+-- [[ สร้าง UI ปุ่มเปิด/ปิด ]]
 local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "PisitAFK_V12"
+sg.Name = "PisitCenterClicker_V13"
 sg.ResetOnSpawn = false
-sg.DisplayOrder = 999 -- ให้ UI อยู่หน้าสุดเสมอ
+sg.DisplayOrder = 1000
 
-local main = Instance.new("Frame", sg)
-main.Size = UDim2.new(0, 160, 0, 130)
-main.Position = UDim2.new(0.1, 0, 0.4, 0)
-main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-main.Active = true
-Instance.new("UICorner", main)
+local toggleBtn = Instance.new("TextButton", sg)
+toggleBtn.Size = UDim2.new(0, 150, 0, 50)
+toggleBtn.Position = UDim2.new(0.1, 0, 0.5, 0)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+toggleBtn.Text = "เริ่ม AFK: OFF"
+toggleBtn.TextColor3 = Color3.new(1, 1, 1)
+toggleBtn.Font = "SourceSansBold"
+toggleBtn.TextSize = 18
+Instance.new("UICorner", toggleBtn)
 
--- ปุ่มเพิ่มเลข 1
-local addBtn = Instance.new("TextButton", main)
-addBtn.Size = UDim2.new(0, 140, 0, 45)
-addBtn.Position = UDim2.new(0.5, -70, 0.1, 0)
-addBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-addBtn.Text = "เพิ่มเลข 1 (จุดคลิก)"
-addBtn.TextColor3 = Color3.new(1, 1, 1)
-addBtn.Font = "SourceSansBold"
-Instance.new("UICorner", addBtn)
-
--- ปุ่มเริ่ม/หยุด (สีเขียว/แดง)
-local startBtn = Instance.new("TextButton", main)
-startBtn.Size = UDim2.new(0, 140, 0, 45)
-startBtn.Position = UDim2.new(0.5, -70, 0.55, 0)
-startBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-startBtn.Text = "เริ่มคลิก (AFK)"
-startBtn.TextColor3 = Color3.new(1, 1, 1)
-startBtn.Font = "SourceSansBold"
-Instance.new("UICorner", startBtn)
-
----------------------------------------------------------
--- [ ฟังก์ชันสร้างจุดคลิกเลข 1 ]
----------------------------------------------------------
-
-local function MakePoint()
-    if ClickPoint1 then ClickPoint1:Destroy() end
-    
-    local p = Instance.new("TextButton", sg)
-    p.Name = "ClickPoint_Target"
-    p.Size = UDim2.new(0, 45, 0, 45)
-    p.Position = UDim2.new(0.5, 0, 0.5, 0)
-    p.BackgroundColor3 = Color3.fromRGB(255, 40, 40)
-    p.Text = "1"
-    p.TextColor3 = Color3.new(1, 1, 1)
-    p.Font = "SourceSansBold"
-    p.TextSize = 25
-    p.BackgroundTransparency = 0.4
-    Instance.new("UICorner", p).CornerRadius = UDim.new(1, 0)
-    
-    -- ระบบลากแบบสมูท
-    local drag, ds, sp
-    p.InputBegan:Connect(function(i)
-        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
-            drag = true ds = i.Position sp = p.Position
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(i)
-        if drag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
-            local delta = i.Position - ds
-            p.Position = UDim2.new(sp.X.Scale, sp.X.Offset + delta.X, sp.Y.Scale, sp.Y.Offset + delta.Y)
-        end
-    end)
-    UserInputService.InputEnded:Connect(function() drag = false end)
-    
-    ClickPoint1 = p
-end
-
----------------------------------------------------------
--- [ ระบบออโต้คลิก ]
----------------------------------------------------------
-
-addBtn.MouseButton1Click:Connect(function()
-    MakePoint()
-end)
-
-startBtn.MouseButton1Click:Connect(function()
-    if not ClickPoint1 then return end
-    IsActive = not IsActive
-    
-    if IsActive then
-        startBtn.Text = "หยุด (STOP)"
-        startBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-        -- ปรับจุดคลิกให้ไม่ขวางทางเมาส์
-        ClickPoint1.Active = false 
-        ClickPoint1.Selectable = false
-    else
-        startBtn.Text = "เริ่มคลิก (AFK)"
-        startBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-        ClickPoint1.Active = true
-    end
-end)
-
--- ลูปคลิกแบบเจาะจงเลเยอร์เกม (Virtual Input)
-local last = 0
+-- [[ ระบบการคลิกกลางหน้าจอ ]]
+local lastClick = 0
 RunService.Heartbeat:Connect(function()
-    if IsActive and ClickPoint1 then
+    if IsActive then
         local now = tick()
-        if now - last >= ClickInterval then
-            last = now
+        if now - lastClick >= ClickInterval then
+            lastClick = now
             
-            -- คำนวณตำแหน่งกลางเลข 1
-            local x = ClickPoint1.AbsolutePosition.X + (ClickPoint1.AbsoluteSize.X / 2)
-            local y = ClickPoint1.AbsolutePosition.Y + (ClickPoint1.AbsoluteSize.Y / 2) + 36
+            -- คำนวณจุดกึ่งกลางหน้าจอ
+            local cam = workspace.CurrentCamera
+            local centerX = cam.ViewportSize.X / 2
+            local centerY = cam.ViewportSize.Y / 2
             
-            -- ส่งคำสั่งคลิกข้ามผ่าน UI ไปยังเกม
-            VIM:SendMouseButtonEvent(x, y, 0, true, game, 1)
-            VIM:SendMouseButtonEvent(x, y, 0, false, game, 1)
+            -- ส่งคำสั่งคลิกไปที่กลางจอ
+            VIM:SendMouseButtonEvent(centerX, centerY, 0, true, game, 1)
+            VIM:SendMouseButtonEvent(centerX, centerY, 0, false, game, 1)
         end
     end
 end)
 
--- ระบบลากเมนูหลัก
-local md, mds, msp
-main.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then md = true mds = i.Position msp = main.Position end end)
-UserInputService.InputChanged:Connect(function(i) if md and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then local del = i.Position - mds main.Position = UDim2.new(msp.X.Scale, msp.X.Offset + del.X, msp.Y.Scale, msp.Y.Offset + del.Y) end end)
-UserInputService.InputEnded:Connect(function() md = false end)
-:Connect(function() d = false end)
+-- [[ ระบบปุ่มควบคุม ]]
+toggleBtn.MouseButton1Click:Connect(function()
+    IsActive = not IsActive
+    if IsActive then
+        toggleBtn.Text = "เริ่ม AFK: ON"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+    else
+        toggleBtn.Text = "เริ่ม AFK: OFF"
+        toggleBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+    end
+end)
+
+-- [[ ระบบลากปุ่ม (Drag) ]]
+local dragging, dragStart, startPos
+toggleBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true; dragStart = input.Position; startPos = toggleBtn.Position
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        toggleBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function() dragging = false end)
