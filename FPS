@@ -1,5 +1,5 @@
--- [[ ᴘɪꜱɪᴛ  ᴀᴜᴛᴏ  ᴄʟɪᴄᴋᴇʀ  ᴠ11 ]]
--- ปุ่ม 1: เพิ่มจุดคลิกเลข 1 | ปุ่ม 2: เริ่ม/หยุด (สีเขียว)
+-- [[ ᴘɪꜱɪᴛ  ᴀꜰᴋ  ᴄʟɪᴄᴋᴇʀ  ᴠ12 ]]
+-- แก้ไข: ไม่ให้คลิกโดนปุ่มตัวเอง + รองรับการ AFK ระยะยาว
 -- ความเร็ว: 20ms (0.02 วินาที)
 
 local Players = game:GetService("Players")
@@ -9,123 +9,126 @@ local RunService = game:GetService("RunService")
 local VIM = game:GetService("VirtualInputManager")
 
 local IsActive = false
-local ClickPoint = nil -- สำหรับเก็บตำแหน่งเลข 1
-local ClickInterval = 0.02 -- 20 มิลลิวินาที
+local ClickPoint1 = nil 
+local ClickInterval = 0.02 
 
 -- [[ สร้าง UI หลัก ]]
 local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "PisitClickerV11"
+sg.Name = "PisitAFK_V12"
 sg.ResetOnSpawn = false
+sg.DisplayOrder = 999 -- ให้ UI อยู่หน้าสุดเสมอ
 
-local mainFrame = Instance.new("Frame", sg)
-mainFrame.Size = UDim2.new(0, 150, 0, 120)
-mainFrame.Position = UDim2.new(0.1, 0, 0.4, 0)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-mainFrame.BorderSizePixel = 0
-Instance.new("UICorner", mainFrame)
+local main = Instance.new("Frame", sg)
+main.Size = UDim2.new(0, 160, 0, 130)
+main.Position = UDim2.new(0.1, 0, 0.4, 0)
+main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+main.Active = true
+Instance.new("UICorner", main)
 
--- 1. ปุ่มเพิ่มเลข 1
-local addBtn = Instance.new("TextButton", mainFrame)
-addBtn.Size = UDim2.new(0, 130, 0, 40)
-addBtn.Position = UDim2.new(0.5, -65, 0.15, 0)
-addBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-addBtn.Text = "เพิ่มเลข 1"
+-- ปุ่มเพิ่มเลข 1
+local addBtn = Instance.new("TextButton", main)
+addBtn.Size = UDim2.new(0, 140, 0, 45)
+addBtn.Position = UDim2.new(0.5, -70, 0.1, 0)
+addBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+addBtn.Text = "เพิ่มเลข 1 (จุดคลิก)"
 addBtn.TextColor3 = Color3.new(1, 1, 1)
 addBtn.Font = "SourceSansBold"
 Instance.new("UICorner", addBtn)
 
--- 2. ปุ่มเริ่ม (สีเขียว)
-local startBtn = Instance.new("TextButton", mainFrame)
-startBtn.Size = UDim2.new(0, 130, 0, 40)
-startBtn.Position = UDim2.new(0.5, -65, 0.55, 0)
+-- ปุ่มเริ่ม/หยุด (สีเขียว/แดง)
+local startBtn = Instance.new("TextButton", main)
+startBtn.Size = UDim2.new(0, 140, 0, 45)
+startBtn.Position = UDim2.new(0.5, -70, 0.55, 0)
 startBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-startBtn.Text = "เริ่ม (START)"
+startBtn.Text = "เริ่มคลิก (AFK)"
 startBtn.TextColor3 = Color3.new(1, 1, 1)
 startBtn.Font = "SourceSansBold"
 Instance.new("UICorner", startBtn)
 
 ---------------------------------------------------------
--- [ ฟังก์ชันสร้างเลข 1 ]
+-- [ ฟังก์ชันสร้างจุดคลิกเลข 1 ]
 ---------------------------------------------------------
 
-local function CreatePoint1()
-    if ClickPoint then ClickPoint:Destroy() end -- ถ้ามีเลข 1 อยู่แล้วให้ลบสร้างใหม่
+local function MakePoint()
+    if ClickPoint1 then ClickPoint1:Destroy() end
     
     local p = Instance.new("TextButton", sg)
-    p.Size = UDim2.new(0, 50, 0, 50)
+    p.Name = "ClickPoint_Target"
+    p.Size = UDim2.new(0, 45, 0, 45)
     p.Position = UDim2.new(0.5, 0, 0.5, 0)
-    p.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    p.BackgroundColor3 = Color3.fromRGB(255, 40, 40)
     p.Text = "1"
     p.TextColor3 = Color3.new(1, 1, 1)
-    p.TextSize = 30
     p.Font = "SourceSansBold"
-    p.BackgroundTransparency = 0.3
-    p.BorderSizePixel = 0
-    p.ZIndex = 10
+    p.TextSize = 25
+    p.BackgroundTransparency = 0.4
+    Instance.new("UICorner", p).CornerRadius = UDim.new(1, 0)
     
-    local corner = Instance.new("UICorner", p)
-    corner.CornerRadius = UDim.new(1, 0) -- ทำให้กลม
-    
-    -- ทำให้เลข 1 ลากได้
-    local dragging, dragStart, startPos
-    p.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true; dragStart = input.Position; startPos = p.Position
+    -- ระบบลากแบบสมูท
+    local drag, ds, sp
+    p.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+            drag = true ds = i.Position sp = p.Position
         end
     end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - dragStart
-            p.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    UserInputService.InputChanged:Connect(function(i)
+        if drag and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+            local delta = i.Position - ds
+            p.Position = UDim2.new(sp.X.Scale, sp.X.Offset + delta.X, sp.Y.Scale, sp.Y.Offset + delta.Y)
         end
     end)
-    UserInputService.InputEnded:Connect(function() dragging = false end)
+    UserInputService.InputEnded:Connect(function() drag = false end)
     
-    ClickPoint = p
+    ClickPoint1 = p
 end
 
 ---------------------------------------------------------
--- [ ระบบการทำงาน ]
+-- [ ระบบออโต้คลิก ]
 ---------------------------------------------------------
 
 addBtn.MouseButton1Click:Connect(function()
-    CreatePoint1()
+    MakePoint()
 end)
 
 startBtn.MouseButton1Click:Connect(function()
-    if not ClickPoint then return end -- ถ้ายังไม่กดเพิ่มเลข 1 ไม่ให้เริ่ม
-    
+    if not ClickPoint1 then return end
     IsActive = not IsActive
+    
     if IsActive then
         startBtn.Text = "หยุด (STOP)"
         startBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+        -- ปรับจุดคลิกให้ไม่ขวางทางเมาส์
+        ClickPoint1.Active = false 
+        ClickPoint1.Selectable = false
     else
-        startBtn.Text = "เริ่ม (START)"
+        startBtn.Text = "เริ่มคลิก (AFK)"
         startBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+        ClickPoint1.Active = true
     end
 end)
 
--- ลูปการคลิก
-local lastClick = 0
+-- ลูปคลิกแบบเจาะจงเลเยอร์เกม (Virtual Input)
+local last = 0
 RunService.Heartbeat:Connect(function()
-    if IsActive and ClickPoint then
-        local currentTime = tick()
-        if currentTime - lastClick >= ClickInterval then
-            lastClick = currentTime
+    if IsActive and ClickPoint1 then
+        local now = tick()
+        if now - last >= ClickInterval then
+            last = now
             
-            -- พิกัดจุดกลางของเลข 1
-            local posX = ClickPoint.AbsolutePosition.X + (ClickPoint.AbsoluteSize.X / 2)
-            local posY = ClickPoint.AbsolutePosition.Y + (ClickPoint.AbsoluteSize.Y / 2) + 36 -- +36 สำหรับระยะขอบหน้าจอ
+            -- คำนวณตำแหน่งกลางเลข 1
+            local x = ClickPoint1.AbsolutePosition.X + (ClickPoint1.AbsoluteSize.X / 2)
+            local y = ClickPoint1.AbsolutePosition.Y + (ClickPoint1.AbsoluteSize.Y / 2) + 36
             
-            -- ส่งคำสั่งคลิก
-            VIM:SendMouseButtonEvent(posX, posY, 0, true, game, 1)
-            VIM:SendMouseButtonEvent(posX, posY, 0, false, game, 1)
+            -- ส่งคำสั่งคลิกข้ามผ่าน UI ไปยังเกม
+            VIM:SendMouseButtonEvent(x, y, 0, true, game, 1)
+            VIM:SendMouseButtonEvent(x, y, 0, false, game, 1)
         end
     end
 end)
 
--- ลาก UI หลัก
-local d, ds, sp
-mainFrame.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true ds = i.Position sp = mainFrame.Position end end)
-UserInputService.InputChanged:Connect(function(i) if d and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then local del = i.Position - ds mainFrame.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X, sp.Y.Scale, sp.Y.Offset + del.Y) end end)
-UserInputService.InputEnded:Connect(function() d = false end)
+-- ระบบลากเมนูหลัก
+local md, mds, msp
+main.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then md = true mds = i.Position msp = main.Position end end)
+UserInputService.InputChanged:Connect(function(i) if md and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then local del = i.Position - mds main.Position = UDim2.new(msp.X.Scale, msp.X.Offset + del.X, msp.Y.Scale, msp.Y.Offset + del.Y) end end)
+UserInputService.InputEnded:Connect(function() md = false end)
+:Connect(function() d = false end)
