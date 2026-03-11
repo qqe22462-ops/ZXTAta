@@ -1,111 +1,76 @@
--- [[ ᴘɪꜱɪᴛ  ᴘᴏꜱɪᴛɪᴏɴ  ʟᴏɢɢᴇʀ ]]
--- ระบบมาร์คพิกัดและเจนโค้ดสำหรับวาร์ป
+-- [[ ᴘɪꜱɪᴛ  ʀᴇᴍᴏᴛᴇ  ꜱᴘᴀᴍᴍᴇʀ  ᴠ14 ]]
+-- คำเตือน: การรันไวเกินไปอาจทำให้เครื่องคุณค้างเองด้วยนะ 555
 
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local UIS = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local TaskRemote = ReplicatedStorage:WaitForChild("TaskRemote")
 
--- [[ สร้าง UI ]]
-local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "PisitLoggerUI"
+local IsActive = false
+
+-- [[ สร้าง UI เปิด-ปิด ]]
+local sg = Instance.new("ScreenGui", game:GetService("Players").LocalPlayer.PlayerGui)
+sg.Name = "PisitSpammerUI"
 sg.ResetOnSpawn = false
 
-local main = Instance.new("Frame", sg)
-main.Size = UDim2.new(0, 300, 0, 200)
-main.Position = UDim2.new(0.5, -150, 0.4, 0)
-main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-main.Active = true
-Instance.new("UICorner", main)
-
--- หัวข้อ
-local title = Instance.new("TextLabel", main)
-title.Size = UDim2.new(1, 0, 0, 30)
-title.Text = "PISIT POS LOGGER (มาร์คจุด)"
-title.TextColor3 = Color3.new(1, 1, 1)
-title.BackgroundTransparency = 1
-title.Font = "SourceSansBold"
-
--- ช่องแสดงโค้ด (สำหรับ Copy)
-local codeBox = Instance.new("TextBox", main)
-codeBox.Size = UDim2.new(0, 280, 0, 80)
-codeBox.Position = UDim2.new(0.5, -140, 0.2, 0)
-codeBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-codeBox.Text = "-- พิกัดจะโผล่ตรงนี้ --"
-codeBox.TextColor3 = Color3.fromRGB(0, 255, 0)
-codeBox.TextWrapped = true
-codeBox.ClearTextOnFocus = false
-codeBox.TextSize = 14
-codeBox.Font = "Code"
-Instance.new("UICorner", codeBox)
-
--- ปุ่มกดมาร์คจุด
-local markBtn = Instance.new("TextButton", main)
-markBtn.Size = UDim2.new(0, 135, 0, 40)
-markBtn.Position = UDim2.new(0.05, 0, 0.7, 0)
-markBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 200)
-markBtn.Text = "📍 มาร์คจุดตรงนี้"
-markBtn.TextColor3 = Color3.new(1, 1, 1)
-markBtn.Font = "SourceSansBold"
-Instance.new("UICorner", markBtn)
-
--- ปุ่มล้างข้อความ
-local clearBtn = Instance.new("TextButton", main)
-clearBtn.Size = UDim2.new(0, 135, 0, 40)
-clearBtn.Position = UDim2.new(0.53, 0, 0.7, 0)
-clearBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
-clearBtn.Text = "ล้างข้อมูล"
-clearBtn.TextColor3 = Color3.new(1, 1, 1)
-clearBtn.Font = "SourceSansBold"
-Instance.new("UICorner", clearBtn)
+local btn = Instance.new("TextButton", sg)
+btn.Size = UDim2.new(0, 180, 0, 60)
+btn.Position = UDim2.new(0.5, -90, 0.1, 0)
+btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+btn.Text = "เริ่มสแปม: OFF"
+btn.TextColor3 = Color3.new(1, 1, 1)
+btn.Font = "SourceSansBold"
+btn.TextSize = 20
+Instance.new("UICorner", btn)
 
 ---------------------------------------------------------
--- [ ฟังก์ชันการทำงาน ]
+-- [ ระบบสแปม Remote ]
 ---------------------------------------------------------
 
-local pointCount = 0
-
-markBtn.MouseButton1Click:Connect(function()
-    local char = LocalPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    
-    if hrp then
-        pointCount = pointCount + 1
-        local cf = hrp.CFrame
-        -- เจนโค้ดรูปแบบพิกัด (CFrame)
-        local formattedCode = string.format("CFrame.new(%.3f, %.3f, %.3f)", cf.Position.X, cf.Position.Y, cf.Position.Z)
+local function StartSpamming()
+    -- ใช้ปืนกลเรียก Remote แบบไม่หยุดพัก
+    while IsActive do
+        -- ส่ง args ตามที่คุณให้มา
+        TaskRemote:FireServer(true)
         
-        -- เอาโค้ดไปใส่ในช่อง Text
-        if codeBox.Text == "-- พิกัดจะโผล่ตรงนี้ --" or codeBox.Text == "" then
-            codeBox.Text = "Point"..pointCount..": " .. formattedCode
-        else
-            codeBox.Text = codeBox.Text .. "\nPoint"..pointCount..": " .. formattedCode
-        end
+        -- task.wait() แบบไม่ใส่ตัวเลข คือการรอที่สั้นที่สุดเท่าที่ระบบจะทำได้ (ประมาณ 0.015 วิ หรือไวกว่านั้น)
+        task.wait() 
+    end
+end
+
+-- ถ้าอยากให้ "ค้าง" ของจริง ต้องใช้ลูปที่ไม่มีตัวรอ (แต่ระวัง: Roblox ของคุณจะดับทันที!)
+local function UltraSpam()
+    for i = 1, 1000 do -- ส่ง 1000 ครั้งในเฟรมเดียว
+        if not IsActive then break end
+        TaskRemote:FireServer(true)
+    end
+end
+
+---------------------------------------------------------
+-- [ ระบบปุ่ม ]
+---------------------------------------------------------
+
+btn.MouseButton1Click:Connect(function()
+    IsActive = not IsActive
+    if IsActive then
+        btn.Text = "เริ่มสแปม: ON"
+        btn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
         
-        -- แจ้งเตือนว่ามาร์คแล้ว
-        markBtn.Text = "✅ มาร์คแล้ว!"
-        task.wait(0.5)
-        markBtn.Text = "📍 มาร์คจุดตรงนี้"
+        -- รันใน Task เพื่อไม่ให้ UI ค้างจนกดปิดไม่ได้
+        task.spawn(function()
+            while IsActive do
+                UltraSpam()
+                RunService.Heartbeat:Wait() -- รอจบเฟรมแล้วซัดต่อ
+            end
+        end)
+    else
+        btn.Text = "เริ่มสแปม: OFF"
+        btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
     end
 end)
 
-clearBtn.MouseButton1Click:Connect(function()
-    codeBox.Text = ""
-    pointCount = 0
-end)
+-- ทำให้ปุ่มลากได้
+local d, ds, sp
+btn.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true ds = i.Position sp = btn.Position end end)
+game:GetService("UserInputService").InputChanged:Connect(function(i) if d and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then local del = i.Position - ds btn.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X, sp.Y.Scale, sp.Y.Offset + del.Y) end end)
+btn.InputEnded:Connect(function() d = false end)
 
----------------------------------------------------------
--- [ ระบบลาก UI ]
----------------------------------------------------------
-local dragging, dragStart, startPos
-main.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true; dragStart = input.Position; startPos = main.Position
-    end
-end)
-UIS.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStart
-        main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-UIS.InputEnded:Connect(function() dragging = false end)
