@@ -1,6 +1,7 @@
--- [[ ᴘɪꜱɪᴛ  ᴜʟᴛɪᴍᴀᴛᴇ  ᴍᴇɴᴜ  ᴠ25 ]]
--- ฟังก์ชันใหม่: ฟาร์ม ล.2 (ScrapLoot)
--- ระบบใหม่: คุ้ย 2 ครั้ง แล้วค่อยขาย 1 ครั้ง (Step Logic)
+-- [[ ᴘɪꜱɪᴛ  ᴜʟᴛɪᴍᴀᴛᴇ  ᴍᴇɴᴜ  ᴠ26 ]]
+-- ฟังก์ชันใหม่ล่าสุด: ฟาร์ม ล.3 (RadioactiveLoot)
+-- ระบบ: คุ้ย 2 ครั้ง แล้วค่อยขาย 1 ครั้ง (Step Logic)
+-- ตัวหนังสือ: ใหญ่พิเศษ อ่านง่าย 100%
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = game:GetService("Players").LocalPlayer
@@ -13,15 +14,16 @@ local States = {
     Present = false,
     Hunger = false,
     FarmL2 = false,
+    FarmL3 = false, -- ฟังก์ชันสุดท้ายที่เพิ่มมา
     UltraSpeed = false
 }
 
 -- [[ 1. สร้าง UI ]]
 local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "PisitU_Menu_V25"
+sg.Name = "PisitU_Menu_V26"
 sg.ResetOnSpawn = false
 
--- ปุ่มตัว U (ตัวหนังสือใหญ่ 45)
+-- ปุ่มตัว U (ตัวหนังสือใหญ่ 50)
 local uBtn = Instance.new("TextButton", sg)
 uBtn.Size = UDim2.new(0, 90, 0, 90)
 uBtn.Position = UDim2.new(0, 20, 0.5, -45)
@@ -29,13 +31,13 @@ uBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 uBtn.Text = "U"
 uBtn.TextColor3 = Color3.new(1, 1, 0)
 uBtn.Font = Enum.Font.SourceSansBold
-uBtn.TextSize = 50 
+uBtn.TextSize = 55 
 Instance.new("UICorner", uBtn).CornerRadius = UDim.new(1, 0)
 
--- หน้าต่างเมนู (ใหญ่ขึ้นเพื่อรองรับปุ่มใหม่)
+-- หน้าต่างเมนู (ขยายความสูงเพื่อรองรับปุ่ม ล.3)
 local menuFrame = Instance.new("Frame", sg)
-menuFrame.Size = UDim2.new(0, 300, 0, 480)
-menuFrame.Position = UDim2.new(0, 120, 0.5, -240)
+menuFrame.Size = UDim2.new(0, 320, 0, 550)
+menuFrame.Position = UDim2.new(0, 120, 0.5, -275)
 menuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 menuFrame.Visible = false
 Instance.new("UICorner", menuFrame)
@@ -80,16 +82,17 @@ Instance.new("UICorner", cancelBtn)
 -- [[ ฟังก์ชันสร้างปุ่ม ]]
 local function CreateBtn(name, pos, key)
     local btn = Instance.new("TextButton", menuFrame)
-    btn.Size = UDim2.new(0, 270, 0, 60)
+    btn.Size = UDim2.new(0, 290, 0, 55)
     btn.Position = pos
     btn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
     btn.Text = name .. ": OFF"
     btn.TextColor3 = Color3.new(1, 1, 1)
     btn.Font = Enum.Font.SourceSansBold
-    btn.TextSize = 24 -- ตัวหนังสือใหญ่สะใจ
+    btn.TextSize = 26 -- ตัวหนังสือใหญ่อ่านง่าย
     Instance.new("UICorner", btn)
     
     btn.MouseButton1Click:Connect(function()
+        -- ระบบล็อค: ถังขยะ กับ ของขวัญ ห้ามเปิดพร้อมกัน
         if (key == "Trash" and States.Present) or (key == "Present" and States.Trash) then return end
         
         if key == "UltraSpeed" and not States.UltraSpeed then
@@ -103,18 +106,25 @@ local function CreateBtn(name, pos, key)
     return btn
 end
 
-local trashBtn = CreateBtn("คุ้ยถังขยะ", UDim2.new(0.5, -135, 0.03, 0), "Trash")
-local presentBtn = CreateBtn("คุ้ยของขวัญ", UDim2.new(0.5, -135, 0.17, 0), "Present")
-local farmL2Btn = CreateBtn("ฟาร์ม ล.2", UDim2.new(0.5, -135, 0.31, 0), "FarmL2")
-local sellBtn = CreateBtn("ขายอัตโนมัติ", UDim2.new(0.5, -135, 0.45, 0), "Sell")
-local hungerBtn = CreateBtn("หิวไม่จำกัด", UDim2.new(0.5, -135, 0.59, 0), "Hunger")
-local speedBtn = CreateBtn("ฟาร์มเสี้ยววินาที", UDim2.new(0.5, -135, 0.82, 0), "UltraSpeed")
+-- สร้างปุ่มทั้งหมด
+CreateBtn("คุ้ยถังขยะ", UDim2.new(0.5, -145, 0.02, 0), "Trash")
+CreateBtn("คุ้ยของขวัญ", UDim2.new(0.5, -145, 0.14, 0), "Present")
+CreateBtn("ฟาร์ม ล.2", UDim2.new(0.5, -145, 0.26, 0), "FarmL2")
+CreateBtn("ฟาร์ม ล.3", UDim2.new(0.5, -145, 0.38, 0), "FarmL3") -- ปุ่มใหม่!
+CreateBtn("ขายอัตโนมัติ", UDim2.new(0.5, -145, 0.50, 0), "Sell")
+CreateBtn("หิวไม่จำกัด", UDim2.new(0.5, -145, 0.62, 0), "Hunger")
+CreateBtn("ฟาร์มเสี้ยววินาที", UDim2.new(0.5, -145, 0.85, 0), "UltraSpeed")
 
 okBtn.MouseButton1Click:Connect(function()
     States.UltraSpeed = true
-    speedBtn.Text = "ฟาร์มเสี้ยววินาที: ON"
-    speedBtn.BackgroundColor3 = Color3.fromRGB(255, 140, 0)
     warnFrame.Visible = false
+    -- อัปเดตสีปุ่มเสี้ยววินาที
+    for _, b in pairs(menuFrame:GetChildren()) do
+        if b:IsA("TextButton") and b.Text:find("เสี้ยววินาที") then
+            b.Text = "ฟาร์มเสี้ยววินาที: ON"
+            b.BackgroundColor3 = Color3.fromRGB(255, 140, 0)
+        end
+    end
 end)
 cancelBtn.MouseButton1Click:Connect(function() warnFrame.Visible = false end)
 
@@ -128,18 +138,18 @@ task.spawn(function()
         local loopCount = States.UltraSpeed and 100 or 1
         
         for i = 1, loopCount do
-            -- ทำงาน 2 รอบก่อนขาย (เพื่อให้คุ้ย 2 ครั้ง)
+            -- ทำงาน 2 รอบก่อนขาย
             for step = 1, 2 do
                 if States.Trash then ReplicatedStorage.TrashLoot:FireServer("Trash Can") end
                 if States.Present then ReplicatedStorage.TrashLoot:FireServer("Present Pile") end
                 if States.FarmL2 then ReplicatedStorage.ScrapLoot:FireServer("Junk") end
+                if States.FarmL3 then ReplicatedStorage.RadioactiveLoot:FireServer("RadioactiveJunk") end
                 if States.Hunger then ReplicatedStorage.ReduceHunger:FireServer(50) end
                 
-                -- ถ้าเป็นโหมดปกติ (ไม่ใช่เสี้ยววิ) ให้รอเล็กน้อยระหว่างคุ้ยครั้งที่ 1 และ 2
-                if not States.UltraSpeed then task.wait(0.1) end
+                if not States.UltraSpeed then task.wait(0.05) end
             end
             
-            -- หลังจากคุ้ยไป 2 รอบแล้ว ค่อยขาย 1 รอบ (ถ้าเปิดขาย)
+            -- คุ้ย 2 รอบเสร็จแล้ว ค่อยขาย 1 รอบ
             if States.Sell then
                 ReplicatedStorage.SellAllItems:FireServer()
             end
@@ -156,6 +166,6 @@ uBtn.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.Mou
 UserInputService.InputChanged:Connect(function(i) if d then 
     local del = i.Position - ds 
     uBtn.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X, sp.Y.Scale, sp.Y.Offset + del.Y)
-    menuFrame.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X + 100, sp.Y.Scale, sp.Y.Offset + del.Y - 200)
+    menuFrame.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X + 100, sp.Y.Scale, sp.Y.Offset + del.Y - 250)
 end end)
 uBtn.InputEnded:Connect(function() d = false end)
