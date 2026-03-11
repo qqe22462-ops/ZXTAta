@@ -1,75 +1,124 @@
--- [[ ᴘɪꜱɪᴛ  ɪɴꜰɪɴɪᴛᴇ-ꜱᴘᴇᴇᴅ  ꜰᴀʀᴍ  ᴠ21 ]]
--- ความเร็ว: 0.000000000001 (No Delay Spam)
--- ระบบ: ขายหมด + เก็บขยะ + เก็บของขวัญ (ยิงรัวพร้อมกัน)
+-- [[ ᴘɪꜱɪᴛ  ᴜʟᴛɪᴍᴀᴛᴇ  ᴍᴇɴᴜ  ᴠ22 ]]
+-- ฟังก์ชัน: คุ้ยถังขยะ, ขายอัตโนมัติ, คุ้ยของขวัญ, ความหิวไม่จำกัด
+-- ความเร็ว: Extreme Speed (No Delay)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = game:GetService("Players").LocalPlayer
-local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
-local IsActive = false
+-- สถานะเปิด/ปิดฟังก์ชัน
+local States = {
+    Trash = false,
+    Sell = false,
+    Present = false,
+    Hunger = false
+}
 
--- [[ สร้าง UI ]]
+-- [[ 1. สร้าง UI หลัก ]]
 local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "PisitSpeedFarmV21"
+sg.Name = "PisitU_Menu_V22"
 sg.ResetOnSpawn = false
 
-local mainBtn = Instance.new("TextButton", sg)
-mainBtn.Size = UDim2.new(0, 220, 0, 70)
-mainBtn.Position = UDim2.new(0.5, -110, 0.1, 0)
-mainBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-mainBtn.Text = "เริ่มฟาร์ม (ULTRA): OFF"
-mainBtn.TextColor3 = Color3.new(1, 1, 1)
-mainBtn.Font = Enum.Font.SourceSansBold
-mainBtn.TextSize = 20
-Instance.new("UICorner", mainBtn)
+-- ปุ่มตัว U (เปิด/ปิดเมนู)
+local uBtn = Instance.new("TextButton", sg)
+uBtn.Size = UDim2.new(0, 60, 0, 60)
+uBtn.Position = UDim2.new(0, 15, 0.5, -30)
+uBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+uBtn.Text = "U"
+uBtn.TextColor3 = Color3.new(1, 1, 0)
+uBtn.Font = Enum.Font.SourceSansBold
+uBtn.TextSize = 35
+Instance.new("UICorner", uBtn).CornerRadius = UDim.new(1, 0)
 
----------------------------------------------------------
--- [ ระบบรันแบบไร้ดีเลย์ (0.000000000001) ]
----------------------------------------------------------
+-- หน้าต่างเมนู
+local menuFrame = Instance.new("Frame", sg)
+menuFrame.Size = UDim2.new(0, 220, 0, 300)
+menuFrame.Position = UDim2.new(0, 85, 0.5, -150)
+menuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+menuFrame.Visible = false
+Instance.new("UICorner", menuFrame)
 
-local function UltraSpam()
-    local SellRemote = ReplicatedStorage:FindFirstChild("SellAllItems")
-    local LootRemote = ReplicatedStorage:FindFirstChild("TrashLoot")
+-- ฟังก์ชันสร้างปุ่มในเมนู
+local function CreateBtn(name, pos, stateKey)
+    local btn = Instance.new("TextButton", menuFrame)
+    btn.Size = UDim2.new(0, 200, 0, 60)
+    btn.Position = pos
+    btn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+    btn.Text = name .. ": OFF"
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 18
+    Instance.new("UICorner", btn)
     
-    -- ใช้ Loop ซ้อน Loop เพื่อให้ส่งคำสั่งหลายร้อยครั้งใน 1 เฟรม (ไวจัดๆ)
-    while IsActive do
-        for i = 1, 50 do -- ส่ง 50 ชุดคำสั่งพร้อมกันใน "ทันที"
-            if not IsActive then break end
-            
-            -- ยิงพร้อมกัน 3 อย่าง
-            if SellRemote then SellRemote:FireServer() end
-            if LootRemote then 
-                LootRemote:FireServer("Trash Can") 
-                LootRemote:FireServer("Present Pile")
-            end
-        end
-        -- พักรอนิดเดียวแค่จบเฟรมหน้าจอเพื่อไม่ให้ Roblox เด้งหลุด (Crash)
-        RunService.Heartbeat:Wait() 
-    end
+    btn.MouseButton1Click:Connect(function()
+        States[stateKey] = not States[stateKey]
+        btn.Text = name .. (States[stateKey] and ": ON" or ": OFF")
+        btn.BackgroundColor3 = States[stateKey] and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
+    end)
+    return btn
 end
 
+-- สร้าง 4 ปุ่มหลัก
+CreateBtn("คุ้ยถังขยะ", UDim2.new(0.5, -100, 0.05, 0), "Trash")
+CreateBtn("ขายอัตโนมัติ", UDim2.new(0.5, -100, 0.28, 0), "Sell")
+CreateBtn("คุ้ยกล่องของขวัญ", UDim2.new(0.5, -100, 0.51, 0), "Present")
+CreateBtn("ความหิวไม่จำกัด", UDim2.new(0.5, -100, 0.74, 0), "Hunger")
+
 ---------------------------------------------------------
--- [ ระบบปุ่ม ]
+-- [ ระบบ Loop การทำงาน (Extreme Speed) ]
 ---------------------------------------------------------
 
-mainBtn.MouseButton1Click:Connect(function()
-    IsActive = not IsActive
-    if IsActive then
-        mainBtn.Text = "เริ่มฟาร์ม (ULTRA): ON"
-        mainBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-        task.spawn(UltraSpam)
-    else
-        mainBtn.Text = "เริ่มฟาร์ม (ULTRA): OFF"
-        mainBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+task.spawn(function()
+    while true do
+        -- ใช้ Heartbeat เพื่อให้รันไวที่สุดเท่าที่จะทำได้ในแต่ละเฟรม
+        RunService.Heartbeat:Wait()
+        
+        -- คุ้ยถังขยะ
+        if States.Trash then
+            task.spawn(function()
+                ReplicatedStorage:WaitForChild("TrashLoot"):FireServer("Trash Can")
+            end)
+        end
+        
+        -- ขายอัตโนมัติ
+        if States.Sell then
+            task.spawn(function()
+                ReplicatedStorage:WaitForChild("SellAllItems"):FireServer()
+            end)
+        end
+        
+        -- คุ้ยกล่องของขวัญ
+        if States.Present then
+            task.spawn(function()
+                ReplicatedStorage:WaitForChild("TrashLoot"):FireServer("Present Pile")
+            end)
+        end
+        
+        -- ความหิวไม่จำกัด
+        if States.Hunger then
+            task.spawn(function()
+                ReplicatedStorage:WaitForChild("ReduceHunger"):FireServer(50)
+            end)
+        end
     end
 end)
 
--- ระบบลากปุ่ม (Drag)
+---------------------------------------------------------
+-- [ ระบบควบคุม UI ]
+---------------------------------------------------------
+
+-- ปุ่ม U เปิดปิดเมนู
+uBtn.MouseButton1Click:Connect(function()
+    menuFrame.Visible = not menuFrame.Visible
+end)
+
+-- ลากปุ่ม U ได้
 local d, ds, sp
-mainBtn.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true ds = i.Position sp = mainBtn.Position end end)
+uBtn.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true ds = i.Position sp = uBtn.Position end end)
 UserInputService.InputChanged:Connect(function(i) if d and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then 
     local del = i.Position - ds 
-    mainBtn.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X, sp.Y.Scale, sp.Y.Offset + del.Y) 
+    uBtn.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X, sp.Y.Scale, sp.Y.Offset + del.Y)
+    menuFrame.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X + 70, sp.Y.Scale, sp.Y.Offset + del.Y - 120)
 end end)
-mainBtn.InputEnded:Connect(function() d = false end)
+uBtn.InputEnded:Connect(function() d = false end)
