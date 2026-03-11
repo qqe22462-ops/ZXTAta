@@ -1,26 +1,25 @@
--- [[ ᴘɪꜱɪᴛ  ᴜʟᴛɪᴍᴀᴛᴇ  ᴍᴇɴᴜ  ᴠ22 ]]
--- ฟังก์ชัน: คุ้ยถังขยะ, ขายอัตโนมัติ, คุ้ยของขวัญ, ความหิวไม่จำกัด
--- ความเร็ว: Extreme Speed (No Delay)
+-- [[ ᴘɪꜱɪᴛ  ᴜʟᴛɪᴍᴀᴛᴇ  ᴍᴇɴᴜ  ᴠ23 ]]
+-- ฟังก์ชัน: คุ้ยถังขยะ vs คุ้ยของขวัญ (เปิดได้ทีละอย่าง)
+-- พิเศษ: โหมดฟาร์มในเสี้ยววินาที (0.0000001s) พร้อมระบบแจ้งเตือน
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = game:GetService("Players").LocalPlayer
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
--- สถานะเปิด/ปิดฟังก์ชัน
 local States = {
     Trash = false,
     Sell = false,
     Present = false,
-    Hunger = false
+    Hunger = false,
+    UltraSpeed = false
 }
 
--- [[ 1. สร้าง UI หลัก ]]
-local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "PisitU_Menu_V22"
+-- [[ 1. สร้าง UI ]]
+local sg = Instance.new("ScreenGui", LocalPlayer.Parent:FindFirstChild("PlayerGui") or LocalPlayer.PlayerGui)
+sg.Name = "PisitU_Menu_V23"
 sg.ResetOnSpawn = false
 
--- ปุ่มตัว U (เปิด/ปิดเมนู)
 local uBtn = Instance.new("TextButton", sg)
 uBtn.Size = UDim2.new(0, 60, 0, 60)
 uBtn.Position = UDim2.new(0, 15, 0.5, -30)
@@ -31,94 +30,166 @@ uBtn.Font = Enum.Font.SourceSansBold
 uBtn.TextSize = 35
 Instance.new("UICorner", uBtn).CornerRadius = UDim.new(1, 0)
 
--- หน้าต่างเมนู
 local menuFrame = Instance.new("Frame", sg)
-menuFrame.Size = UDim2.new(0, 220, 0, 300)
-menuFrame.Position = UDim2.new(0, 85, 0.5, -150)
+menuFrame.Size = UDim2.new(0, 240, 0, 380)
+menuFrame.Position = UDim2.new(0, 85, 0.5, -190)
 menuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 menuFrame.Visible = false
 Instance.new("UICorner", menuFrame)
 
--- ฟังก์ชันสร้างปุ่มในเมนู
-local function CreateBtn(name, pos, stateKey)
+-- [[ หน้าต่างแจ้งเตือน (Warning Box) ]]
+local warnFrame = Instance.new("Frame", sg)
+warnFrame.Size = UDim2.new(0, 300, 0, 150)
+warnFrame.Position = UDim2.new(0.5, -150, 0.5, -75)
+warnFrame.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
+warnFrame.BorderSizePixel = 2
+warnFrame.Visible = false
+warnFrame.ZIndex = 10
+Instance.new("UICorner", warnFrame)
+
+local warnText = Instance.new("TextLabel", warnFrame)
+warnText.Size = UDim2.new(1, 0, 0.6, 0)
+warnText.Text = "ระวัง! เครื่องคุณอาจจะกระตุก\nหรือค้างได้เลยเมื่อเปิดโหมดนี้"
+warnText.TextColor3 = Color3.new(1, 1, 1)
+warnText.BackgroundTransparency = 1
+warnText.TextSize = 18
+warnText.Font = Enum.Font.SourceSansBold
+
+local okBtn = Instance.new("TextButton", warnFrame)
+okBtn.Size = UDim2.new(0, 100, 0, 40)
+okBtn.Position = UDim2.new(0.2, -50, 0.8, -20)
+okBtn.Text = "ตกลง"
+okBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+okBtn.Parent = warnFrame
+
+local cancelBtn = Instance.new("TextButton", warnFrame)
+cancelBtn.Size = UDim2.new(0, 100, 0, 40)
+cancelBtn.Position = UDim2.new(0.8, -50, 0.8, -20)
+cancelBtn.Text = "ยกเลิก"
+cancelBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+cancelBtn.Parent = warnFrame
+
+-- [[ ฟังก์ชันสร้างปุ่ม ]]
+local Buttons = {}
+local function CreateBtn(name, pos, key)
     local btn = Instance.new("TextButton", menuFrame)
-    btn.Size = UDim2.new(0, 200, 0, 60)
+    btn.Size = UDim2.new(0, 220, 0, 50)
     btn.Position = pos
     btn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
     btn.Text = name .. ": OFF"
     btn.TextColor3 = Color3.new(1, 1, 1)
     btn.Font = Enum.Font.SourceSansBold
-    btn.TextSize = 18
     Instance.new("UICorner", btn)
-    
-    btn.MouseButton1Click:Connect(function()
-        States[stateKey] = not States[stateKey]
-        btn.Text = name .. (States[stateKey] and ": ON" or ": OFF")
-        btn.BackgroundColor3 = States[stateKey] and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
-    end)
+    Buttons[key] = btn
     return btn
 end
 
--- สร้าง 4 ปุ่มหลัก
-CreateBtn("คุ้ยถังขยะ", UDim2.new(0.5, -100, 0.05, 0), "Trash")
-CreateBtn("ขายอัตโนมัติ", UDim2.new(0.5, -100, 0.28, 0), "Sell")
-CreateBtn("คุ้ยกล่องของขวัญ", UDim2.new(0.5, -100, 0.51, 0), "Present")
-CreateBtn("ความหิวไม่จำกัด", UDim2.new(0.5, -100, 0.74, 0), "Hunger")
+local trashBtn = CreateBtn("คุ้ยถังขยะ", UDim2.new(0.5, -110, 0.05, 0), "Trash")
+local sellBtn = CreateBtn("ขายอัตโนมัติ", UDim2.new(0.5, -110, 0.20, 0), "Sell")
+local presentBtn = CreateBtn("คุ้ยกล่องของขวัญ", UDim2.new(0.5, -110, 0.35, 0), "Present")
+local hungerBtn = CreateBtn("ความหิวไม่จำกัด", UDim2.new(0.5, -110, 0.50, 0), "Hunger")
+local speedBtn = CreateBtn("ฟาร์มในเสี้ยววินาที", UDim2.new(0.5, -110, 0.75, 0), "UltraSpeed")
+speedBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
 
 ---------------------------------------------------------
--- [ ระบบ Loop การทำงาน (Extreme Speed) ]
+-- [ ระบบ Logic ล็อคปุ่ม ]
+---------------------------------------------------------
+
+trashBtn.MouseButton1Click:Connect(function()
+    if States.Present then return end -- ถ้าเปิดของขวัญอยู่ กดไม่ได้
+    States.Trash = not States.Trash
+    trashBtn.Text = "คุ้ยถังขยะ: " .. (States.Trash and "ON" or "OFF")
+    trashBtn.BackgroundColor3 = States.Trash and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
+    -- ล็อคปุ่มของขวัญ
+    presentBtn.AutoButtonColor = not States.Trash
+    presentBtn.BackgroundTransparency = States.Trash and 0.5 or 0
+end)
+
+presentBtn.MouseButton1Click:Connect(function()
+    if States.Trash then return end -- ถ้าเปิดถังขยะอยู่ กดไม่ได้
+    States.Present = not States.Present
+    presentBtn.Text = "คุ้ยกล่องของขวัญ: " .. (States.Present and "ON" or "OFF")
+    presentBtn.BackgroundColor3 = States.Present and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
+    -- ล็อคปุ่มถังขยะ
+    trashBtn.AutoButtonColor = not States.Present
+    trashBtn.BackgroundTransparency = States.Present and 0.5 or 0
+end)
+
+sellBtn.MouseButton1Click:Connect(function()
+    States.Sell = not States.Sell
+    sellBtn.Text = "ขายอัตโนมัติ: " .. (States.Sell and "ON" or "OFF")
+    sellBtn.BackgroundColor3 = States.Sell and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
+end)
+
+hungerBtn.MouseButton1Click:Connect(function()
+    States.Hunger = not States.Hunger
+    hungerBtn.Text = "ความหิวไม่จำกัด: " .. (States.Hunger and "ON" or "OFF")
+    hungerBtn.BackgroundColor3 = States.Hunger and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
+end)
+
+-- ระบบแจ้งเตือนโหมดเสี้ยววินาที
+speedBtn.MouseButton1Click:Connect(function()
+    if States.UltraSpeed then -- ถ้าเปิดอยู่แล้วให้ปิดได้เลย
+        States.UltraSpeed = false
+        speedBtn.Text = "ฟาร์มในเสี้ยววินาที: OFF"
+        speedBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    else
+        warnFrame.Visible = true -- เปิดหน้าต่างแจ้งเตือน
+    end
+end)
+
+okBtn.MouseButton1Click:Connect(function()
+    States.UltraSpeed = true
+    speedBtn.Text = "ฟาร์มในเสี้ยววินาที: ON"
+    speedBtn.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+    warnFrame.Visible = false
+end)
+
+cancelBtn.MouseButton1Click:Connect(function()
+    warnFrame.Visible = false
+end)
+
+---------------------------------------------------------
+-- [ ระบบรัน Loop (Extreme Speed Logic) ]
 ---------------------------------------------------------
 
 task.spawn(function()
     while true do
-        -- ใช้ Heartbeat เพื่อให้รันไวที่สุดเท่าที่จะทำได้ในแต่ละเฟรม
         RunService.Heartbeat:Wait()
         
-        -- คุ้ยถังขยะ
-        if States.Trash then
-            task.spawn(function()
+        -- จำนวนรอบการรัน (ถ้าเปิดโหมดเสี้ยววินาที จะรัน 100 ครั้งต่อเฟรม)
+        local loopCount = States.UltraSpeed and 100 or 1
+        
+        for i = 1, loopCount do
+            if States.Trash then
                 ReplicatedStorage:WaitForChild("TrashLoot"):FireServer("Trash Can")
-            end)
-        end
-        
-        -- ขายอัตโนมัติ
-        if States.Sell then
-            task.spawn(function()
-                ReplicatedStorage:WaitForChild("SellAllItems"):FireServer()
-            end)
-        end
-        
-        -- คุ้ยกล่องของขวัญ
-        if States.Present then
-            task.spawn(function()
+            end
+            
+            if States.Present then
                 ReplicatedStorage:WaitForChild("TrashLoot"):FireServer("Present Pile")
-            end)
-        end
-        
-        -- ความหิวไม่จำกัด
-        if States.Hunger then
-            task.spawn(function()
+            end
+            
+            if States.Sell then
+                ReplicatedStorage:WaitForChild("SellAllItems"):FireServer()
+            end
+            
+            if States.Hunger then
                 ReplicatedStorage:WaitForChild("ReduceHunger"):FireServer(50)
-            end)
+            end
+            
+            -- ถ้าไม่ใช่โหมดเสี้ยววินาที ให้หยุดรัน Loop นี้ทันที (รันแค่ครั้งเดียวปกติ)
+            if not States.UltraSpeed then break end
         end
     end
 end)
 
----------------------------------------------------------
--- [ ระบบควบคุม UI ]
----------------------------------------------------------
-
--- ปุ่ม U เปิดปิดเมนู
-uBtn.MouseButton1Click:Connect(function()
-    menuFrame.Visible = not menuFrame.Visible
-end)
-
--- ลากปุ่ม U ได้
+-- ระบบ UI (ลากปุ่ม U)
+uBtn.MouseButton1Click:Connect(function() menuFrame.Visible = not menuFrame.Visible end)
 local d, ds, sp
 uBtn.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true ds = i.Position sp = uBtn.Position end end)
 UserInputService.InputChanged:Connect(function(i) if d and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then 
     local del = i.Position - ds 
     uBtn.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X, sp.Y.Scale, sp.Y.Offset + del.Y)
-    menuFrame.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X + 70, sp.Y.Scale, sp.Y.Offset + del.Y - 120)
+    menuFrame.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X + 70, sp.Y.Scale, sp.Y.Offset + del.Y - 150)
 end end)
 uBtn.InputEnded:Connect(function() d = false end)
