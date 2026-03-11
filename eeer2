@@ -1,190 +1,86 @@
--- [[ ᴘɪꜱɪᴛ  ᴜʟᴛɪᴍᴀᴛᴇ  ᴍᴇɴᴜ  ᴠ17 ]]
--- แก้ไข: เพิ่มระบบ Safety Check ให้ UI ขึ้นแน่นอน 100%
+-- [[ ᴘɪꜱɪᴛ  Qᴜɪᴄᴋ-ꜰᴀʀᴍ  ᴠ19 ]]
+-- ระบบ: ขายของหมด + เก็บขยะ (สลับกัน 0.001 วิ)
+-- รูปแบบ: ปุ่มเดียว On/Off ลากได้
 
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+local UserInputService = game:GetService("UserInputService")
 
-local SpamActive = false
-local SpectateActive = false
-local ESPActive = false
+local IsActive = false
 
--- [[ 1. สร้าง UI ก่อนทุกอย่าง (เพื่อให้รันแล้วเห็นผลทันที) ]]
-local sg = Instance.new("ScreenGui")
-sg.Name = "PisitU_Menu_V17"
+-- [[ สร้าง UI ปุ่มหลัก ]]
+local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+sg.Name = "PisitQuickFarmUI"
 sg.ResetOnSpawn = false
-sg.IgnoreGuiInset = true
-sg.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
--- ปุ่มตัว U (เมนูหลัก)
-local uBtn = Instance.new("TextButton", sg)
-uBtn.Size = UDim2.new(0, 60, 0, 60)
-uBtn.Position = UDim2.new(0.05, 0, 0.4, 0)
-uBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-uBtn.Text = "U"
-uBtn.TextColor3 = Color3.new(1, 1, 0)
-uBtn.Font = Enum.Font.SourceSansBold
-uBtn.TextSize = 35
-local uCorner = Instance.new("UICorner", uBtn)
-uCorner.CornerRadius = UDim.new(1, 0)
+local mainBtn = Instance.new("TextButton", sg)
+mainBtn.Size = UDim2.new(0, 200, 0, 60)
+mainBtn.Position = UDim2.new(0.5, -100, 0.1, 0)
+mainBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+mainBtn.Text = "เริ่มฟาร์มขยะ: OFF"
+mainBtn.TextColor3 = Color3.new(1, 1, 1)
+mainBtn.Font = Enum.Font.SourceSansBold
+mainBtn.TextSize = 20
+Instance.new("UICorner", mainBtn)
 
--- หน้าต่างเมนู
-local mainFrame = Instance.new("Frame", sg)
-mainFrame.Size = UDim2.new(0, 220, 0, 260)
-mainFrame.Position = UDim2.new(0.05, 70, 0.4, -100)
-mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-mainFrame.Visible = false
-Instance.new("UICorner", mainFrame)
+---------------------------------------------------------
+-- [ ระบบสลับรัน Remote ]
+---------------------------------------------------------
 
-local function CreateMenuBtn(text, pos, color)
-    local b = Instance.new("TextButton", mainFrame)
-    b.Size = UDim2.new(0, 200, 0, 55)
-    b.Position = pos
-    b.BackgroundColor3 = color
-    b.Text = text
-    b.TextColor3 = Color3.new(1, 1, 1)
-    b.Font = Enum.Font.SourceSansBold
-    b.TextSize = 18
-    Instance.new("UICorner", b)
-    return b
+local function StartLoop()
+    local SellRemote = ReplicatedStorage:FindFirstChild("SellAllItems")
+    local LootRemote = ReplicatedStorage:FindFirstChild("TrashLoot")
+    
+    while IsActive do
+        -- 1. ขายของ
+        if SellRemote then
+            SellRemote:FireServer()
+        end
+        
+        task.wait(0.001) -- พักตามที่คุณต้องการ
+        
+        -- 2. เก็บขยะ
+        if LootRemote then
+            LootRemote:FireServer("Trash Bag")
+        end
+        
+        task.wait(0.001)
+    end
 end
 
-local spamBtn = CreateMenuBtn("สแปมเศษเงิน: OFF", UDim2.new(0.5, -100, 0.05, 0), Color3.fromRGB(150, 0, 0))
-local stickBtn = CreateMenuBtn("สิงวิญญาณคนใกล้", UDim2.new(0.5, -100, 0.38, 0), Color3.fromRGB(0, 100, 200))
-local espBtn = CreateMenuBtn("มองทะลุ (ESP): OFF", UDim2.new(0.5, -100, 0.71, 0), Color3.fromRGB(100, 0, 150))
+---------------------------------------------------------
+-- [ ระบบควบคุมปุ่ม ]
+---------------------------------------------------------
 
----------------------------------------------------------
--- [ ระบบสแปมเศษเงิน (เช็ค Remote กันค้าง) ]
----------------------------------------------------------
-spamBtn.MouseButton1Click:Connect(function()
-    SpamActive = not SpamActive
-    spamBtn.Text = SpamActive and "สแปมเศษเงิน: ON" or "สแปมเศษเงิน: OFF"
-    spamBtn.BackgroundColor3 = SpamActive and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
-    
-    if SpamActive then
-        task.spawn(function()
-            -- ตรวจหา Remote ถ้าไม่เจอจะไม่รันต่อเพื่อกันบัก
-            local targetRemote = ReplicatedStorage:FindFirstChild("TaskRemote")
-            while SpamActive do
-                if targetRemote then
-                    targetRemote:FireServer(true)
-                end
-                task.wait() -- ปรับความเร็วให้พอดีกับที่เครื่องรับไหว
-            end
-        end)
+mainBtn.MouseButton1Click:Connect(function()
+    IsActive = not IsActive
+    if IsActive then
+        mainBtn.Text = "เริ่มฟาร์มขยะ: ON"
+        mainBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+        task.spawn(StartLoop)
+    else
+        mainBtn.Text = "เริ่มฟาร์มขยะ: OFF"
+        mainBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
     end
 end)
 
----------------------------------------------------------
--- [ ระบบสิงวิญญาณ ]
----------------------------------------------------------
-stickBtn.MouseButton1Click:Connect(function()
-    if SpectateActive then return end
-    
-    local target = nil
-    local shortestDist = math.huge
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-            local dist = (LocalPlayer.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude
-            if dist < shortestDist then
-                shortestDist = dist
-                target = p
-            end
-        end
-    end
-
-    if target then
-        SpectateActive = true
-        local hrp = LocalPlayer.Character.HumanoidRootPart
-        local oldPos = hrp.CFrame
-        
-        local connection
-        connection = RunService.Heartbeat:Connect(function()
-            if target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
-                hrp.CFrame = target.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 2)
-            end
-        end)
-        
-        task.wait(2)
-        connection:Disconnect()
-        hrp.CFrame = oldPos
-        SpectateActive = false
-    end
-end)
-
----------------------------------------------------------
--- [ ระบบมองทะลุ + เลือด ]
----------------------------------------------------------
-local function AddESP(p)
-    if p == LocalPlayer then return end
-    local char = p.Character or p.CharacterAdded:Wait()
-    
-    -- Highlight
-    local hl = Instance.new("Highlight", char)
-    hl.Name = "PisitHighlight"
-    hl.FillColor = Color3.fromRGB(255, 0, 0)
-    hl.OutlineColor = Color3.new(1,1,1)
-    
-    -- HP Label
-    local bg = Instance.new("BillboardGui", char:WaitForChild("Head"))
-    bg.Name = "PisitHP"
-    bg.AlwaysOnTop = true
-    bg.Size = UDim2.new(0, 100, 0, 50)
-    bg.StudsOffset = Vector3.new(0, 2, 0)
-    
-    local tl = Instance.new("TextLabel", bg)
-    tl.Size = UDim2.new(1, 0, 1, 0)
-    tl.BackgroundTransparency = 1
-    tl.TextColor3 = Color3.new(0, 1, 0)
-    tl.Font = Enum.Font.SourceSansBold
-    tl.TextSize = 16
-
-    local ev
-    ev = RunService.RenderStepped:Connect(function()
-        if not ESPActive or not char or not char:Parent then
-            hl:Destroy() bg:Destroy() ev:Disconnect()
-        else
-            local hum = char:FindFirstChild("Humanoid")
-            if hum then
-                tl.Text = p.Name .. "\n[" .. math.floor(hum.Health) .. "]"
-            end
-        end
-    end)
-end
-
-espBtn.MouseButton1Click:Connect(function()
-    ESPActive = not ESPActive
-    espBtn.Text = ESPActive and "มองทะลุ: ON" or "มองทะลุ: OFF"
-    espBtn.BackgroundColor3 = ESPActive and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(100, 0, 150)
-    
-    if ESPActive then
-        for _, p in pairs(Players:GetPlayers()) do AddESP(p) end
-    end
-end)
-
--- ระบบเปิดปิดเมนู U
-uBtn.MouseButton1Click:Connect(function()
-    mainFrame.Visible = not mainFrame.Visible
-end)
-
--- ระบบลากปุ่ม U (เพื่อให้ใช้บนมือถือได้ชัวร์)
+-- ระบบลากปุ่ม (เพื่อให้วางหลบมุมได้)
 local dragging, dragStart, startPos
-uBtn.InputBegan:Connect(function(input)
+mainBtn.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = true
         dragStart = input.Position
-        startPos = uBtn.Position
+        startPos = mainBtn.Position
     end
 end)
 
-UserInputService = game:GetService("UserInputService")
 UserInputService.InputChanged:Connect(function(input)
     if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local delta = input.Position - dragStart
-        uBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X + 70, startPos.Y.Scale, startPos.Y.Offset + delta.Y - 100)
+        mainBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
 
-uBtn.InputEnded:Connect(function() dragging = false end)
+UserInputService.InputEnded:Connect(function()
+    dragging = false
+end)
