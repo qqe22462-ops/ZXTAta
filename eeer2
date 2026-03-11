@@ -1,76 +1,168 @@
--- [[ ᴘɪꜱɪᴛ  ʀᴇᴍᴏᴛᴇ  ꜱᴘᴀᴍᴍᴇʀ  ᴠ14 ]]
--- คำเตือน: การรันไวเกินไปอาจทำให้เครื่องคุณค้างเองด้วยนะ 555
+-- [[ ᴘɪꜱɪᴛ  ᴜʟᴛɪᴍᴀᴛᴇ  ᴍᴇɴᴜ  ᴠ16 ]]
+-- ฟังก์ชัน 1: สแปมเศษเงิน (ถล่ม Remote)
+-- ฟังก์ชัน 2: สิงวิญญาณ (ติดตัว 2 วิ)
+-- ฟังก์ชัน 3: มองทะลุ (ESP + HP Bar)
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TaskRemote = ReplicatedStorage:WaitForChild("TaskRemote")
 
-local IsActive = false
+local SpamActive = false
+local SpectateActive = false
+local ESPActive = false
 
--- [[ สร้าง UI เปิด-ปิด ]]
-local sg = Instance.new("ScreenGui", game:GetService("Players").LocalPlayer.PlayerGui)
-sg.Name = "PisitSpammerUI"
+-- [[ สร้าง UI เมนูหลัก ]]
+local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+sg.Name = "PisitU_Menu_V16"
 sg.ResetOnSpawn = false
 
-local btn = Instance.new("TextButton", sg)
-btn.Size = UDim2.new(0, 180, 0, 60)
-btn.Position = UDim2.new(0.5, -90, 0.1, 0)
-btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-btn.Text = "เริ่มสแปม: OFF"
-btn.TextColor3 = Color3.new(1, 1, 1)
-btn.Font = "SourceSansBold"
-btn.TextSize = 20
-Instance.new("UICorner", btn)
+-- ปุ่มตัว U
+local uBtn = Instance.new("TextButton", sg)
+uBtn.Size = UDim2.new(0, 50, 0, 50)
+uBtn.Position = UDim2.new(0, 10, 0.5, -25)
+uBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+uBtn.Text = "U"
+uBtn.TextColor3 = Color3.new(1, 1, 0)
+uBtn.Font = "SourceSansBold"
+uBtn.TextSize = 30
+Instance.new("UICorner", uBtn).CornerRadius = UDim.new(1, 0)
 
----------------------------------------------------------
--- [ ระบบสแปม Remote ]
----------------------------------------------------------
+-- หน้าต่างเมนู
+local mainFrame = Instance.new("Frame", sg)
+mainFrame.Size = UDim2.new(0, 200, 0, 240)
+mainFrame.Position = UDim2.new(0, 70, 0.5, -120)
+mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+mainFrame.Visible = false
+Instance.new("UICorner", mainFrame)
 
-local function StartSpamming()
-    -- ใช้ปืนกลเรียก Remote แบบไม่หยุดพัก
-    while IsActive do
-        -- ส่ง args ตามที่คุณให้มา
-        TaskRemote:FireServer(true)
-        
-        -- task.wait() แบบไม่ใส่ตัวเลข คือการรอที่สั้นที่สุดเท่าที่ระบบจะทำได้ (ประมาณ 0.015 วิ หรือไวกว่านั้น)
-        task.wait() 
-    end
+local function CreateMenuBtn(text, pos, color)
+    local b = Instance.new("TextButton", mainFrame)
+    b.Size = UDim2.new(0, 180, 0, 50)
+    b.Position = pos
+    b.BackgroundColor3 = color
+    b.Text = text
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.Font = "SourceSansBold"
+    Instance.new("UICorner", b)
+    return b
 end
 
--- ถ้าอยากให้ "ค้าง" ของจริง ต้องใช้ลูปที่ไม่มีตัวรอ (แต่ระวัง: Roblox ของคุณจะดับทันที!)
-local function UltraSpam()
-    for i = 1, 1000 do -- ส่ง 1000 ครั้งในเฟรมเดียว
-        if not IsActive then break end
-        TaskRemote:FireServer(true)
-    end
+local spamBtn = CreateMenuBtn("สแปมเศษเงิน: OFF", UDim2.new(0.5, -90, 0.05, 0), Color3.fromRGB(150, 0, 0))
+local stickBtn = CreateMenuBtn("สิงวิญญาณคนใกล้", UDim2.new(0.5, -90, 0.38, 0), Color3.fromRGB(0, 100, 200))
+local espBtn = CreateMenuBtn("เปิดมองทะลุ: OFF", UDim2.new(0.5, -90, 0.71, 0), Color3.fromRGB(100, 0, 150))
+
+---------------------------------------------------------
+-- [ ฟังก์ชันที่ 3: ระบบ ESP + HP ]
+---------------------------------------------------------
+
+local function CreateESP(player)
+    local highlight = Instance.new("Highlight")
+    highlight.Name = "PisitESP"
+    highlight.Adornee = player.Character
+    highlight.FillColor = Color3.fromRGB(255, 0, 0)
+    highlight.FillTransparency = 0.5
+    highlight.OutlineColor = Color3.new(1, 1, 1)
+    highlight.Parent = player.Character
+
+    local billboard = Instance.new("BillboardGui")
+    billboard.Name = "PisitHP"
+    billboard.Adornee = player.Character:WaitForChild("Head")
+    billboard.Size = UDim2.new(0, 100, 0, 50)
+    billboard.StudsOffset = Vector3.new(0, 3, 0)
+    billboard.AlwaysOnTop = true
+    billboard.Parent = player.Character
+
+    local hpLabel = Instance.new("TextLabel", billboard)
+    hpLabel.Size = UDim2.new(1, 0, 1, 0)
+    hpLabel.BackgroundTransparency = 1
+    hpLabel.TextColor3 = Color3.new(0, 1, 0)
+    hpLabel.Font = "SourceSansBold"
+    hpLabel.TextSize = 14
+
+    local connection
+    connection = RunService.RenderStepped:Connect(function()
+        if not ESPActive or not player.Character or not player.Character:FindFirstChild("Humanoid") then
+            highlight:Destroy()
+            billboard:Destroy()
+            connection:Disconnect()
+        else
+            local hp = math.floor(player.Character.Humanoid.Health)
+            hpLabel.Text = player.Name .. "\nHP: " .. hp
+            if hp < 50 then hpLabel.TextColor3 = Color3.new(1, 1, 0) end
+            if hp < 25 then hpLabel.TextColor3 = Color3.new(1, 0, 0) end
+        end
+    end)
 end
 
----------------------------------------------------------
--- [ ระบบปุ่ม ]
----------------------------------------------------------
-
-btn.MouseButton1Click:Connect(function()
-    IsActive = not IsActive
-    if IsActive then
-        btn.Text = "เริ่มสแปม: ON"
-        btn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-        
-        -- รันใน Task เพื่อไม่ให้ UI ค้างจนกดปิดไม่ได้
-        task.spawn(function()
-            while IsActive do
-                UltraSpam()
-                RunService.Heartbeat:Wait() -- รอจบเฟรมแล้วซัดต่อ
-            end
+espBtn.MouseButton1Click:Connect(function()
+    ESPActive = not ESPActive
+    espBtn.Text = ESPActive and "เปิดมองทะลุ: ON" or "เปิดมองทะลุ: OFF"
+    espBtn.BackgroundColor3 = ESPActive and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(100, 0, 150))
+    
+    if ESPActive then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character then CreateESP(p) end
+        end
+        Players.PlayerAdded:Connect(function(p)
+            p.CharacterAdded:Connect(function(char) if ESPActive then task.wait(0.5) CreateESP(p) end end)
         end)
-    else
-        btn.Text = "เริ่มสแปม: OFF"
-        btn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
     end
 end)
 
--- ทำให้ปุ่มลากได้
+---------------------------------------------------------
+-- [ ฟังก์ชัน 1 & 2 (เหมือนเดิมแต่ปรับปรุงความเสถียร) ]
+---------------------------------------------------------
+
+spamBtn.MouseButton1Click:Connect(function()
+    SpamActive = not SpamActive
+    spamBtn.Text = SpamActive and "สแปมเศษเงิน: ON" or "สแปมเศษเงิน: OFF"
+    spamBtn.BackgroundColor3 = SpamActive and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
+    if SpamActive then
+        task.spawn(function()
+            while SpamActive do
+                TaskRemote:FireServer(true)
+                RunService.Heartbeat:Wait()
+            end
+        end)
+    end
+end)
+
+stickBtn.MouseButton1Click:Connect(function()
+    local target = nil
+    local dist = math.huge
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            local d = (LocalPlayer.Character.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude
+            if d < dist then dist = d target = p end
+        end
+    end
+    
+    if target and not SpectateActive then
+        SpectateActive = true
+        local hrp = LocalPlayer.Character.HumanoidRootPart
+        local oldPos = hrp.CFrame
+        local con = RunService.Heartbeat:Connect(function()
+            if target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+                hrp.CFrame = target.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 2)
+            end
+        end)
+        task.wait(2)
+        con:Disconnect()
+        hrp.CFrame = oldPos
+        SpectateActive = false
+    end
+end)
+
+-- ระบบ UI (ลากได้/เปิดปิด)
+uBtn.MouseButton1Click:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
 local d, ds, sp
-btn.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true ds = i.Position sp = btn.Position end end)
-game:GetService("UserInputService").InputChanged:Connect(function(i) if d and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then local del = i.Position - ds btn.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X, sp.Y.Scale, sp.Y.Offset + del.Y) end end)
-btn.InputEnded:Connect(function() d = false end)
+uBtn.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true ds = i.Position sp = uBtn.Position end end)
+game:GetService("UserInputService").InputChanged:Connect(function(i) if d then 
+    local del = i.Position - ds 
+    uBtn.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X, sp.Y.Scale, sp.Y.Offset + del.Y)
+    mainFrame.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X + 60, sp.Y.Scale, sp.Y.Offset + del.Y - 40)
+end end)
+uBtn.InputEnded:Connect(function() d = false end)
 
