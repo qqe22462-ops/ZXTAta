@@ -1,6 +1,5 @@
--- [[ ᴘɪꜱɪᴛ  ᴜʟᴛɪᴍᴀᴛᴇ  ᴍᴇɴᴜ  ᴠ23 ]]
--- ฟังก์ชัน: คุ้ยถังขยะ vs คุ้ยของขวัญ (เปิดได้ทีละอย่าง)
--- พิเศษ: โหมดฟาร์มในเสี้ยววินาที (0.0000001s) พร้อมระบบแจ้งเตือน
+-- [[ ᴘɪꜱɪᴛ  ᴜʟᴛɪᴍᴀᴛᴇ  ᴍᴇɴᴜ  ᴠ24 ]]
+-- ปรับปรุง: ตัวหนังสือใหญ่ขึ้น 1.5 เท่า + ปุ่มกว้างขึ้น
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = game:GetService("Players").LocalPlayer
@@ -16,103 +15,105 @@ local States = {
 }
 
 -- [[ 1. สร้าง UI ]]
-local sg = Instance.new("ScreenGui", LocalPlayer.Parent:FindFirstChild("PlayerGui") or LocalPlayer.PlayerGui)
-sg.Name = "PisitU_Menu_V23"
+local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+sg.Name = "PisitU_Menu_V24"
 sg.ResetOnSpawn = false
 
+-- ปุ่มตัว U (ใหญ่ขึ้น)
 local uBtn = Instance.new("TextButton", sg)
-uBtn.Size = UDim2.new(0, 60, 0, 60)
-uBtn.Position = UDim2.new(0, 15, 0.5, -30)
+uBtn.Size = UDim2.new(0, 80, 0, 80)
+uBtn.Position = UDim2.new(0, 20, 0.5, -40)
 uBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 uBtn.Text = "U"
 uBtn.TextColor3 = Color3.new(1, 1, 0)
 uBtn.Font = Enum.Font.SourceSansBold
-uBtn.TextSize = 35
+uBtn.TextSize = 45 -- ตัวหนังสือเบิ้มๆ
 Instance.new("UICorner", uBtn).CornerRadius = UDim.new(1, 0)
 
+-- หน้าต่างเมนู (กว้างขึ้น)
 local menuFrame = Instance.new("Frame", sg)
-menuFrame.Size = UDim2.new(0, 240, 0, 380)
-menuFrame.Position = UDim2.new(0, 85, 0.5, -190)
+menuFrame.Size = UDim2.new(0, 280, 0, 420)
+menuFrame.Position = UDim2.new(0, 110, 0.5, -210)
 menuFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 menuFrame.Visible = false
 Instance.new("UICorner", menuFrame)
 
 -- [[ หน้าต่างแจ้งเตือน (Warning Box) ]]
 local warnFrame = Instance.new("Frame", sg)
-warnFrame.Size = UDim2.new(0, 300, 0, 150)
-warnFrame.Position = UDim2.new(0.5, -150, 0.5, -75)
-warnFrame.BackgroundColor3 = Color3.fromRGB(40, 0, 0)
-warnFrame.BorderSizePixel = 2
+warnFrame.Size = UDim2.new(0, 350, 0, 200)
+warnFrame.Position = UDim2.new(0.5, -175, 0.5, -100)
+warnFrame.BackgroundColor3 = Color3.fromRGB(50, 0, 0)
 warnFrame.Visible = false
 warnFrame.ZIndex = 10
 Instance.new("UICorner", warnFrame)
 
 local warnText = Instance.new("TextLabel", warnFrame)
 warnText.Size = UDim2.new(1, 0, 0.6, 0)
-warnText.Text = "ระวัง! เครื่องคุณอาจจะกระตุก\nหรือค้างได้เลยเมื่อเปิดโหมดนี้"
+warnText.Text = "⚠️ ระวัง! เครื่องคุณอาจจะค้าง\nหากเปิดโหมดเสี้ยววินาที"
 warnText.TextColor3 = Color3.new(1, 1, 1)
 warnText.BackgroundTransparency = 1
-warnText.TextSize = 18
+warnText.TextSize = 22 -- ใหญ่ขึ้น
 warnText.Font = Enum.Font.SourceSansBold
 
 local okBtn = Instance.new("TextButton", warnFrame)
-okBtn.Size = UDim2.new(0, 100, 0, 40)
-okBtn.Position = UDim2.new(0.2, -50, 0.8, -20)
+okBtn.Size = UDim2.new(0, 120, 0, 50)
+okBtn.Position = UDim2.new(0.25, -60, 0.8, -25)
 okBtn.Text = "ตกลง"
+okBtn.TextSize = 20
 okBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+okBtn.TextColor3 = Color3.new(1, 1, 1)
 okBtn.Parent = warnFrame
+Instance.new("UICorner", okBtn)
 
 local cancelBtn = Instance.new("TextButton", warnFrame)
-cancelBtn.Size = UDim2.new(0, 100, 0, 40)
-cancelBtn.Position = UDim2.new(0.8, -50, 0.8, -20)
+cancelBtn.Size = UDim2.new(0, 120, 0, 50)
+cancelBtn.Position = UDim2.new(0.75, -60, 0.8, -25)
 cancelBtn.Text = "ยกเลิก"
+cancelBtn.TextSize = 20
 cancelBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+cancelBtn.TextColor3 = Color3.new(1, 1, 1)
 cancelBtn.Parent = warnFrame
+Instance.new("UICorner", cancelBtn)
 
 -- [[ ฟังก์ชันสร้างปุ่ม ]]
-local Buttons = {}
 local function CreateBtn(name, pos, key)
     local btn = Instance.new("TextButton", menuFrame)
-    btn.Size = UDim2.new(0, 220, 0, 50)
+    btn.Size = UDim2.new(0, 250, 0, 65) -- ปุ่มใหญ่ขึ้น
     btn.Position = pos
     btn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
     btn.Text = name .. ": OFF"
     btn.TextColor3 = Color3.new(1, 1, 1)
     btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 22 -- ตัวหนังสือปุ่มใหญ่ขึ้น
     Instance.new("UICorner", btn)
-    Buttons[key] = btn
     return btn
 end
 
-local trashBtn = CreateBtn("คุ้ยถังขยะ", UDim2.new(0.5, -110, 0.05, 0), "Trash")
-local sellBtn = CreateBtn("ขายอัตโนมัติ", UDim2.new(0.5, -110, 0.20, 0), "Sell")
-local presentBtn = CreateBtn("คุ้ยกล่องของขวัญ", UDim2.new(0.5, -110, 0.35, 0), "Present")
-local hungerBtn = CreateBtn("ความหิวไม่จำกัด", UDim2.new(0.5, -110, 0.50, 0), "Hunger")
-local speedBtn = CreateBtn("ฟาร์มในเสี้ยววินาที", UDim2.new(0.5, -110, 0.75, 0), "UltraSpeed")
-speedBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+local trashBtn = CreateBtn("คุ้ยถังขยะ", UDim2.new(0.5, -125, 0.05, 0), "Trash")
+local sellBtn = CreateBtn("ขายอัตโนมัติ", UDim2.new(0.5, -125, 0.22, 0), "Sell")
+local presentBtn = CreateBtn("คุ้ยของขวัญ", UDim2.new(0.5, -125, 0.39, 0), "Present")
+local hungerBtn = CreateBtn("ความหิวไม่จำกัด", UDim2.new(0.5, -125, 0.56, 0), "Hunger")
+local speedBtn = CreateBtn("ฟาร์มเสี้ยววินาที", UDim2.new(0.5, -125, 0.80, 0), "UltraSpeed")
+speedBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 
 ---------------------------------------------------------
--- [ ระบบ Logic ล็อคปุ่ม ]
+-- [ ระบบ Logic & Loop (เหมือนเดิมแต่แม่นยำขึ้น) ]
 ---------------------------------------------------------
 
 trashBtn.MouseButton1Click:Connect(function()
-    if States.Present then return end -- ถ้าเปิดของขวัญอยู่ กดไม่ได้
+    if States.Present then return end
     States.Trash = not States.Trash
     trashBtn.Text = "คุ้ยถังขยะ: " .. (States.Trash and "ON" or "OFF")
     trashBtn.BackgroundColor3 = States.Trash and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
-    -- ล็อคปุ่มของขวัญ
-    presentBtn.AutoButtonColor = not States.Trash
-    presentBtn.BackgroundTransparency = States.Trash and 0.5 or 0
+    presentBtn.BackgroundTransparency = States.Trash and 0.6 or 0
 end)
 
 presentBtn.MouseButton1Click:Connect(function()
-    if States.Trash then return end -- ถ้าเปิดถังขยะอยู่ กดไม่ได้
+    if States.Trash then return end
     States.Present = not States.Present
-    presentBtn.Text = "คุ้ยกล่องของขวัญ: " .. (States.Present and "ON" or "OFF")
+    presentBtn.Text = "คุ้ยของขวัญ: " .. (States.Present and "ON" or "OFF")
     presentBtn.BackgroundColor3 = States.Present and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
-    -- ล็อคปุ่มถังขยะ
-    trashBtn.AutoButtonColor = not States.Present
-    trashBtn.BackgroundTransparency = States.Present and 0.5 or 0
+    trashBtn.BackgroundTransparency = States.Present and 0.6 or 0
 end)
 
 sellBtn.MouseButton1Click:Connect(function()
@@ -123,73 +124,50 @@ end)
 
 hungerBtn.MouseButton1Click:Connect(function()
     States.Hunger = not States.Hunger
-    hungerBtn.Text = "ความหิวไม่จำกัด: " .. (States.Hunger and "ON" or "OFF")
+    hungerBtn.Text = "หิวไม่จำกัด: " .. (States.Hunger and "ON" or "OFF")
     hungerBtn.BackgroundColor3 = States.Hunger and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
 end)
 
--- ระบบแจ้งเตือนโหมดเสี้ยววินาที
 speedBtn.MouseButton1Click:Connect(function()
-    if States.UltraSpeed then -- ถ้าเปิดอยู่แล้วให้ปิดได้เลย
+    if States.UltraSpeed then
         States.UltraSpeed = false
-        speedBtn.Text = "ฟาร์มในเสี้ยววินาที: OFF"
-        speedBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+        speedBtn.Text = "ฟาร์มเสี้ยววินาที: OFF"
+        speedBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
     else
-        warnFrame.Visible = true -- เปิดหน้าต่างแจ้งเตือน
+        warnFrame.Visible = true
     end
 end)
 
 okBtn.MouseButton1Click:Connect(function()
     States.UltraSpeed = true
-    speedBtn.Text = "ฟาร์มในเสี้ยววินาที: ON"
-    speedBtn.BackgroundColor3 = Color3.fromRGB(255, 165, 0)
+    speedBtn.Text = "ฟาร์มเสี้ยววินาที: ON"
+    speedBtn.BackgroundColor3 = Color3.fromRGB(255, 140, 0)
     warnFrame.Visible = false
 end)
 
-cancelBtn.MouseButton1Click:Connect(function()
-    warnFrame.Visible = false
-end)
-
----------------------------------------------------------
--- [ ระบบรัน Loop (Extreme Speed Logic) ]
----------------------------------------------------------
+cancelBtn.MouseButton1Click:Connect(function() warnFrame.Visible = false end)
 
 task.spawn(function()
     while true do
         RunService.Heartbeat:Wait()
-        
-        -- จำนวนรอบการรัน (ถ้าเปิดโหมดเสี้ยววินาที จะรัน 100 ครั้งต่อเฟรม)
-        local loopCount = States.UltraSpeed and 100 or 1
-        
-        for i = 1, loopCount do
-            if States.Trash then
-                ReplicatedStorage:WaitForChild("TrashLoot"):FireServer("Trash Can")
-            end
-            
-            if States.Present then
-                ReplicatedStorage:WaitForChild("TrashLoot"):FireServer("Present Pile")
-            end
-            
-            if States.Sell then
-                ReplicatedStorage:WaitForChild("SellAllItems"):FireServer()
-            end
-            
-            if States.Hunger then
-                ReplicatedStorage:WaitForChild("ReduceHunger"):FireServer(50)
-            end
-            
-            -- ถ้าไม่ใช่โหมดเสี้ยววินาที ให้หยุดรัน Loop นี้ทันที (รันแค่ครั้งเดียวปกติ)
+        local count = States.UltraSpeed and 120 or 1 -- รัว 120 ครั้งต่อเฟรมในโหมดเสี้ยววิ
+        for i = 1, count do
+            if States.Trash then ReplicatedStorage.TrashLoot:FireServer("Trash Can") end
+            if States.Present then ReplicatedStorage.TrashLoot:FireServer("Present Pile") end
+            if States.Sell then ReplicatedStorage.SellAllItems:FireServer() end
+            if States.Hunger then ReplicatedStorage.ReduceHunger:FireServer(50) end
             if not States.UltraSpeed then break end
         end
     end
 end)
 
--- ระบบ UI (ลากปุ่ม U)
+-- ระบบลาก UI
 uBtn.MouseButton1Click:Connect(function() menuFrame.Visible = not menuFrame.Visible end)
 local d, ds, sp
 uBtn.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true ds = i.Position sp = uBtn.Position end end)
-UserInputService.InputChanged:Connect(function(i) if d and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then 
+UserInputService.InputChanged:Connect(function(i) if d then 
     local del = i.Position - ds 
     uBtn.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X, sp.Y.Scale, sp.Y.Offset + del.Y)
-    menuFrame.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X + 70, sp.Y.Scale, sp.Y.Offset + del.Y - 150)
+    menuFrame.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X + 90, sp.Y.Scale, sp.Y.Offset + del.Y - 180)
 end end)
 uBtn.InputEnded:Connect(function() d = false end)
