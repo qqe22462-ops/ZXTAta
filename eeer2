@@ -1,86 +1,75 @@
--- [[ ᴘɪꜱɪᴛ  Qᴜɪᴄᴋ-ꜰᴀʀᴍ  ᴠ19 ]]
--- ระบบ: ขายของหมด + เก็บขยะ (สลับกัน 0.001 วิ)
--- รูปแบบ: ปุ่มเดียว On/Off ลากได้
+-- [[ ᴘɪꜱɪᴛ  ɪɴꜰɪɴɪᴛᴇ-ꜱᴘᴇᴇᴅ  ꜰᴀʀᴍ  ᴠ21 ]]
+-- ความเร็ว: 0.000000000001 (No Delay Spam)
+-- ระบบ: ขายหมด + เก็บขยะ + เก็บของขวัญ (ยิงรัวพร้อมกัน)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = game:GetService("Players").LocalPlayer
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 
 local IsActive = false
 
--- [[ สร้าง UI ปุ่มหลัก ]]
+-- [[ สร้าง UI ]]
 local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "PisitQuickFarmUI"
+sg.Name = "PisitSpeedFarmV21"
 sg.ResetOnSpawn = false
 
 local mainBtn = Instance.new("TextButton", sg)
-mainBtn.Size = UDim2.new(0, 200, 0, 60)
-mainBtn.Position = UDim2.new(0.5, -100, 0.1, 0)
-mainBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
-mainBtn.Text = "เริ่มฟาร์มขยะ: OFF"
+mainBtn.Size = UDim2.new(0, 220, 0, 70)
+mainBtn.Position = UDim2.new(0.5, -110, 0.1, 0)
+mainBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+mainBtn.Text = "เริ่มฟาร์ม (ULTRA): OFF"
 mainBtn.TextColor3 = Color3.new(1, 1, 1)
 mainBtn.Font = Enum.Font.SourceSansBold
 mainBtn.TextSize = 20
 Instance.new("UICorner", mainBtn)
 
 ---------------------------------------------------------
--- [ ระบบสลับรัน Remote ]
+-- [ ระบบรันแบบไร้ดีเลย์ (0.000000000001) ]
 ---------------------------------------------------------
 
-local function StartLoop()
+local function UltraSpam()
     local SellRemote = ReplicatedStorage:FindFirstChild("SellAllItems")
     local LootRemote = ReplicatedStorage:FindFirstChild("TrashLoot")
     
+    -- ใช้ Loop ซ้อน Loop เพื่อให้ส่งคำสั่งหลายร้อยครั้งใน 1 เฟรม (ไวจัดๆ)
     while IsActive do
-        -- 1. ขายของ
-        if SellRemote then
-            SellRemote:FireServer()
+        for i = 1, 50 do -- ส่ง 50 ชุดคำสั่งพร้อมกันใน "ทันที"
+            if not IsActive then break end
+            
+            -- ยิงพร้อมกัน 3 อย่าง
+            if SellRemote then SellRemote:FireServer() end
+            if LootRemote then 
+                LootRemote:FireServer("Trash Can") 
+                LootRemote:FireServer("Present Pile")
+            end
         end
-        
-        task.wait(0.001) -- พักตามที่คุณต้องการ
-        
-        -- 2. เก็บขยะ
-        if LootRemote then
-            LootRemote:FireServer("Trash Bag")
-        end
-        
-        task.wait(0.001)
+        -- พักรอนิดเดียวแค่จบเฟรมหน้าจอเพื่อไม่ให้ Roblox เด้งหลุด (Crash)
+        RunService.Heartbeat:Wait() 
     end
 end
 
 ---------------------------------------------------------
--- [ ระบบควบคุมปุ่ม ]
+-- [ ระบบปุ่ม ]
 ---------------------------------------------------------
 
 mainBtn.MouseButton1Click:Connect(function()
     IsActive = not IsActive
     if IsActive then
-        mainBtn.Text = "เริ่มฟาร์มขยะ: ON"
-        mainBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
-        task.spawn(StartLoop)
+        mainBtn.Text = "เริ่มฟาร์ม (ULTRA): ON"
+        mainBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+        task.spawn(UltraSpam)
     else
-        mainBtn.Text = "เริ่มฟาร์มขยะ: OFF"
-        mainBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+        mainBtn.Text = "เริ่มฟาร์ม (ULTRA): OFF"
+        mainBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
     end
 end)
 
--- ระบบลากปุ่ม (เพื่อให้วางหลบมุมได้)
-local dragging, dragStart, startPos
-mainBtn.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = mainBtn.Position
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStart
-        mainBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-
-UserInputService.InputEnded:Connect(function()
-    dragging = false
-end)
+-- ระบบลากปุ่ม (Drag)
+local d, ds, sp
+mainBtn.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true ds = i.Position sp = mainBtn.Position end end)
+UserInputService.InputChanged:Connect(function(i) if d and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then 
+    local del = i.Position - ds 
+    mainBtn.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X, sp.Y.Scale, sp.Y.Offset + del.Y) 
+end end)
+mainBtn.InputEnded:Connect(function() d = false end)
