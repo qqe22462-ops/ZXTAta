@@ -6,8 +6,8 @@ local player = Players.LocalPlayer
 
 -- ADMIN
 local admins = {
-["ใส่ชื่อของแอด"] = true,
-["ชื่อของแอด2"] = true
+["ใส่ชื่อ admin1"] = true,
+["ใส่ชื่อ admin2"] = true
 }
 
 if not admins[player.Name] then return end
@@ -53,15 +53,15 @@ menu.BackgroundTransparency = 1
 menu.Parent = menuFrame
 
 local function makeButton(text,y)
-
-	local b = Instance.new("TextButton")
-	b.Size = UDim2.new(1,-20,0,40)
-	b.Position = UDim2.new(0,10,0,y)
-	b.Text = text
-	b.Parent = menu
-
-	return b
-
+    
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1,-20,0,40)
+    b.Position = UDim2.new(0,10,0,y)
+    b.Text = text
+    b.Parent = menu
+    
+    return b
+    
 end
 
 local fast = makeButton("เดินเร็ว : ปิด",10)
@@ -79,123 +79,123 @@ local jumpOn=false
 
 -- FAST WALK
 fast.MouseButton1Click:Connect(function()
-
-	fastOn = not fastOn
-
-	if fastOn then
-		humanoid.WalkSpeed = 50
-		fast.Text="เดินเร็ว : เปิด"
-	else
-		humanoid.WalkSpeed = 16
-		fast.Text="เดินเร็ว : ปิด"
-	end
-
+    
+    fastOn = not fastOn
+    
+    if fastOn then
+        humanoid.WalkSpeed = 50
+        fast.Text="เดินเร็ว : เปิด"
+    else
+        humanoid.WalkSpeed = 16
+        fast.Text="เดินเร็ว : ปิด"
+    end
+    
 end)
 
 -- NOCLIP
 RunService.Stepped:Connect(function()
-
-	if noclip then
-		for _,v in pairs(char:GetDescendants()) do
-			if v:IsA("BasePart") then
-				v.CanCollide=false
-			end
-		end
-	end
-
+    
+    if noclip then
+        for _,v in pairs(char:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.CanCollide=false
+            end
+        end
+    end
+    
 end)
 
 wall.MouseButton1Click:Connect(function()
-
-	noclip = not noclip
-
-	if noclip then
-		wall.Text="ทะลุกำแพง : เปิด"
-	else
-		wall.Text="ทะลุกำแพง : ปิด"
-	end
-
+    
+    noclip = not noclip
+    
+    if noclip then
+        wall.Text="ทะลุกำแพง : เปิด"
+    else
+        wall.Text="ทะลุกำแพง : ปิด"
+    end
+    
 end)
 
 -- GOD MODE
 local shield
 
 RunService.RenderStepped:Connect(function()
-
-	if godOn then
-		if humanoid.Health < humanoid.MaxHealth then
-			humanoid.Health = humanoid.MaxHealth
-		end
-	end
-
+    
+    if godOn then
+        if humanoid.Health < humanoid.MaxHealth then
+            humanoid.Health = humanoid.MaxHealth
+        end
+    end
+    
 end)
 
 god.MouseButton1Click:Connect(function()
-
-	godOn = not godOn
-
-	if godOn then
-		god.Text="อมตะ : เปิด"
-		shield = Instance.new("ForceField")
-		shield.Parent = char
-	else
-		god.Text="อมตะ : ปิด"
-		if shield then shield:Destroy() end
-	end
-
+    
+    godOn = not godOn
+    
+    if godOn then
+        god.Text="อมตะ : เปิด"
+        shield = Instance.new("ForceField")
+        shield.Parent = char
+    else
+        god.Text="อมตะ : ปิด"
+        if shield then shield:Destroy() end
+    end
+    
 end)
 
 -- UNLIMITED JUMP
 jump.MouseButton1Click:Connect(function()
-
-	jumpOn = not jumpOn
-
-	if jumpOn then
-		jump.Text="กระโดดไม่จำกัด : เปิด"
-	else
-		jump.Text="กระโดดไม่จำกัด : ปิด"
-	end
-
+    
+    jumpOn = not jumpOn
+    
+    if jumpOn then
+        jump.Text="กระโดดไม่จำกัด : เปิด"
+    else
+        jump.Text="กระโดดไม่จำกัด : ปิด"
+    end
+    
 end)
 
 UIS.JumpRequest:Connect(function()
-
-	if jumpOn then
-		humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-	end
-
+    
+    if jumpOn then
+        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+    end
+    
 end)
 
 -- VIP MENU
 vip.MouseButton1Click:Connect(function()
-
-	menuFrame.Visible = not menuFrame.Visible
-
+    
+    menuFrame.Visible = not menuFrame.Visible
+    
 end)
 
 -- DRAG
 local dragging=false
 
 vip.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.Touch then
-		dragging=true
-	end
+    if input.UserInputType == Enum.UserInputType.Touch then
+        dragging=true
+    end
 end)
 
 vip.InputEnded:Connect(function()
-	dragging=false
+    dragging=false
 end)
 
 vip.InputChanged:Connect(function(input)
-
-	if dragging then
-
-		local x=input.Position.X
-		local y=input.Position.Y
-
-		vip.Position=UDim2.new(0,x-50,0,y-50)
-		menuFrame.Position=UDim2.new(0,x-230,0,y+70)
-
-	end
-
+    
+    if dragging then
+        
+        local x=input.Position.X
+        local y=input.Position.Y
+        
+        vip.Position=UDim2.new(0,x-50,0,y-50)
+        menuFrame.Position=UDim2.new(0,x-230,0,y+70)
+        
+    end
+    
 end)
