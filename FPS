@@ -1,11 +1,10 @@
--- [[ ᴘɪꜱɪᴛ  ᴡᴏᴏᴅᴄᴜᴛᴛᴇʀ  &  ɢɪꜰᴛ  ꜱʏꜱᴛᴇᴍ ]]
--- ฟังก์ชัน 1: ตัดไม้อัตโนมัติ (AxeSwing)
--- ฟังก์ชัน 2: ส่งของขวัญ (พิมพ์ชื่อผู้เล่นแล้วส่งได้ทันที)
+-- [[ ᴘɪꜱɪᴛ  ᴋ-ᴍᴇɴᴜ  ᴠ1 ]]
+-- ปุ่มหลัก: K (ลากได้)
+-- ฟังก์ชัน: ตัดไม้อัตโนมัติ & ส่งของขวัญแบบระบุชื่อ
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 
 local States = {
@@ -14,28 +13,41 @@ local States = {
 
 -- [[ 1. สร้าง UI ]]
 local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "PisitNewFolder_V1"
+sg.Name = "PisitKMenu_V1"
 sg.ResetOnSpawn = false
 
--- หน้าต่างหลัก (กว้างเพื่อให้อ่านง่าย)
+-- ปุ่ม K (ปุ่มเปิด/ปิด)
+local kBtn = Instance.new("TextButton", sg)
+kBtn.Size = UDim2.new(0, 80, 0, 80)
+kBtn.Position = UDim2.new(0, 20, 0.3, 0)
+kBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 0) -- สีเขียวเข้ม
+kBtn.Text = "K"
+kBtn.TextColor3 = Color3.new(1, 1, 1)
+kBtn.Font = Enum.Font.SourceSansBold
+kBtn.TextSize = 50
+Instance.new("UICorner", kBtn).CornerRadius = UDim.new(1, 0)
+
+-- หน้าต่างเมนู
 local mainFrame = Instance.new("Frame", sg)
-mainFrame.Size = UDim2.new(0, 350, 0, 300)
-mainFrame.Position = UDim2.new(0.5, -175, 0.4, -150)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+mainFrame.Size = UDim2.new(0, 320, 0, 350)
+mainFrame.Position = UDim2.new(0, 110, 0.3, -135)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+mainFrame.Visible = false
 Instance.new("UICorner", mainFrame)
 
+-- หัวข้อเมนู
 local title = Instance.new("TextLabel", mainFrame)
-title.Size = UDim2.new(1, 0, 0, 50)
-title.Text = "PISIT WOOD & GIFT"
-title.TextColor3 = Color3.new(1, 1, 1)
-title.TextSize = 24
+title.Size = UDim2.new(1, 0, 0, 60)
+title.Text = "ระบบไม้ & ของขวัญ"
+title.TextColor3 = Color3.new(1, 1, 0)
+title.TextSize = 28
 title.Font = Enum.Font.SourceSansBold
 title.BackgroundTransparency = 1
 
--- [[ ส่วนที่ 1: ตัดไม้อัตโนมัติ ]]
+-- [[ ฟังก์ชันที่ 1: ตัดไม้อัตโนมัติ ]]
 local axeBtn = Instance.new("TextButton", mainFrame)
-axeBtn.Size = UDim2.new(0, 310, 0, 70)
-axeBtn.Position = UDim2.new(0.5, -155, 0.2, 0)
+axeBtn.Size = UDim2.new(0, 280, 0, 70)
+axeBtn.Position = UDim2.new(0.5, -140, 0.2, 0)
 axeBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
 axeBtn.Text = "ตัดไม้อัตโนมัติ: OFF"
 axeBtn.TextColor3 = Color3.new(1, 1, 1)
@@ -43,30 +55,30 @@ axeBtn.TextSize = 24
 axeBtn.Font = Enum.Font.SourceSansBold
 Instance.new("UICorner", axeBtn)
 
--- [[ ส่วนที่ 2: ระบบส่งของขวัญ (ใส่ชื่อ) ]]
+-- [[ ฟังก์ชันที่ 2: ส่งของขวัญ ]]
 local nameBox = Instance.new("TextBox", mainFrame)
-nameBox.Size = UDim2.new(0, 310, 0, 50)
-nameBox.Position = UDim2.new(0.5, -155, 0.5, 10)
+nameBox.Size = UDim2.new(0, 280, 0, 55)
+nameBox.Position = UDim2.new(0.5, -140, 0.45, 10)
 nameBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-nameBox.PlaceholderText = "ใส่ชื่อผู้เล่นที่นี่..."
+nameBox.PlaceholderText = "พิมพ์ชื่อผู้เล่น..."
 nameBox.Text = ""
 nameBox.TextColor3 = Color3.new(1, 1, 1)
-nameBox.TextSize = 20
+nameBox.TextSize = 22
 nameBox.Font = Enum.Font.SourceSans
 Instance.new("UICorner", nameBox)
 
 local giftBtn = Instance.new("TextButton", mainFrame)
-giftBtn.Size = UDim2.new(0, 310, 0, 60)
-giftBtn.Position = UDim2.new(0.5, -155, 0.75, 0)
+giftBtn.Size = UDim2.new(0, 280, 0, 65)
+giftBtn.Position = UDim2.new(0.5, -140, 0.72, 10)
 giftBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
-giftBtn.Text = "กดเพื่อส่งของขวัญ"
+giftBtn.Text = "ส่งของขวัญ"
 giftBtn.TextColor3 = Color3.new(1, 1, 1)
-giftBtn.TextSize = 24
+giftBtn.TextSize = 26
 giftBtn.Font = Enum.Font.SourceSansBold
 Instance.new("UICorner", giftBtn)
 
 ---------------------------------------------------------
--- [ ระบบ Logic การทำงาน ]
+-- [ ระบบการทำงาน ]
 ---------------------------------------------------------
 
 -- 1. ตัดไม้อัตโนมัติ
@@ -79,51 +91,58 @@ end)
 task.spawn(function()
     while true do
         if States.AutoAxe then
-            local remote = ReplicatedStorage:WaitForChild("Remotes", 5):WaitForChild("AxeSwing", 5)
-            if remote then remote:FireServer() end
+            pcall(function()
+                ReplicatedStorage.Remotes.AxeSwing:FireServer()
+            end)
         end
-        task.wait(0.1) -- ความเร็วในการสวิงขวาน (ปรับลดได้ถ้าอยากให้เร็วขึ้น)
+        task.wait(0.1) -- ความเร็วการฟัน
     end
 end)
 
--- 2. ระบบส่งของขวัญ (เปลี่ยนชื่อตาม TextBox)
+-- 2. ส่งของขวัญ (InvokeServer)
 giftBtn.MouseButton1Click:Connect(function()
     local targetName = nameBox.Text
     local targetPlayer = Players:FindFirstChild(targetName)
     
     if targetPlayer then
-        giftBtn.Text = "กำลังส่งให้: " .. targetName
-        giftBtn.BackgroundColor3 = Color3.fromRGB(200, 150, 0)
-        
-        -- รันโค้ดส่งของขวัญ
-        task.spawn(function()
-            local remote = ReplicatedStorage:WaitForChild("Remotes", 5):WaitForChild("Gift", 5)
-            if remote then
-                remote:InvokeServer(targetPlayer)
-            end
-            task.wait(1)
-            giftBtn.Text = "ส่งสำเร็จ!"
-            giftBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-            task.wait(1.5)
-            giftBtn.Text = "กดเพื่อส่งของขวัญ"
-            giftBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+        giftBtn.Text = "กำลังส่ง..."
+        pcall(function()
+            ReplicatedStorage.Remotes.Gift:InvokeServer(targetPlayer)
         end)
+        giftBtn.Text = "ส่งสำเร็จ!"
+        task.wait(1)
+        giftBtn.Text = "ส่งของขวัญ"
     else
-        giftBtn.Text = "ไม่พบชื่อผู้เล่นนี้!"
-        giftBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
-        task.wait(1.5)
-        giftBtn.Text = "กดเพื่อส่งของขวัญ"
-        giftBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+        giftBtn.Text = "ไม่พบชื่อนี้!"
+        task.wait(1)
+        giftBtn.Text = "ส่งของขวัญ"
     end
 end)
 
--- ระบบลาก UI
-local d, ds, sp
-mainFrame.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true ds = i.Position sp = mainFrame.Position end end)
-UserInputService.InputChanged:Connect(function(i) if d then 
-    local del = i.Position - ds 
-    mainFrame.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X, sp.Y.Scale, sp.Y.Offset + del.Y)
-end end)
-mainFrame.InputEnded:Connect(function() d = false end)
+---------------------------------------------------------
+-- [ ระบบควบคุมปุ่ม K และการลาก ]
+---------------------------------------------------------
+
+-- กดปุ่ม K เพื่อเปิด/ปิดเมนู
+kBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = not mainFrame.Visible
 end)
-UserInputService.InputEnded:Connect(function() dragging = false end)
+
+-- ระบบลากปุ่ม K (และย้ายเมนูตาม)
+local d, ds, sp
+kBtn.InputBegan:Connect(function(i)
+    if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
+        d = true ds = i.Position sp = kBtn.Position
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(i)
+    if d and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then
+        local del = i.Position - ds
+        local newPos = UDim2.new(sp.X.Scale, sp.X.Offset + del.X, sp.Y.Scale, sp.Y.Offset + del.Y)
+        kBtn.Position = newPos
+        mainFrame.Position = UDim2.new(newPos.X.Scale, newPos.X.Offset + 90, newPos.Y.Scale, newPos.Y.Offset - 135)
+    end
+end)
+
+uBtn.InputEnded:Connect(function() d = false end)
