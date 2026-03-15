@@ -1,75 +1,129 @@
--- [[ ᴘɪꜱɪᴛ  ᴄᴇɴᴛᴇʀ  ᴀꜰᴋ  ᴄʟɪᴄᴋᴇʀ  ᴠ13 ]]
--- ระบบรัวคลิกกลางหน้าจออัตโนมัติ (20ms)
--- ออกแบบมาเพื่อการ AFK โดยเฉพาะ
+-- [[ ᴘɪꜱɪᴛ  ᴡᴏᴏᴅᴄᴜᴛᴛᴇʀ  &  ɢɪꜰᴛ  ꜱʏꜱᴛᴇᴍ ]]
+-- ฟังก์ชัน 1: ตัดไม้อัตโนมัติ (AxeSwing)
+-- ฟังก์ชัน 2: ส่งของขวัญ (พิมพ์ชื่อผู้เล่นแล้วส่งได้ทันที)
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local VIM = game:GetService("VirtualInputManager")
+local UserInputService = game:GetService("UserInputService")
 
-local IsActive = false
-local ClickInterval = 0.02 -- ความเร็ว 20 มิลลิวินาที
+local States = {
+    AutoAxe = false
+}
 
--- [[ สร้าง UI ปุ่มเปิด/ปิด ]]
+-- [[ 1. สร้าง UI ]]
 local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "PisitCenterClicker_V13"
+sg.Name = "PisitNewFolder_V1"
 sg.ResetOnSpawn = false
-sg.DisplayOrder = 1000
 
-local toggleBtn = Instance.new("TextButton", sg)
-toggleBtn.Size = UDim2.new(0, 150, 0, 50)
-toggleBtn.Position = UDim2.new(0.1, 0, 0.5, 0)
-toggleBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
-toggleBtn.Text = "เริ่ม AFK: OFF"
-toggleBtn.TextColor3 = Color3.new(1, 1, 1)
-toggleBtn.Font = "SourceSansBold"
-toggleBtn.TextSize = 18
-Instance.new("UICorner", toggleBtn)
+-- หน้าต่างหลัก (กว้างเพื่อให้อ่านง่าย)
+local mainFrame = Instance.new("Frame", sg)
+mainFrame.Size = UDim2.new(0, 350, 0, 300)
+mainFrame.Position = UDim2.new(0.5, -175, 0.4, -150)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+Instance.new("UICorner", mainFrame)
 
--- [[ ระบบการคลิกกลางหน้าจอ ]]
-local lastClick = 0
-RunService.Heartbeat:Connect(function()
-    if IsActive then
-        local now = tick()
-        if now - lastClick >= ClickInterval then
-            lastClick = now
-            
-            -- คำนวณจุดกึ่งกลางหน้าจอ
-            local cam = workspace.CurrentCamera
-            local centerX = cam.ViewportSize.X / 2
-            local centerY = cam.ViewportSize.Y / 2
-            
-            -- ส่งคำสั่งคลิกไปที่กลางจอ
-            VIM:SendMouseButtonEvent(centerX, centerY, 0, true, game, 1)
-            VIM:SendMouseButtonEvent(centerX, centerY, 0, false, game, 1)
+local title = Instance.new("TextLabel", mainFrame)
+title.Size = UDim2.new(1, 0, 0, 50)
+title.Text = "PISIT WOOD & GIFT"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.TextSize = 24
+title.Font = Enum.Font.SourceSansBold
+title.BackgroundTransparency = 1
+
+-- [[ ส่วนที่ 1: ตัดไม้อัตโนมัติ ]]
+local axeBtn = Instance.new("TextButton", mainFrame)
+axeBtn.Size = UDim2.new(0, 310, 0, 70)
+axeBtn.Position = UDim2.new(0.5, -155, 0.2, 0)
+axeBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+axeBtn.Text = "ตัดไม้อัตโนมัติ: OFF"
+axeBtn.TextColor3 = Color3.new(1, 1, 1)
+axeBtn.TextSize = 24
+axeBtn.Font = Enum.Font.SourceSansBold
+Instance.new("UICorner", axeBtn)
+
+-- [[ ส่วนที่ 2: ระบบส่งของขวัญ (ใส่ชื่อ) ]]
+local nameBox = Instance.new("TextBox", mainFrame)
+nameBox.Size = UDim2.new(0, 310, 0, 50)
+nameBox.Position = UDim2.new(0.5, -155, 0.5, 10)
+nameBox.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+nameBox.PlaceholderText = "ใส่ชื่อผู้เล่นที่นี่..."
+nameBox.Text = ""
+nameBox.TextColor3 = Color3.new(1, 1, 1)
+nameBox.TextSize = 20
+nameBox.Font = Enum.Font.SourceSans
+Instance.new("UICorner", nameBox)
+
+local giftBtn = Instance.new("TextButton", mainFrame)
+giftBtn.Size = UDim2.new(0, 310, 0, 60)
+giftBtn.Position = UDim2.new(0.5, -155, 0.75, 0)
+giftBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+giftBtn.Text = "กดเพื่อส่งของขวัญ"
+giftBtn.TextColor3 = Color3.new(1, 1, 1)
+giftBtn.TextSize = 24
+giftBtn.Font = Enum.Font.SourceSansBold
+Instance.new("UICorner", giftBtn)
+
+---------------------------------------------------------
+-- [ ระบบ Logic การทำงาน ]
+---------------------------------------------------------
+
+-- 1. ตัดไม้อัตโนมัติ
+axeBtn.MouseButton1Click:Connect(function()
+    States.AutoAxe = not States.AutoAxe
+    axeBtn.Text = "ตัดไม้อัตโนมัติ: " .. (States.AutoAxe and "ON" or "OFF")
+    axeBtn.BackgroundColor3 = States.AutoAxe and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
+end)
+
+task.spawn(function()
+    while true do
+        if States.AutoAxe then
+            local remote = ReplicatedStorage:WaitForChild("Remotes", 5):WaitForChild("AxeSwing", 5)
+            if remote then remote:FireServer() end
         end
+        task.wait(0.1) -- ความเร็วในการสวิงขวาน (ปรับลดได้ถ้าอยากให้เร็วขึ้น)
     end
 end)
 
--- [[ ระบบปุ่มควบคุม ]]
-toggleBtn.MouseButton1Click:Connect(function()
-    IsActive = not IsActive
-    if IsActive then
-        toggleBtn.Text = "เริ่ม AFK: ON"
-        toggleBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+-- 2. ระบบส่งของขวัญ (เปลี่ยนชื่อตาม TextBox)
+giftBtn.MouseButton1Click:Connect(function()
+    local targetName = nameBox.Text
+    local targetPlayer = Players:FindFirstChild(targetName)
+    
+    if targetPlayer then
+        giftBtn.Text = "กำลังส่งให้: " .. targetName
+        giftBtn.BackgroundColor3 = Color3.fromRGB(200, 150, 0)
+        
+        -- รันโค้ดส่งของขวัญ
+        task.spawn(function()
+            local remote = ReplicatedStorage:WaitForChild("Remotes", 5):WaitForChild("Gift", 5)
+            if remote then
+                remote:InvokeServer(targetPlayer)
+            end
+            task.wait(1)
+            giftBtn.Text = "ส่งสำเร็จ!"
+            giftBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+            task.wait(1.5)
+            giftBtn.Text = "กดเพื่อส่งของขวัญ"
+            giftBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
+        end)
     else
-        toggleBtn.Text = "เริ่ม AFK: OFF"
-        toggleBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 0)
+        giftBtn.Text = "ไม่พบชื่อผู้เล่นนี้!"
+        giftBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+        task.wait(1.5)
+        giftBtn.Text = "กดเพื่อส่งของขวัญ"
+        giftBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 200)
     end
 end)
 
--- [[ ระบบลากปุ่ม (Drag) ]]
-local dragging, dragStart, startPos
-toggleBtn.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true; dragStart = input.Position; startPos = toggleBtn.Position
-    end
-end)
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStart
-        toggleBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
+-- ระบบลาก UI
+local d, ds, sp
+mainFrame.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true ds = i.Position sp = mainFrame.Position end end)
+UserInputService.InputChanged:Connect(function(i) if d then 
+    local del = i.Position - ds 
+    mainFrame.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X, sp.Y.Scale, sp.Y.Offset + del.Y)
+end end)
+mainFrame.InputEnded:Connect(function() d = false end)
 end)
 UserInputService.InputEnded:Connect(function() dragging = false end)
