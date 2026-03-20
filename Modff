@@ -1,158 +1,155 @@
--- [[ NINJA HUB - ESP BOX/LINE & TELEPORT ]] --
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local RunService = game:GetService("RunService")
-local CoreGui = game:GetService("CoreGui")
+-- [[ ᴘɪꜱɪᴛ  ᴍɪɴɪ  ᴇxᴇᴄᴜᴛᴏʀ  ᴠ1 ]]
+-- ระบบ: คัดลอก, รันครั้งเดียว, บันทึก, ประวัติ, รันรัวๆ
+-- การบันทึก: เก็บข้อมูลในเครื่อง (DataStore) แยกตามชื่อผู้เล่น
 
--- ลบ UI เก่า
-if CoreGui:FindFirstChild("NinjaHub") then CoreGui.NinjaHub:Destroy() end
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
 
-local NinjaHub = Instance.new("ScreenGui", CoreGui)
-NinjaHub.Name = "NinjaHub"
+-- ตัวแปรเก็บโค้ดชั่วคราว (จำลองโค้ดที่ได้จาก rspy)
+local CurrentCode = "" 
+local IsSpamming = false
 
-local CORRECT_KEY = "111"
-_G.ESP_Enabled = false
+-- [[ 1. สร้าง UI ขนาดประมาณ 3 นิ้ว (300x350 px) ]]
+local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+sg.Name = "PisitExecutorUI"
+sg.ResetOnSpawn = false
 
--- ฟังก์ชันสร้างเส้นและกรอบ (Drawing API - สำหรับตัวรันระดับสูง)
--- หมายเหตุ: หากตัวรันไม่รองรับ Drawing API จะใช้ Highlight แทนเพื่อความเสถียร
-local function CreateESP(player)
-    player.CharacterAdded:Connect(function(char)
-        if _G.ESP_Enabled then
-            local highlight = Instance.new("Highlight", char)
-            highlight.FillTransparency = 0.5
-            highlight.OutlineColor = Color3.new(1, 1, 1)
-            highlight.FillColor = Color3.new(1, 0, 0)
-        end
-    end)
+local mainFrame = Instance.new("Frame", sg)
+mainFrame.Size = UDim2.new(0, 300, 0, 350)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -175)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+mainFrame.Active = true
+mainFrame.Draggable = true -- ให้ลากได้ทั้งกรอบ
+Instance.new("UICorner", mainFrame)
+
+local title = Instance.new("TextLabel", mainFrame)
+title.Size = UDim2.new(1, 0, 0, 40)
+title.Text = "PISIT EXECUTOR"
+title.TextColor3 = Color3.new(1, 1, 0)
+title.TextSize = 20
+title.Font = Enum.Font.SourceSansBold
+title.BackgroundTransparency = 1
+
+-- [[ ส่วนสำหรับวางโค้ด/แสดงโค้ด ]]
+local codeBox = Instance.new("TextBox", mainFrame)
+codeBox.Size = UDim2.new(0, 280, 0, 60)
+codeBox.Position = UDim2.new(0.5, -140, 0.15, 0)
+codeBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+codeBox.PlaceholderText = "วางโค้ดที่นี่ (เหมือน rspy)..."
+codeBox.Text = ""
+codeBox.TextColor3 = Color3.new(1, 1, 1)
+codeBox.TextSize = 14
+codeBox.TextXAlignment = Enum.TextXAlignment.Left
+codeBox.ClearTextOnFocus = false
+Instance.new("UICorner", codeBox)
+
+-- [[ ฟังก์ชันสร้างปุ่ม 5 ช่อง ]]
+local function CreateBtn(text, pos, color)
+    local btn = Instance.new("TextButton", mainFrame)
+    btn.Size = UDim2.new(0, 280, 0, 45)
+    btn.Position = pos
+    btn.BackgroundColor3 = color
+    btn.Text = text
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.TextSize = 18
+    Instance.new("UICorner", btn)
+    return btn
 end
 
--- --- [ UI เมนูหลัก ] ---
-local MainFrame = Instance.new("Frame", NinjaHub)
-MainFrame.Size = UDim2.new(0, 350, 0, 250)
-MainFrame.Position = UDim2.new(0.5, -175, 0.5, -125)
-MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-MainFrame.Active = true
-MainFrame.Draggable = true
-MainFrame.Visible = false -- ซ่อนไว้รอ Key
+local copyBtn   = CreateBtn("1. คัดลอกโค้ด", UDim2.new(0.5, -140, 0.35, 0), Color3.fromRGB(0, 120, 255)) -- สีฟ้า
+local runOnceBtn = CreateBtn("2. รันโค้ด 1 ครั้ง", UDim2.new(0.5, -140, 0.49, 0), Color3.fromRGB(0, 150, 0)) -- สีเขียว
+local saveBtn    = CreateBtn("3. บันทึกโค้ด", UDim2.new(0.5, -140, 0.63, 0), Color3.fromRGB(120, 120, 120)) -- สีเทา
+local historyBtn = CreateBtn("4. ประวัติการบันทึก", UDim2.new(0.5, -140, 0.77, 0), Color3.fromRGB(100, 50, 150)) -- สีม่วง
+local spamBtn    = CreateBtn("5. รันโค้ดรัวๆ: OFF", UDim2.new(0.5, -140, 0.91, 0), Color3.fromRGB(180, 0, 0)) -- สีแดง
 
-local UICorner = Instance.new("UICorner", MainFrame)
+---------------------------------------------------------
+-- [ ระบบ Logic การทำงาน ]
+---------------------------------------------------------
 
-local Title = Instance.new("TextLabel", MainFrame)
-Title.Size = UDim2.new(1, 0, 0, 40)
-Title.Text = "NINJA HUB | PREMIUM"
-Title.TextColor3 = Color3.new(1, 1, 1)
-Title.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
-Title.Font = Enum.Font.GothamBold
+-- 1. คัดลอกโค้ด (ก๊อปจากช่องพิมพ์ไปเก็บไว้ในคลิปบอร์ดจำลอง)
+copyBtn.MouseButton1Click:Connect(function()
+    CurrentCode = codeBox.Text
+    copyBtn.Text = "คัดลอกแล้ว!"
+    task.wait(1)
+    copyBtn.Text = "1. คัดลอกโค้ด"
+end)
 
--- --- [ ส่วนของ Key System ] ---
-local KeyFrame = Instance.new("Frame", NinjaHub)
-KeyFrame.Size = UDim2.new(0, 250, 0, 150)
-KeyFrame.Position = UDim2.new(0.5, -125, 0.5, -75)
-KeyFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-
-local KeyInput = Instance.new("TextBox", KeyFrame)
-KeyInput.Size = UDim2.new(0, 200, 0, 40)
-KeyInput.Position = UDim2.new(0, 25, 0, 50)
-KeyInput.PlaceholderText = "Enter Key (111)"
-KeyInput.Text = ""
-
-local KeyBtn = Instance.new("TextButton", KeyFrame)
-KeyBtn.Size = UDim2.new(0, 100, 0, 30)
-KeyBtn.Position = UDim2.new(0.5, -50, 0, 100)
-KeyBtn.Text = "Login"
-
-KeyBtn.MouseButton1Click:Connect(function()
-    if KeyInput.Text == CORRECT_KEY then
-        KeyFrame.Visible = false
-        MainFrame.Visible = true
+-- 2. รันโค้ด 1 ครั้ง (ใช้ loadstring ถ้า Executor รองรับ)
+runOnceBtn.MouseButton1Click:Connect(function()
+    local code = codeBox.Text
+    if code ~= "" then
+        local success, err = pcall(function()
+            loadstring(code)()
+        end)
+        if not success then warn("Run Error: " .. err) end
     end
 end)
 
--- --- [ ฟังก์ชันภายในเมนู ] ---
-local TabButtons = Instance.new("Frame", MainFrame)
-TabButtons.Size = UDim2.new(0, 100, 1, -40)
-TabButtons.Position = UDim2.new(0, 0, 0, 40)
-TabButtons.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+-- 3. บันทึกโค้ด (แยกตามรายชื่อผู้เล่นคนนั้นๆ)
+-- *หมายเหตุ: การเซฟข้ามเซิร์ฟเวอร์ในสคริปต์ Executor มักใช้เขียนไฟล์ลงโฟลเดอร์สคริปต์
+saveBtn.MouseButton1Click:Connect(function()
+    local code = codeBox.Text
+    if code ~= "" then
+        -- ใช้ฟังก์ชันเขียนไฟล์ของ Executor (เช่น writefile)
+        if writefile then
+            local filename = "PisitSave_" .. LocalPlayer.Name .. ".txt"
+            local existing = isfile(filename) and readfile(filename) or ""
+            writefile(filename, existing .. "\n-- Saved --\n" .. code)
+            saveBtn.Text = "บันทึกสำเร็จ!"
+            task.wait(1)
+            saveBtn.Text = "3. บันทึกโค้ด"
+        else
+            print("Executor ของคุณไม่รองรับการเขียนไฟล์")
+        end
+    end
+end)
 
-local ContentFrame = Instance.new("ScrollingFrame", MainFrame)
-ContentFrame.Size = UDim2.new(1, -110, 1, -50)
-ContentFrame.Position = UDim2.new(0, 105, 0, 45)
-ContentFrame.BackgroundTransparency = 1
-ContentFrame.CanvasSize = UDim2.new(0, 0, 2, 0)
+-- 4. ประวัติการบันทึก (อ่านไฟล์ที่เซฟไว้)
+historyBtn.MouseButton1Click:Connect(function()
+    local filename = "PisitSave_" .. LocalPlayer.Name .. ".txt"
+    if isfile and isfile(filename) then
+        codeBox.Text = readfile(filename)
+        print("โหลดประวัติสำเร็จ")
+    else
+        print("ยังไม่มีประวัติการบันทึก")
+    end
+end)
 
--- ปุ่มเปิดปิด ESP
-local ESPToggle = Instance.new("TextButton", ContentFrame)
-ESPToggle.Size = UDim2.new(1, -10, 0, 40)
-ESPToggle.Text = "Enable ESP (Box/Line)"
-ESPToggle.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-
-ESPToggle.MouseButton1Click:Connect(function()
-    _G.ESP_Enabled = not _G.ESP_Enabled
-    ESPToggle.BackgroundColor3 = _G.ESP_Enabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
+-- 5. รันโค้ดรัวๆ
+spamBtn.MouseButton1Click:Connect(function()
+    IsSpamming = not IsSpamming
+    spamBtn.Text = "5. รันโค้ดรัวๆ: " .. (IsSpamming and "ON" or "OFF")
+    spamBtn.BackgroundColor3 = IsSpamming and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(180, 0, 0)
     
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character then
-            local hl = p.Character:FindFirstChildOfClass("Highlight")
-            if hl then hl.Enabled = _G.ESP_Enabled end
-        end
-    end
-end)
-
--- ระบบ Teleport List
-local TPLabel = Instance.new("TextLabel", ContentFrame)
-TPLabel.Size = UDim2.new(1, 0, 0, 30)
-TPLabel.Position = UDim2.new(0, 0, 0, 50)
-TPLabel.Text = "--- Teleport to Player ---"
-TPLabel.BackgroundTransparency = 1
-TPLabel.TextColor3 = Color3.new(1, 1, 0)
-
-local PlayerListFrame = Instance.new("Frame", ContentFrame)
-PlayerListFrame.Size = UDim2.new(1, 0, 1, 0)
-PlayerListFrame.Position = UDim2.new(0, 0, 0, 80)
-PlayerListFrame.BackgroundTransparency = 1
-
-local function UpdateTPList()
-    for _, child in pairs(PlayerListFrame:GetChildren()) do child:Destroy() end
-    local offset = 0
-    for _, p in pairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer then
-            local btn = Instance.new("TextButton", PlayerListFrame)
-            btn.Size = UDim2.new(1, -10, 0, 30)
-            btn.Position = UDim2.new(0, 0, 0, offset)
-            btn.Text = "TP to: " .. p.Name
-            btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-            btn.TextColor3 = Color3.new(1, 1, 1)
-            
-            btn.MouseButton1Click:Connect(function()
-                if p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                    LocalPlayer.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame
+    if IsSpamming then
+        task.spawn(function()
+            while IsSpamming do
+                local code = codeBox.Text
+                if code ~= "" then
+                    pcall(function() loadstring(code)() end)
                 end
-            end)
-            offset = offset + 35
-        end
-    end
-end
-
--- อัปเดตรายชื่อคนในเซิร์ฟเวอร์
-Players.PlayerAdded:Connect(UpdateTPList)
-Players.PlayerRemoving:Connect(UpdateTPList)
-UpdateTPList()
-
--- ระบบ ESP วนลูป (เพื่อสร้าง Highlight ให้คนใหม่ๆ)
-spawn(function()
-    while task.wait(1) do
-        if _G.ESP_Enabled then
-            for _, p in pairs(Players:GetPlayers()) do
-                if p ~= LocalPlayer and p.Character then
-                    if not p.Character:FindFirstChildOfClass("Highlight") then
-                        local hl = Instance.new("Highlight", p.Character)
-                        hl.FillColor = Color3.new(1, 0, 0)
-                        hl.OutlineColor = Color3.new(1, 1, 1)
-                    end
-                end
+                task.wait(0.1) -- ความเร็วในการรัว
             end
-        end
+        end)
     end
 end)
 
-print("Ninja Hub Loaded! Key: 111")
+-- ระบบลาก UI แบบละเอียด
+local dragging, dragStart, startPos
+mainFrame.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = mainFrame.Position
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function() dragging = false end)
