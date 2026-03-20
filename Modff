@@ -1,152 +1,111 @@
--- [[ ᴘɪꜱɪᴛ  ɢ-ᴇxᴇᴄᴜᴛᴏʀ  ᴠ5  -  ꜰɪɴᴀʟ  ᴇᴅɪᴛɪᴏɴ ]]
--- ฟังก์ชันครบ: คัดลอก(ฟ้า), รัน(เขียว), บันทึก(เทา), ประวัติ(ม่วง), รันรัว(แดง)
--- ระบบ: บันทึกแยกโฟลเดอร์ตาม MapID อัตโนมัติ
+-- [[ ᴘɪꜱɪᴛ  ɢ-ᴍᴇɴᴜ  ᴠ6 ]]
+-- เน้นปุ่มใหญ่ อ่านง่าย ไม่บั๊ก
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = game:GetService("Players").LocalPlayer
 local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-
--- ระบบจัดการชื่อแมพ
-local MapFolder = "PisitSaves/" .. tostring(game.PlaceId)
+local MapID = tostring(game.PlaceId)
 local IsSpamming = false
 
--- [[ 1. สร้าง ScreenGui ]]
-local sg = Instance.new("ScreenGui")
-sg.Name = "Pisit_G_V5"
-sg.Parent = LocalPlayer:WaitForChild("PlayerGui")
+-- [[ 1. สร้าง UI ]]
+local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+sg.Name = "PisitSimpleG"
 sg.ResetOnSpawn = false
-sg.IgnoreGuiInset = true -- ช่วยให้ตำแหน่งแม่นยำขึ้น
 
--- [[ 2. ปุ่ม G วงกลมหลัก ]]
-local gBtn = Instance.new("TextButton")
-gBtn.Name = "MainG"
-gBtn.Parent = sg
+-- ปุ่ม G วงกลม (ลากได้)
+local gBtn = Instance.new("TextButton", sg)
 gBtn.Size = UDim2.new(0, 90, 0, 90)
 gBtn.Position = UDim2.new(0, 50, 0.5, -45)
-gBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 0)
+gBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
 gBtn.Text = "G"
+gBtn.TextSize = 50
 gBtn.TextColor3 = Color3.new(1, 1, 1)
 gBtn.Font = Enum.Font.SourceSansBold
-gBtn.TextSize = 60
-gBtn.ZIndex = 100 -- อยู่บนสุดเสมอ
-local gCorner = Instance.new("UICorner", gBtn)
-gCorner.CornerRadius = UDim.new(1, 0)
+Instance.new("UICorner", gBtn).CornerRadius = UDim.new(1, 0)
 
--- [[ 3. หน้าต่างเมนูหลัก ]]
-local mainFrame = Instance.new("Frame")
-mainFrame.Name = "MainFrame"
-mainFrame.Parent = sg
-mainFrame.Size = UDim2.new(0, 320, 0, 480)
-mainFrame.Position = UDim2.new(0, 150, 0.5, -240)
-mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+-- กรอบเมนูสีดำ (ตามภาพที่คุณส่งมา)
+local mainFrame = Instance.new("Frame", sg)
+mainFrame.Size = UDim2.new(0, 280, 0, 420)
+mainFrame.Position = UDim2.new(0, 150, 0.5, -210)
+mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
 mainFrame.Visible = false
-mainFrame.ZIndex = 10
 Instance.new("UICorner", mainFrame)
 
-local title = Instance.new("TextLabel", mainFrame)
-title.Size = UDim2.new(1, 0, 0, 50)
-title.Text = "PISIT EXECUTOR V5"
-title.TextColor3 = Color3.new(1, 1, 0)
-title.TextSize = 25
-title.Font = Enum.Font.SourceSansBold
-title.BackgroundTransparency = 1
-title.ZIndex = 11
-
--- ช่องวางโค้ด (TextBox)
+-- ช่องใส่โค้ด
 local codeBox = Instance.new("TextBox", mainFrame)
-codeBox.Size = UDim2.new(0, 290, 0, 100)
-codeBox.Position = UDim2.new(0.5, -145, 0.12, 0)
-codeBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-codeBox.PlaceholderText = "วางโค้ด rspy ที่นี่..."
+codeBox.Size = UDim2.new(1, -20, 0, 80)
+codeBox.Position = UDim2.new(0, 10, 0, 10)
+codeBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+codeBox.PlaceholderText = "วางโค้ดที่นี่..."
 codeBox.Text = ""
 codeBox.TextColor3 = Color3.new(1, 1, 1)
 codeBox.TextSize = 18
 codeBox.ClearTextOnFocus = false
-codeBox.TextWrapped = true
-codeBox.ZIndex = 11
 Instance.new("UICorner", codeBox)
 
--- [[ 4. หน้าต่างประวัติ (History Window) ]]
-local historyFrame = Instance.new("Frame")
-historyFrame.Name = "HistoryFrame"
-historyFrame.Parent = sg
-historyFrame.Size = UDim2.new(0, 350, 0, 420)
-historyFrame.Position = UDim2.new(0.5, -175, 0.5, -210)
-historyFrame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+-- [[ หน้าต่างประวัติ (History) ]]
+local historyFrame = Instance.new("Frame", sg)
+historyFrame.Size = UDim2.new(0, 300, 0, 350)
+historyFrame.Position = UDim2.new(0.5, -150, 0.5, -175)
+historyFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 historyFrame.Visible = false
-historyFrame.ZIndex = 50
 Instance.new("UICorner", historyFrame)
 
 local closeHistory = Instance.new("TextButton", historyFrame)
-closeHistory.Size = UDim2.new(0, 50, 0, 50)
-closeHistory.Position = UDim2.new(1, -55, 0, 5)
+closeHistory.Size = UDim2.new(0, 40, 0, 40)
+closeHistory.Position = UDim2.new(1, -45, 0, 5)
 closeHistory.Text = "X"
 closeHistory.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
 closeHistory.TextColor3 = Color3.new(1, 1, 1)
-closeHistory.TextSize = 30
-closeHistory.Font = Enum.Font.SourceSansBold
-closeHistory.ZIndex = 51
-Instance.new("UICorner", closeHistory)
 
 local scroll = Instance.new("ScrollingFrame", historyFrame)
-scroll.Size = UDim2.new(1, -20, 1, -80)
-scroll.Position = UDim2.new(0, 10, 0, 65)
+scroll.Size = UDim2.new(1, -10, 1, -60)
+scroll.Position = UDim2.new(0, 5, 0, 50)
 scroll.BackgroundTransparency = 1
 scroll.CanvasSize = UDim2.new(0, 0, 5, 0)
-scroll.ScrollBarThickness = 8
-scroll.ZIndex = 51
 Instance.new("UIListLayout", scroll).Padding = UDim.new(0, 5)
 
--- [[ 5. ฟังก์ชันสร้างปุ่มเมนู ]]
-local function CreateBtn(text, pos, color, callback)
+-- [[ ฟังก์ชันสร้างปุ่มแบบง่าย ]]
+local function MakeBtn(txt, color, yPos, callback)
     local btn = Instance.new("TextButton", mainFrame)
-    btn.Size = UDim2.new(0, 290, 0, 55)
-    btn.Position = pos
+    btn.Size = UDim2.new(1, -20, 0, 55)
+    btn.Position = UDim2.new(0, 10, 0, yPos)
     btn.BackgroundColor3 = color
-    btn.Text = text
+    btn.Text = txt
+    btn.TextSize = 22
     btn.TextColor3 = Color3.new(1, 1, 1)
-    btn.TextSize = 24
     btn.Font = Enum.Font.SourceSansBold
-    btn.ZIndex = 11
     Instance.new("UICorner", btn)
     btn.MouseButton1Click:Connect(callback)
     return btn
 end
 
--- 1. คัดลอกโค้ด (สีฟ้า)
-CreateBtn("1. คัดลอกโค้ด", UDim2.new(0.5, -145, 0.35, 0), Color3.fromRGB(0, 120, 255), function()
+-- สร้าง 5 ปุ่ม
+MakeBtn("1. คัดลอกโค้ด", Color3.fromRGB(0, 100, 255), 100, function()
     if setclipboard then setclipboard(codeBox.Text) end
 end)
 
--- 2. รันโค้ด 1 ครั้ง (สีเขียว)
-CreateBtn("2. รันโค้ด 1 ครั้ง", UDim2.new(0.5, -145, 0.48, 0), Color3.fromRGB(0, 160, 0), function()
-    if codeBox.Text ~= "" then
-        local func, err = loadstring(codeBox.Text)
-        if func then task.spawn(func) else warn("Error: " .. err) end
-    end
+MakeBtn("2. รันโค้ด 1 ครั้ง", Color3.fromRGB(0, 150, 0), 165, function()
+    if codeBox.Text ~= "" then loadstring(codeBox.Text)() end
 end)
 
--- 3. บันทึกโค้ด (สีเทา)
-CreateBtn("3. บันทึกโค้ด", UDim2.new(0.5, -145, 0.61, 0), Color3.fromRGB(100, 100, 100), function()
+MakeBtn("3. บันทึกโค้ด", Color3.fromRGB(80, 80, 80), 230, function()
     if codeBox.Text == "" or not writefile then return end
+    local folder = "PisitSaves/" .. MapID
     if not isfolder("PisitSaves") then makefolder("PisitSaves") end
-    if not isfolder(MapFolder) then makefolder(MapFolder) end
-    writefile(MapFolder .. "/Save_" .. os.time() .. ".lua", codeBox.Text)
+    if not isfolder(folder) then makefolder(folder) end
+    writefile(folder .. "/Save_" .. os.time() .. ".lua", codeBox.Text)
 end)
 
--- 4. ประวัติการบันทึก (สีม่วง)
-CreateBtn("4. ประวัติการบันทึก", UDim2.new(0.5, -145, 0.74, 0), Color3.fromRGB(130, 60, 200), function()
+MakeBtn("4. ประวัติบันทึก", Color3.fromRGB(100, 50, 150), 295, function()
     for _, v in pairs(scroll:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
-    if isfolder and isfolder(MapFolder) then
-        for _, file in pairs(listfiles(MapFolder)) do
+    local folder = "PisitSaves/" .. MapID
+    if isfolder and isfolder(folder) then
+        for _, file in pairs(listfiles(folder)) do
             local fBtn = Instance.new("TextButton", scroll)
-            fBtn.Size = UDim2.new(1, -15, 0, 50)
-            fBtn.Text = file:sub(#MapFolder + 2)
-            fBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            fBtn.Size = UDim2.new(1, -10, 0, 45)
+            fBtn.Text = file:sub(#folder + 2)
+            fBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
             fBtn.TextColor3 = Color3.new(1, 1, 1)
-            fBtn.TextSize = 20
-            fBtn.ZIndex = 52
             Instance.new("UICorner", fBtn)
             fBtn.MouseButton1Click:Connect(function()
                 codeBox.Text = readfile(file)
@@ -157,33 +116,29 @@ CreateBtn("4. ประวัติการบันทึก", UDim2.new(0.5, 
     historyFrame.Visible = true
 end)
 
--- 5. รันรัวๆ (สีแดง)
-local sBtn = CreateBtn("5. รันรัวๆ: OFF", UDim2.new(0.5, -145, 0.88, 0), Color3.fromRGB(180, 0, 0), function() end)
+local sBtn = MakeBtn("5. รันรัวๆ: OFF", Color3.fromRGB(150, 0, 0), 360, function() end)
 sBtn.MouseButton1Click:Connect(function()
     IsSpamming = not IsSpamming
     sBtn.Text = "5. รันรัวๆ: " .. (IsSpamming and "ON" or "OFF")
-    sBtn.BackgroundColor3 = IsSpamming and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(180, 0, 0)
-    if IsSpamming then
-        task.spawn(function()
-            while IsSpamming do
-                if codeBox.Text ~= "" then pcall(function() loadstring(codeBox.Text)() end) end
-                task.wait(0.2)
-            end
-        end)
-    end
+    sBtn.BackgroundColor3 = IsSpamming and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(150, 0, 0)
+    task.spawn(function()
+        while IsSpamming do
+            if codeBox.Text ~= "" then pcall(function() loadstring(codeBox.Text)() end) end
+            task.wait(0.2)
+        end
+    end)
 end)
 
--- [[ 6. ระบบควบคุมและการลาก ]]
+-- [[ ระบบควบคุม ]]
 gBtn.MouseButton1Click:Connect(function() mainFrame.Visible = not mainFrame.Visible end)
 closeHistory.MouseButton1Click:Connect(function() historyFrame.Visible = false end)
 
+-- ลากปุ่ม G
 local d, ds, sp
 gBtn.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true ds = i.Position sp = gBtn.Position end end)
 UserInputService.InputChanged:Connect(function(i) if d then 
     local del = i.Position - ds
     gBtn.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X, sp.Y.Scale, sp.Y.Offset + del.Y)
-    mainFrame.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X + 100, sp.Y.Scale, sp.Y.Offset + del.Y - 240)
+    mainFrame.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X + 100, sp.Y.Scale, sp.Y.Offset + del.Y - 210)
 end end)
-UserInputService.InputEnded:Connect(function() d = false end)
-
-print("PISIT EXECUTOR V5 LOADED - READY!")
+gBtn.InputEnded:Connect(function() d = false end)
