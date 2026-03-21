@@ -1,38 +1,37 @@
--- [[ ᴘɪꜱɪᴛ  ʀᴇᴀʟ-ʙᴏᴅʏ  ᴠ9  +  ᴘᴇʀᴍᴀɴᴇɴᴛ  ꜱᴀᴠᴇ ]]
+-- [[ ᴘɪꜱɪᴛ  ʀᴇᴀʟ-ʙᴏᴅʏ  ꜱᴀᴠᴇ-ꜱʏꜱᴛᴇᴍ ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local HttpService = game:GetService("HttpService")
+local HttpService = game:GetService("HttpService") -- เพิ่มสำหรับจัดการไฟล์
 local LocalPlayer = Players.LocalPlayer
 
 local RecordedData = {} 
-local IsRecording, IsPaused, IsPlaying = false, false, false
+local IsRecording = false
+local IsPaused = false
+local IsPlaying = false
 local Timer = 0
-local SaveFileName = "Pisit_RealBody_Save.json"
+local FileName = "Pisit_RealBody_Data.json" -- ชื่อไฟล์เซฟ
 
--- [[ 1. ฟังก์ชันบันทึก/โหลดไฟล์ (เพื่อให้ข้อมูลไม่หาย) ]]
-local function SaveToFile()
-    if writefile then
-        local success, encoded = pcall(function()
-            -- แปลง CFrame เป็น Table ก่อนเซฟ (JSON ไม่รองรับ CFrame โดยตรง)
-            local tempTable = {}
-            for _, data in ipairs(RecordedData) do
-                local pos = data.cf.Position
-                local look = data.cf.LookVector
-                table.insert(tempTable, {px=pos.X, py=pos.Y, pz=pos.Z, lx=look.X, ly=look.Y, lz=look.Z, sp=data.speed})
-            end
-            return HttpService:JSONEncode(tempTable)
-        end)
-        if success then writefile(SaveFileName, encoded) end
+---------------------------------------------------------
+-- [ ระบบจัดการไฟล์ (Save/Load) ]
+---------------------------------------------------------
+
+local function SaveData()
+    if not writefile then return end
+    local temp = {}
+    for _, d in ipairs(RecordedData) do
+        local p, l = d.cf.Position, d.cf.LookVector
+        table.insert(temp, {px=p.X, py=p.Y, pz=p.Z, lx=l.X, ly=l.Y, lz=l.Z, sp=d.speed})
     end
+    writefile(FileName, HttpService:JSONEncode(temp))
 end
 
-local function LoadFromFile()
-    if isfile and isfile(SaveFileName) then
-        local content = readfile(SaveFileName)
+local function LoadData()
+    if isfile and isfile(FileName) then
+        local content = readfile(FileName)
         local success, decoded = pcall(function() return HttpService:JSONDecode(content) end)
         if success then
             RecordedData = {}
@@ -42,29 +41,62 @@ local function LoadFromFile()
                     speed = d.sp
                 })
             end
-            return true
+            print("โหลดข้อมูลเก่าสำเร็จ!")
         end
     end
-    return false
 end
 
+-- โหลดข้อมูลทันทีที่รันสคริปต์
+LoadData()
+
 ---------------------------------------------------------
--- [ ระบบทำซ้ำ (Replay) ]
+-- [ ระบบบันทึก (High-Res 0.1s) ]
 ---------------------------------------------------------
+
+task.spawn(function()
+    while true do
+        if IsRecording and not IsPaused and Timer < 60 then
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                local hrp = char.HumanoidRootPart
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                
+                table.insert(RecordedData, {
+                    cf = hrp.CFrame,
+                    speed = (hum and hum.WalkSpeed) or 16,
+                })
+                Timer = Timer + 0.1
+            end
+        end
+        task.wait(0.1)
+    end
+end)
+
+---------------------------------------------------------
+-- [ ระบบทำซ้ำ (ร่างจริง - Real Body) ]
+---------------------------------------------------------
+
 local function StartPlayback()
-    if #RecordedData == 0 or IsPlaying then return end
+    if IsRecording or #RecordedData == 0 or IsPlaying then return end
     IsPlaying = true
+    
     local char = LocalPlayer.Character
     if char and char:FindFirstChild("HumanoidRootPart") then
         local hrp = char.HumanoidRootPart
         local hum = char:FindFirstChildOfClass("Humanoid")
+        
         hrp.CFrame = RecordedData[1].cf
         task.wait(0.2)
+
         for i = 1, #RecordedData do
             if not IsPlaying then break end
             local data = RecordedData[i]
-            local tween = TweenService:Create(hrp, TweenInfo.new(0.1, Enum.EasingStyle.Linear), {CFrame = data.cf})
+            
+            local tweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Linear)
+            local tween = TweenService:Create(hrp, tweenInfo, {CFrame = data.cf})
+            
             if hum then hum.WalkSpeed = data.speed end
+            
             tween:Play()
             task.wait(0.1)
         end
@@ -73,103 +105,76 @@ local function StartPlayback()
 end
 
 ---------------------------------------------------------
--- [ ระบบ UI (ปรับปรุงใหม่ตามสั่ง) ]
+-- [ ระบบ UI และการลาก ]
 ---------------------------------------------------------
+
 local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "PisitRealBodyV9"; sg.ResetOnSpawn = false
+sg.Name = "PisitRealBodyUI"; sg.ResetOnSpawn = false
 
 local main = Instance.new("Frame", sg)
-main.Size = UDim2.new(0, 250, 0, 300); main.Position = UDim2.new(0.5, -125, 0.3, 0)
-main.BackgroundColor3 = Color3.fromRGB(20, 20, 20); main.Active = true; Instance.new("UICorner", main)
+main.Size = UDim2.new(0, 220, 0, 210); main.Position = UDim2.new(0.5, -110, 0.2, 0)
+main.BackgroundColor3 = Color3.fromRGB(15, 15, 15); main.Active = true; Instance.new("UICorner", main)
+local stroke = Instance.new("UIStroke", main); stroke.Color = Color3.new(1,1,1); stroke.Thickness = 2
 
 local title = Instance.new("TextLabel", main)
-title.Size = UDim2.new(1, 0, 0, 40); title.Text = "REAL-BODY V9"; title.TextColor3 = Color3.new(1,1,1); title.BackgroundTransparency = 1; title.Font = "SourceSansBold"; title.TextSize = 20
+title.Size = UDim2.new(1, 0, 0, 35); title.Text = "REAL BODY RECORDER"; title.TextColor3 = Color3.new(1,1,1); title.BackgroundTransparency = 1; title.Font = "SourceSansBold"
 
 local function createBtn(text, pos, color, func)
     local b = Instance.new("TextButton", main)
-    b.Size = UDim2.new(0.9, 0, 0, 40); b.Position = pos; b.BackgroundColor3 = color
-    b.Text = text; b.TextColor3 = Color3.new(1, 1, 1); b.Font = "SourceSansBold"; b.TextSize = 14
+    b.Size = UDim2.new(0.9, 0, 0, 35); b.Position = pos; b.BackgroundColor3 = color
+    b.Text = text; b.TextColor3 = Color3.new(1, 1, 1); b.Font = "SourceSansBold"; b.TextSize = 13
     Instance.new("UICorner", b); b.MouseButton1Click:Connect(func)
     return b
 end
 
--- 1. ปุ่มบันทึก
-local recBtn = createBtn("เริ่มบันทึก (START)", UDim2.new(0.05, 0, 0.15, 0), Color3.fromRGB(45, 140, 45), function()
+local recBtn = createBtn("เริ่มบันทึก (START)", UDim2.new(0.05, 0, 0.2, 0), Color3.fromRGB(45, 140, 45), function()
     if not IsRecording then 
         RecordedData = {}; Timer = 0; IsPaused = false; IsRecording = true
     else 
-        IsRecording = false; SaveToFile() -- หยุดแล้วเซฟลงเครื่องทันที
+        IsRecording = false 
+        SaveData() -- หยุดบันทึกปุ๊บ เซฟลงเครื่องทันที
     end
 end)
 
--- 2. ปุ่มจัดการบันทึก (เปิดเมนูจัดการ)
-local manageBtn = createBtn("จัดการบันทึก / โหลดไฟล์", UDim2.new(0.05, 0, 0.32, 0), Color3.fromRGB(130, 80, 0), function()
-    local loaded = LoadFromFile()
-    if loaded then manageBtn.Text = "โหลดข้อมูลสำเร็จ ("..#RecordedData..")" 
-    else manageBtn.Text = "ไม่พบไฟล์ที่บันทึกไว้" end
-    task.wait(1)
-    manageBtn.Text = "จัดการบันทึก / โหลดไฟล์"
+local pauseBtn = createBtn("หยุดชั่วคราว (PAUSE)", UDim2.new(0.05, 0, 0.4, 0), Color3.fromRGB(160, 130, 0), function()
+    if IsRecording then IsPaused = not IsPaused end
 end)
 
--- 3. ปุ่มรันสีเขียว (เตรียมรัน)
-local runFrame = Instance.new("Frame", main)
-runFrame.Size = UDim2.new(0.9, 0, 0, 50); runFrame.Position = UDim2.new(0.05, 0, 0.5, 0)
-runFrame.BackgroundTransparency = 1
+local playBtn = createBtn("ทำซ้ำร่างจริง (REPLAY)", UDim2.new(0.05, 0, 0.6, 0), Color3.fromRGB(0, 110, 190), StartPlayback)
 
-local runLabel = Instance.new("TextLabel", runFrame)
-runLabel.Size = UDim2.new(0.7, 0, 1, 0); runLabel.Text = "รันบันทึกพิกัด:"; runLabel.TextColor3 = Color3.new(1,1,1); runLabel.BackgroundTransparency = 1; runLabel.TextXAlignment = "Left"
-
--- ปุ่มรันสีเขียว (สี่เหลี่ยม)
-local executeBtn = Instance.new("TextButton", runFrame)
-executeBtn.Size = UDim2.new(0, 45, 0, 45); executeBtn.Position = UDim2.new(0.75, 0, 0, 0)
-executeBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0); executeBtn.Text = "▶"; executeBtn.TextColor3 = Color3.new(1,1,1); executeBtn.TextSize = 25
-Instance.new("UICorner", executeBtn)
-
-executeBtn.MouseButton1Click:Connect(function()
-    if not IsPlaying then
-        task.spawn(StartPlayback)
-    else
-        IsPlaying = false -- กดซ้ำเพื่อหยุด
-    end
+createBtn("ล้างข้อมูล / RESET", UDim2.new(0.05, 0, 0.8, 0), Color3.fromRGB(140, 45, 45), function()
+    IsRecording = false; IsPlaying = false; IsPaused = false; RecordedData = {}; Timer = 0
+    if delfile and isfile(FileName) then delfile(FileName) end
 end)
 
--- 4. ปุ่มล้าง/รีเซ็ต
-createBtn("RESET / DELETE SAVE", UDim2.new(0.05, 0, 0.75, 0), Color3.fromRGB(140, 45, 45), function()
-    IsRecording = false; IsPlaying = false; RecordedData = {}; Timer = 0
-    if delfile and isfile(SaveFileName) then delfile(SaveFileName) end
-end)
-
--- อัปเดตสถานะ (Timer)
+-- อัปเดตสถานะปุ่ม
 RunService.RenderStepped:Connect(function()
     if IsRecording then
-        recBtn.Text = "หยุดบันทึก (STOP) - " .. string.format("%.1f", Timer) .. "s"
-        recBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
-    else
-        recBtn.Text = "เริ่มบันทึกใหม่ (START)"
-        recBtn.BackgroundColor3 = Color3.fromRGB(45, 140, 45)
-    end
-    executeBtn.BackgroundColor3 = IsPlaying and Color3.fromRGB(255, 150, 0) or Color3.fromRGB(0, 200, 0)
-end)
-
--- ระบบลาก UI
-local d, ds, sp
-main.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then d = true; ds = i.Position; sp = main.Position end end)
-UserInputService.InputChanged:Connect(function(i) if d and (i.UserInputType == Enum.UserInputType.MouseMovement or i.UserInputType == Enum.UserInputType.Touch) then 
-    local del = i.Position - ds
-    main.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X, sp.Y.Scale, sp.Y.Offset + del.Y)
-end end)
-UserInputService.InputEnded:Connect(function() d = false end)
-
--- บันทึกอัตโนมัติ 0.1s
-task.spawn(function()
-    while true do
-        if IsRecording then
-            local char = LocalPlayer.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                table.insert(RecordedData, {cf = char.HumanoidRootPart.CFrame, speed = char:FindFirstChildOfClass("Humanoid").WalkSpeed})
-                Timer = Timer + 0.1
-            end
+        if IsPaused then
+            recBtn.Text = "บันทึก (PAUSED) - " .. string.format("%.1f", Timer) .. "s"
+            pauseBtn.Text = "ดำเนินต่อ (RESUME)"
+        else
+            recBtn.Text = "หยุดบันทึก (STOP) - " .. string.format("%.1f", Timer) .. "s"
+            pauseBtn.Text = "หยุดชั่วคราว (PAUSE)"
         end
-        task.wait(0.1)
+    else
+        recBtn.Text = (#RecordedData > 0 and "บันทึกข้อมูลแล้ว ("..#RecordedData..")" or "เริ่มบันทึกใหม่ (START)")
     end
 end)
+
+---------------------------------------------------------
+-- [ ระบบลาก UI แบบสากล ]
+---------------------------------------------------------
+local dragging, dragInput, dragStart, startPos
+main.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true; dragStart = input.Position; startPos = main.Position
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function(input) dragging = false end)
