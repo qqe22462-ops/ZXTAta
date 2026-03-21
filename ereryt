@@ -1,11 +1,10 @@
--- [[ ᴘɪꜱɪᴛ  ʀᴇᴀʟ-ʙᴏᴅʏ  ꜱᴀᴠᴇ-ꜱʏꜱᴛᴇᴍ ]]
+-- [[ ᴘɪꜱɪᴛ  ʀᴇᴀʟ-ʙᴏᴅʏ  ʀᴇᴄᴏʀᴅᴇʀ ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local HttpService = game:GetService("HttpService") -- เพิ่มสำหรับจัดการไฟล์
 local LocalPlayer = Players.LocalPlayer
 
 local RecordedData = {} 
@@ -13,41 +12,6 @@ local IsRecording = false
 local IsPaused = false
 local IsPlaying = false
 local Timer = 0
-local FileName = "Pisit_RealBody_Data.json" -- ชื่อไฟล์เซฟ
-
----------------------------------------------------------
--- [ ระบบจัดการไฟล์ (Save/Load) ]
----------------------------------------------------------
-
-local function SaveData()
-    if not writefile then return end
-    local temp = {}
-    for _, d in ipairs(RecordedData) do
-        local p, l = d.cf.Position, d.cf.LookVector
-        table.insert(temp, {px=p.X, py=p.Y, pz=p.Z, lx=l.X, ly=l.Y, lz=l.Z, sp=d.speed})
-    end
-    writefile(FileName, HttpService:JSONEncode(temp))
-end
-
-local function LoadData()
-    if isfile and isfile(FileName) then
-        local content = readfile(FileName)
-        local success, decoded = pcall(function() return HttpService:JSONDecode(content) end)
-        if success then
-            RecordedData = {}
-            for _, d in ipairs(decoded) do
-                table.insert(RecordedData, {
-                    cf = CFrame.new(Vector3.new(d.px, d.py, d.pz), Vector3.new(d.px+d.lx, d.py+d.ly, d.pz+d.lz)),
-                    speed = d.sp
-                })
-            end
-            print("โหลดข้อมูลเก่าสำเร็จ!")
-        end
-    end
-end
-
--- โหลดข้อมูลทันทีที่รันสคริปต์
-LoadData()
 
 ---------------------------------------------------------
 -- [ ระบบบันทึก (High-Res 0.1s) ]
@@ -85,6 +49,7 @@ local function StartPlayback()
         local hrp = char.HumanoidRootPart
         local hum = char:FindFirstChildOfClass("Humanoid")
         
+        -- วาร์ปไปจุดเริ่มต้นก่อน
         hrp.CFrame = RecordedData[1].cf
         task.wait(0.2)
 
@@ -92,13 +57,14 @@ local function StartPlayback()
             if not IsPlaying then break end
             local data = RecordedData[i]
             
+            -- ใช้ Tween เพื่อให้ร่างจริงขยับอย่างนุ่มนวลไปยังพิกัดถัดไป
             local tweenInfo = TweenInfo.new(0.1, Enum.EasingStyle.Linear)
             local tween = TweenService:Create(hrp, tweenInfo, {CFrame = data.cf})
             
             if hum then hum.WalkSpeed = data.speed end
             
             tween:Play()
-            task.wait(0.1)
+            task.wait(0.1) -- ขยับตามความถี่ที่บันทึก
         end
     end
     IsPlaying = false
@@ -128,12 +94,8 @@ local function createBtn(text, pos, color, func)
 end
 
 local recBtn = createBtn("เริ่มบันทึก (START)", UDim2.new(0.05, 0, 0.2, 0), Color3.fromRGB(45, 140, 45), function()
-    if not IsRecording then 
-        RecordedData = {}; Timer = 0; IsPaused = false; IsRecording = true
-    else 
-        IsRecording = false 
-        SaveData() -- หยุดบันทึกปุ๊บ เซฟลงเครื่องทันที
-    end
+    if not IsRecording then RecordedData = {}; Timer = 0; IsPaused = false; IsRecording = true
+    else IsRecording = false end
 end)
 
 local pauseBtn = createBtn("หยุดชั่วคราว (PAUSE)", UDim2.new(0.05, 0, 0.4, 0), Color3.fromRGB(160, 130, 0), function()
@@ -144,7 +106,6 @@ local playBtn = createBtn("ทำซ้ำร่างจริง (REPLAY)", UD
 
 createBtn("ล้างข้อมูล / RESET", UDim2.new(0.05, 0, 0.8, 0), Color3.fromRGB(140, 45, 45), function()
     IsRecording = false; IsPlaying = false; IsPaused = false; RecordedData = {}; Timer = 0
-    if delfile and isfile(FileName) then delfile(FileName) end
 end)
 
 -- อัปเดตสถานะปุ่ม
@@ -158,7 +119,7 @@ RunService.RenderStepped:Connect(function()
             pauseBtn.Text = "หยุดชั่วคราว (PAUSE)"
         end
     else
-        recBtn.Text = (#RecordedData > 0 and "บันทึกข้อมูลแล้ว ("..#RecordedData..")" or "เริ่มบันทึกใหม่ (START)")
+        recBtn.Text = "เริ่มบันทึกใหม่ (START)"
     end
 end)
 
