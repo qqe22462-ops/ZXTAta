@@ -1,176 +1,91 @@
--- [[ FLY GUI V3 + KEY SYSTEM BY PISIT ]]
--- Key: PP
-
 local LocalPlayer = game:GetService("Players").LocalPlayer
 local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
 
--- [[ 1. สร้าง ScreenGui หลัก ]]
-local main = Instance.new("ScreenGui")
-main.Name = "PisitFlyKeySystem"
-main.Parent = LocalPlayer:WaitForChild("PlayerGui")
-main.ResetOnSpawn = false
+-- [[ 1. สร้าง UI ]]
+local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+sg.Name = "PisitMarker"
+sg.ResetOnSpawn = false
 
----------------------------------------------------------
--- [ ระบบ Key System ]
----------------------------------------------------------
-local keyFrame = Instance.new("Frame", main)
-keyFrame.Size = UDim2.new(0, 300, 0, 180)
-keyFrame.Position = UDim2.new(0.5, -150, 0.5, -90)
-keyFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-keyFrame.BorderSizePixel = 0
-Instance.new("UICorner", keyFrame)
+local mainFrame = Instance.new("Frame", sg)
+mainFrame.Size = UDim2.new(0, 300, 0, 350)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -175)
+mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+mainFrame.Active = true
+mainFrame.Draggable = true -- ลากหน้าต่างนี้ได้เลย
+Instance.new("UICorner", mainFrame)
 
-local keyTitle = Instance.new("TextLabel", keyFrame)
-keyTitle.Size = UDim2.new(1, 0, 0, 50)
-keyTitle.Text = "กรุณาใส่รหัสผ่าน (Key)"
-keyTitle.TextColor3 = Color3.new(1, 1, 0)
-keyTitle.TextSize = 20
-keyTitle.Font = Enum.Font.SourceSansBold
-keyTitle.BackgroundTransparency = 1
+local title = Instance.new("TextLabel", mainFrame)
+title.Size = UDim2.new(1, 0, 0, 40)
+title.Text = "PISIT POS MARKER"
+title.TextColor3 = Color3.new(1, 1, 0)
+title.BackgroundTransparency = 1
+title.TextSize = 20
 
-local keyInput = Instance.new("TextBox", keyFrame)
-keyInput.Size = UDim2.new(0, 200, 0, 40)
-keyInput.Position = UDim2.new(0.5, -100, 0.4, 0)
-keyInput.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-keyInput.PlaceholderText = "คีย์คือ PP"
-keyInput.Text = ""
-keyInput.TextColor3 = Color3.new(1, 1, 1)
-keyInput.TextSize = 20
-Instance.new("UICorner", keyInput)
+-- ช่องโชว์โค้ดที่เจนแล้ว
+local codeOutput = Instance.new("TextBox", mainFrame)
+codeOutput.Size = UDim2.new(1, -20, 0, 150)
+codeOutput.Position = UDim2.new(0, 10, 0, 50)
+codeOutput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+codeOutput.PlaceholderText = "พิกัดที่มาร์คจะขึ้นตรงนี้..."
+codeOutput.Text = ""
+codeOutput.TextColor3 = Color3.new(1, 1, 1)
+codeOutput.TextSize = 14
+codeOutput.TextWrapped = true
+codeOutput.ClearTextOnFocus = false
+Instance.new("UICorner", codeOutput)
 
-local enterBtn = Instance.new("TextButton", keyFrame)
-enterBtn.Size = UDim2.new(0, 120, 0, 40)
-enterBtn.Position = UDim2.new(0.5, -60, 0.75, 0)
-enterBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-enterBtn.Text = "Login"
-enterBtn.TextColor3 = Color3.new(1, 1, 1)
-Instance.new("UICorner", enterBtn)
+local points = {}
 
----------------------------------------------------------
--- [ ปุ่ม G วงกลม (ลากได้) ]
----------------------------------------------------------
-local gBtn = Instance.new("TextButton", main)
-gBtn.Size = UDim2.new(0, 70, 0, 70)
-gBtn.Position = UDim2.new(0, 50, 0.5, -35)
-gBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-gBtn.Text = "G"
-gBtn.TextSize = 40
-gBtn.TextColor3 = Color3.new(1, 1, 1)
-gBtn.Font = Enum.Font.SourceSansBold
-gBtn.Visible = false -- ซ่อนไว้ก่อน
-gBtn.ZIndex = 100
-Instance.new("UICorner", gBtn).CornerRadius = UDim.new(1, 0)
+-- [[ ปุ่มมาร์คจุดที่ยืนอยู่ ]]
+local markBtn = Instance.new("TextButton", mainFrame)
+markBtn.Size = UDim2.new(1, -20, 0, 50)
+markBtn.Position = UDim2.new(0, 10, 0, 210)
+markBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+markBtn.Text = "📍 มาร์คจุดปัจจุบัน"
+markBtn.TextColor3 = Color3.new(1, 1, 1)
+markBtn.TextSize = 18
+Instance.new("UICorner", markBtn)
 
----------------------------------------------------------
--- [ Fly GUI Frame (จากโค้ดที่คุณให้มา) ]
----------------------------------------------------------
-local Frame = Instance.new("Frame", main)
-Frame.BackgroundColor3 = Color3.fromRGB(163, 255, 137)
-Frame.Position = UDim2.new(0.1, 0, 0.4, 0)
-Frame.Size = UDim2.new(0, 190, 0, 57)
-Frame.Visible = false
-Frame.Active = true
+-- [[ ปุ่มเจนโค้ดเพื่อคัดลอก ]]
+local copyBtn = Instance.new("TextButton", mainFrame)
+copyBtn.Size = UDim2.new(1, -20, 0, 50)
+copyBtn.Position = UDim2.new(0, 10, 0, 270)
+copyBtn.BackgroundColor3 = Color3.fromRGB(0, 100, 255)
+copyBtn.Text = "📄 คัดลอกโค้ดทั้งหมด"
+copyBtn.TextColor3 = Color3.new(1, 1, 1)
+copyBtn.TextSize = 18
+Instance.new("UICorner", copyBtn)
 
--- สร้างปุ่มและ UI ภายใน Fly GUI (ย่อจากโค้ดเดิม)
-local up = Instance.new("TextButton", Frame)
-up.Name = "up"; up.Size = UDim2.new(0, 44, 0, 28); up.Text = "UP"; up.BackgroundColor3 = Color3.fromRGB(79, 255, 152)
-
-local down = Instance.new("TextButton", Frame)
-down.Name = "down"; down.Position = UDim2.new(0, 0, 0.5, 0); down.Size = UDim2.new(0, 44, 0, 28); down.Text = "DOWN"; down.BackgroundColor3 = Color3.fromRGB(215, 255, 121)
-
-local onof = Instance.new("TextButton", Frame)
-onof.Name = "onof"; onof.Position = UDim2.new(0.7, 0, 0.5, 0); onof.Size = UDim2.new(0, 56, 0, 28); onof.Text = "fly"; onof.BackgroundColor3 = Color3.fromRGB(255, 249, 74)
-
-local plus = Instance.new("TextButton", Frame)
-plus.Position = UDim2.new(0.23, 0, 0, 0); plus.Size = UDim2.new(0, 45, 0, 28); plus.Text = "+"; plus.BackgroundColor3 = Color3.fromRGB(133, 145, 255)
-
-local mine = Instance.new("TextButton", Frame)
-mine.Position = UDim2.new(0.23, 0, 0.5, 0); mine.Size = UDim2.new(0, 45, 0, 29); mine.Text = "-"; mine.BackgroundColor3 = Color3.fromRGB(123, 255, 247)
-
-local speedLabel = Instance.new("TextLabel", Frame)
-speedLabel.Position = UDim2.new(0.47, 0, 0.5, 0); speedLabel.Size = UDim2.new(0, 44, 0, 28); speedLabel.Text = "1"; speedLabel.BackgroundColor3 = Color3.fromRGB(255, 85, 0)
-
-local titleLabel = Instance.new("TextLabel", Frame)
-titleLabel.Position = UDim2.new(0.47, 0, 0, 0); titleLabel.Size = UDim2.new(0, 100, 0, 28); titleLabel.Text = "Fly V3"; titleLabel.BackgroundColor3 = Color3.fromRGB(242, 60, 255)
-
----------------------------------------------------------
--- [ ระบบการบิน (Logic) ]
----------------------------------------------------------
-local speeds = 1
-local nowe = false
-local speaker = LocalPlayer
-
-onof.MouseButton1Click:Connect(function()
-    nowe = not nowe
-    onof.Text = nowe and "FLYING" or "fly"
-    onof.BackgroundColor3 = nowe and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 249, 74)
-    
-    if nowe then
-        -- เปิดระบบบิน (ย่อ logic จากที่คุณให้มา)
-        speaker.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Swimming)
-    else
-        speaker.Character.Humanoid:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
+-- ฟังก์ชันมาร์คจุด
+markBtn.MouseButton1Click:Connect(function()
+    local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if hrp then
+        local pos = hrp.Position
+        -- เก็บค่าแบบ Vector3
+        table.insert(points, string.format("Vector3.new(%.2f, %.2f, %.2f)", pos.X, pos.Y, pos.Z))
+        
+        -- อัปเดตในช่อง Text
+        local result = "local MyPoints = {\n"
+        for i, p in ipairs(points) do
+            result = result .. "    [" .. i .. "] = " .. p .. ",\n"
+        end
+        result = result .. "}"
+        codeOutput.Text = result
+        
+        markBtn.Text = "📍 มาร์คแล้ว! (จุดที่ " .. #points .. ")"
+        task.wait(0.5)
+        markBtn.Text = "📍 มาร์คจุดปัจจุบัน"
     end
 end)
 
--- ปุ่มเพิ่ม/ลดความเร็ว
-plus.MouseButton1Click:Connect(function() speeds = speeds + 1; speedLabel.Text = tostring(speeds) end)
-mine.MouseButton1Click:Connect(function() if speeds > 1 then speeds = speeds - 1; speedLabel.Text = tostring(speeds) end end)
-
--- ระบบขึ้น/ลง (กดค้าง)
-local movingUp, movingDown = false, false
-up.MouseButton1Down:Connect(function() movingUp = true end)
-up.MouseButton1Up:Connect(function() movingUp = false end)
-down.MouseButton1Down:Connect(function() movingDown = true end)
-down.MouseButton1Up:Connect(function() movingDown = false end)
-
-RunService.RenderStepped:Connect(function()
-    if nowe and speaker.Character and speaker.Character:FindFirstChild("HumanoidRootPart") then
-        local hrp = speaker.Character.HumanoidRootPart
-        if movingUp then hrp.CFrame = hrp.CFrame * CFrame.new(0, speeds, 0) end
-        if movingDown then hrp.CFrame = hrp.CFrame * CFrame.new(0, -speeds, 0) end
-    end
-end)
-
----------------------------------------------------------
--- [ ระบบควบคุม UI ]
----------------------------------------------------------
-
--- เช็ค Key
-enterBtn.MouseButton1Click:Connect(function()
-    if keyInput.Text == "PP" then
-        keyFrame:Destroy()
-        gBtn.Visible = true
-    else
-        enterBtn.Text = "คีย์ผิด!"
+-- ฟังก์ชันก๊อปปี้
+copyBtn.MouseButton1Click:Connect(function()
+    if setclipboard then
+        setclipboard(codeOutput.Text)
+        copyBtn.Text = "✅ คัดลอกลง Clipboard แล้ว!"
         task.wait(1)
-        enterBtn.Text = "Login"
-    end
-end)
-
--- กดปุ่ม G เปิด/ปิดเมนู
-gBtn.MouseButton1Click:Connect(function()
-    Frame.Visible = not Frame.Visible
-end)
-
--- ระบบลากปุ่ม G
-local dragging, dragInput, dragStart, startPos
-gBtn.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = gBtn.Position
-    end
-end)
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStart
-        gBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = false
+        copyBtn.Text = "📄 คัดลอกโค้ดทั้งหมด"
+    else
+        copyBtn.Text = "❌ อุปกรณ์ไม่รองรับการก๊อปปี้"
     end
 end)
