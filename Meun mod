@@ -1,4 +1,4 @@
--- [[ PISIT G-MENU CUSTOM ]]
+-- [[ PISIT G-MENU V2 - THE STALKER ]]
 -- OWNER: ไกรสร พิสิษฐ์ 🫡
 
 local Players = game:GetService("Players")
@@ -9,6 +9,8 @@ local LocalPlayer = Players.LocalPlayer
 
 local AbilityEnabled = false
 local ESPEnabled = false
+local SpectateEnabled = false
+local TargetPlayer = nil
 
 ---------------------------------------------------------
 -- [ ฟังก์ชัน 1: Auto CrowdAbility (0.5s) ]
@@ -17,111 +19,130 @@ task.spawn(function()
     while true do
         if AbilityEnabled then
             local args = { "CrowdAbility" }
-            local comm = ReplicatedStorage:FindFirstChild("Communication")
-            if comm then
-                local effect = comm:FindFirstChild("AbilityEffect")
-                if effect then
-                    effect:FireServer(unpack(args))
-                end
-            end
+            pcall(function()
+                ReplicatedStorage.Communication.AbilityEffect:FireServer(unpack(args))
+            end)
         end
-        task.wait(0.5) -- รันรัวๆ ทุก 0.5 วินาที
+        task.wait(0.5)
     end
 end)
 
 ---------------------------------------------------------
--- [ ฟังก์ชัน 2: ESP ระบบมองเห็นผู้เล่น ]
+-- [ ฟังก์ชัน 2: ESP มองเห็นผู้เล่น ]
 ---------------------------------------------------------
 local function CreateESP(plr)
     local highlight = Instance.new("Highlight")
     highlight.Name = "PisitESP"
     highlight.FillColor = Color3.fromRGB(255, 0, 0)
     highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-    highlight.FillTransparency = 0.5
-    highlight.OutlineTransparency = 0
     
-    local function Update()
+    RunService.RenderStepped:Connect(function()
         if ESPEnabled and plr.Character and plr ~= LocalPlayer then
             highlight.Parent = plr.Character
         else
             highlight.Parent = nil
         end
-    end
-    
-    plr.CharacterAdded:Connect(Update)
-    RunService.RenderStepped:Connect(Update)
+    end)
 end
-
 for _, v in pairs(Players:GetPlayers()) do CreateESP(v) end
 Players.PlayerAdded:Connect(CreateESP)
 
 ---------------------------------------------------------
--- [ UI: ปุ่ม G สีเขียวและเมนู ]
+-- [ ฟังก์ชัน 3: ระบบสิงร่าง (Stay Inside) ]
+---------------------------------------------------------
+RunService.Stepped:Connect(function()
+    if SpectateEnabled and TargetPlayer and TargetPlayer.Character then
+        local targetHRP = TargetPlayer.Character:FindFirstChild("HumanoidRootPart")
+        local myHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        
+        if targetHRP and myHRP then
+            -- ล็อคตำแหน่งเราให้ตรงกับเป้าหมายเป๊ะๆ (สิงร่าง)
+            myHRP.CFrame = targetHRP.CFrame
+            -- ปิดแรงโน้มถ่วงชั่วคราวเพื่อให้ติดหนึบ
+            myHRP.Velocity = Vector3.new(0,0,0)
+        end
+    end
+end)
+
+---------------------------------------------------------
+-- [ UI: Setup ]
 ---------------------------------------------------------
 local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
-sg.Name = "PisitGMenu"; sg.ResetOnSpawn = false
+sg.Name = "PisitGMenuV2"; sg.ResetOnSpawn = false
 
--- ปุ่ม G วงกลมลากได้
+-- ปุ่ม G เขียว
 local gBtn = Instance.new("TextButton", sg)
-gBtn.Size = UDim2.new(0, 60, 0, 60)
-gBtn.Position = UDim2.new(0, 50, 0.5, -30)
-gBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-gBtn.Text = "G"
-gBtn.TextColor3 = Color3.new(1, 1, 1)
-gBtn.TextSize = 30
-gBtn.Font = "SourceSansBold"
+gBtn.Size = UDim2.new(0, 50, 0, 50); gBtn.Position = UDim2.new(0, 20, 0.5, 0)
+gBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0); gBtn.Text = "G"
+gBtn.TextColor3 = Color3.new(1, 1, 1); gBtn.TextSize = 25
 Instance.new("UICorner", gBtn).CornerRadius = UDim.new(1, 0)
-Instance.new("UIStroke", gBtn).Thickness = 2
 
--- หน้าต่างเมนูหลัก
+-- เมนู
 local main = Instance.new("Frame", sg)
-main.Size = UDim2.new(0, 220, 0, 180)
-main.Position = UDim2.new(0.5, -110, 0.4, 0)
-main.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-main.Visible = false
+main.Size = UDim2.new(0, 240, 0, 320); main.Position = UDim2.new(0.5, -120, 0.3, 0)
+main.BackgroundColor3 = Color3.fromRGB(25, 25, 25); main.Visible = false
 Instance.new("UICorner", main)
-local stroke = Instance.new("UIStroke", main); stroke.Color = Color3.new(1,1,1)
 
 local title = Instance.new("TextLabel", main)
-title.Size = UDim2.new(1, 0, 0, 40); title.Text = "PISIT MENU V1"; title.TextColor3 = Color3.new(0, 1, 0.5); title.BackgroundTransparency = 1; title.Font = "SourceSansBold"; title.TextSize = 18
+title.Size = UDim2.new(1, 0, 0, 40); title.Text = "PISIT STALKER V2"; title.TextColor3 = Color3.fromRGB(0, 255, 150); title.BackgroundTransparency = 1; title.Font = "SourceSansBold"
 
-local function createToggle(text, pos, func)
+-- ช่องพิมพ์ชื่อ
+local nameBox = Instance.new("TextBox", main)
+nameBox.Size = UDim2.new(0.9, 0, 0, 35); nameBox.Position = UDim2.new(0.05, 0, 0.15, 0)
+nameBox.PlaceholderText = "พิมพ์ชื่อผู้เล่นที่นี่..."; nameBox.Text = ""
+nameBox.BackgroundColor3 = Color3.fromRGB(45, 45, 45); nameBox.TextColor3 = Color3.new(1,1,1)
+Instance.new("UICorner", nameBox)
+
+local function createToggle(text, pos, color, func)
     local btn = Instance.new("TextButton", main)
-    btn.Size = UDim2.new(0.9, 0, 0, 45); btn.Position = pos
-    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40); btn.Text = text .. ": OFF"
+    btn.Size = UDim2.new(0.9, 0, 0, 40); btn.Position = pos
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50); btn.Text = text
     btn.TextColor3 = Color3.new(1, 1, 1); btn.Font = "SourceSansBold"
     Instance.new("UICorner", btn)
     
-    local state = false
+    local active = false
     btn.MouseButton1Click:Connect(function()
-        state = not state
-        btn.Text = text .. (state and ": ON" or ": OFF")
-        btn.BackgroundColor3 = state and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(40, 40, 40)
-        func(state)
+        active = not active
+        btn.BackgroundColor3 = active and color or Color3.fromRGB(50, 50, 50)
+        func(active)
     end)
     return btn
 end
 
--- ปุ่มฟังก์ชัน
-createToggle("AUTO ABILITY", UDim2.new(0.05, 0, 0.3, 0), function(s) AbilityEnabled = s end)
-createToggle("PLAYER ESP", UDim2.new(0.05, 0, 0.6, 0), function(s) ESPEnabled = s end)
+-- ปุ่มฟังก์ชันต่างๆ
+createToggle("AUTO ABILITY (0.5s)", UDim2.new(0.05, 0, 0.3, 0), Color3.fromRGB(0, 150, 0), function(s) AbilityEnabled = s end)
+createToggle("SHOW PLAYER ESP", UDim2.new(0.05, 0, 0.45, 0), Color3.fromRGB(0, 100, 200), function(s) ESPEnabled = s end)
 
--- ระบบเปิด/ปิด เมนูด้วยปุ่ม G
-gBtn.MouseButton1Click:Connect(function()
-    main.Visible = not main.Visible
-end)
-
--- ระบบลากปุ่ม G
-local dragging, dragStart, startPos
-gBtn.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true; dragStart = input.Position; startPos = gBtn.Position
+local stalkBtn = createToggle("สิงร่าง (STALKER MODE)", UDim2.new(0.05, 0, 0.65, 0), Color3.fromRGB(200, 0, 0), function(s)
+    if s then
+        local targetName = nameBox.Text:lower()
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Name:lower():find(targetName) then
+                TargetPlayer = p
+                SpectateEnabled = true
+                break
+            end
+        end
+        if not TargetPlayer then 
+            stalkBtn.Text = "ไม่พบชื่อผู้เล่น!"
+            task.wait(1)
+            stalkBtn.Text = "สิงร่าง (STALKER MODE)"
+        end
+    else
+        SpectateEnabled = false
+        TargetPlayer = nil
     end
 end)
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStart
-        gBtn.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-UserInputService.InputEnded:Connect(function() dragging = false end)
+
+-- ปุ่มปิดสคริปต์
+createToggle("ปิดเมนู / RESET", UDim2.new(0.05, 0, 0.85, 0), Color3.fromRGB(100, 0, 0), function() sg:Destroy() end)
+
+-- ลากปุ่ม G และ เปิดเมนู
+gBtn.MouseButton1Click:Connect(function() main.Visible = not main.Visible end)
+local drag, ds, sp
+gBtn.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then drag = true ds = i.Position sp = gBtn.Position end end)
+UserInputService.InputChanged:Connect(function(i) if drag then 
+    local delta = i.Position - ds
+    gBtn.Position = UDim2.new(sp.X.Scale, sp.X.Offset + delta.X, sp.Y.Scale, sp.Y.Offset + delta.Y)
+end end)
+UserInputService.InputEnded:Connect(function() drag = false end)
