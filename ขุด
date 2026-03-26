@@ -1,43 +1,67 @@
-local UserInputService = game:GetService("UserInputService")
+-- SETTINGS
+local SPEED = 100
+local TOGGLE_KEY = Enum.KeyCode.P
+
+-- SERVICES
 local Players = game:GetService("Players")
+local UIS = game:GetService("UserInputService")
+
 local player = Players.LocalPlayer
 
--- ตั้งค่าตัวแปร
-local walkSpeedActive = true
-local normalSpeed = 16
-local fastSpeed = 100
-local toggleKey = Enum.KeyCode.P
+-- STATE
+local enabled = false
 
--- ฟังก์ชันสำหรับอัปเดตความเร็ว
+-- FUNCTION อัปเดตความเร็ว
 local function updateSpeed()
-    local character = player.Character or player.CharacterAdded:Wait()
-    local humanoid = character:WaitForChild("Humanoid")
+    local char = player.Character or player.CharacterAdded:Wait()
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
     
-    if walkSpeedActive then
-        humanoid.WalkSpeed = fastSpeed
-    else
-        humanoid.WalkSpeed = normalSpeed
+    if humanoid then
+        if enabled then
+            humanoid.WalkSpeed = SPEED
+        else
+            humanoid.WalkSpeed = 16 -- ปกติ
+        end
     end
 end
 
--- ตรวจจับการกดปุ่มบน Keyboard
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end -- ป้องกันการทำงานขณะพิมพ์ในช่อง Chat
+-- TOGGLE FUNCTION
+local function toggle()
+    enabled = not enabled
+    updateSpeed()
     
-    if input.KeyCode == toggleKey then
-        walkSpeedActive = not walkSpeedActive
-        updateSpeed()
-        
-        -- แจ้งเตือนสถานะ (เลือกเปิดหรือปิดได้)
-        print("WalkSpeed Status: " .. (walkSpeedActive and "ON" or "OFF"))
+    if enabled then
+        print("Speed ON")
+    else
+        print("Speed OFF")
+    end
+end
+
+-- กดปุ่ม P
+UIS.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == TOGGLE_KEY then
+        toggle()
     end
 end)
 
--- ทำให้ตัวละครวิ่งเร็วทันทีเมื่อรัน Script ครั้งแรก
-updateSpeed()
+-- แชทคำสั่ง
+player.Chatted:Connect(function(msg)
+    msg = msg:lower()
+    
+    if msg == "!speed" then
+        toggle()
+    elseif msg == "!speed on" then
+        enabled = true
+        updateSpeed()
+    elseif msg == "!speed off" then
+        enabled = false
+        updateSpeed()
+    end
+end)
 
--- ป้องกันความเร็วคืนค่าเดิมเมื่อตัวละคร Reset (ตายแล้วเกิดใหม่)
+-- รีสปอว์นแล้วไม่หาย
 player.CharacterAdded:Connect(function()
-    task.wait(1) -- รอให้ตัวละครโหลดเสร็จเล็กน้อย
+    task.wait(1)
     updateSpeed()
 end)
