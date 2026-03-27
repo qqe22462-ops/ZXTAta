@@ -1,0 +1,108 @@
+-- [[ PISIT INTERNAL EXECUTOR ]]
+-- OWNER: ไกรสร พิสิษฐ์ 🫡
+
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local LocalPlayer = Players.LocalPlayer
+
+-- [[ 1. สร้างหน้าต่าง UI ]]
+local sg = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+sg.Name = "PisitExecutor"; sg.ResetOnSpawn = false
+
+local main = Instance.new("Frame", sg)
+main.Size = UDim2.new(0, 400, 0, 280)
+main.Position = UDim2.new(0.5, -200, 0.4, -140)
+main.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+main.Active = true
+main.Draggable = true -- ลากหน้าต่างไปมาได้
+Instance.new("UICorner", main)
+
+local title = Instance.new("TextLabel", main)
+title.Size = UDim2.new(1, 0, 0, 35)
+title.Text = "PISIT SCRIPT EXECUTOR 🫡"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.BackgroundTransparency = 1
+title.Font = "SourceSansBold"
+title.TextSize = 18
+
+-- [[ 2. ช่องว่างสำหรับวางสคริปต์ (TextBox) ]]
+local scriptEditor = Instance.new("TextBox", main)
+scriptEditor.Size = UDim2.new(1, -20, 0, 160)
+scriptEditor.Position = UDim2.new(0, 10, 0, 45)
+scriptEditor.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+scriptEditor.PlaceholderText = "-- วางสคริปต์ของคุณที่นี่..."
+scriptEditor.Text = ""
+scriptEditor.TextColor3 = Color3.fromRGB(0, 255, 0) -- สีเขียวแบบ Hacker
+scriptEditor.TextSize = 14
+scriptEditor.ClearTextOnFocus = false
+scriptEditor.MultiLine = true -- พิมพ์ได้หลายบรรทัด
+scriptEditor.TextWrapped = false -- ไม่ตัดบรรทัดเอง (ให้ยาวไปข้างๆ)
+scriptEditor.TextXAlignment = "Left"
+scriptEditor.TextYAlignment = "Top"
+Instance.new("UICorner", scriptEditor)
+
+-- [[ 3. ปุ่มกดรัน (Execute) สีเขียว ]]
+local runBtn = Instance.new("TextButton", main)
+runBtn.Size = UDim2.new(0.45, 0, 0, 45)
+runBtn.Position = UDim2.new(0, 10, 0, 215)
+runBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+runBtn.Text = "RUN SCRIPT (เขียว)"
+runBtn.TextColor3 = Color3.new(1, 1, 1)
+runBtn.Font = "SourceSansBold"
+Instance.new("UICorner", runBtn)
+
+-- [[ 4. ปุ่มลบโค้ด (Clear) สีแดง ]]
+local clearBtn = Instance.new("TextButton", main)
+clearBtn.Size = UDim2.new(0.45, 0, 0, 45)
+clearBtn.Position = UDim2.new(0.55, -10, 0, 215)
+clearBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+clearBtn.Text = "CLEAR (แดง)"
+clearBtn.TextColor3 = Color3.new(1, 1, 1)
+clearBtn.Font = "SourceSansBold"
+Instance.new("UICorner", clearBtn)
+
+---------------------------------------------------------
+-- [ ระบบการทำงาน ]
+---------------------------------------------------------
+
+-- ฟังก์ชันรันสคริปต์
+runBtn.MouseButton1Click:Connect(function()
+    local code = scriptEditor.Text
+    if code ~= "" then
+        local success, err = pcall(function()
+            -- ใช้ loadstring ในการรันโค้ดที่พิมพ์ลงไป
+            local func = loadstring(code)
+            if func then
+                task.spawn(func)
+            else
+                warn("สคริปต์มีข้อผิดพลาด (Syntax Error)")
+            end
+        end)
+        
+        if success then
+            runBtn.Text = "✅ รันสำเร็จ!"
+        else
+            runBtn.Text = "❌ ข้อผิดพลาด!"
+            warn(err)
+        end
+        task.wait(1)
+        runBtn.Text = "RUN SCRIPT (เขียว)"
+    end
+end)
+
+-- ฟังก์ชันล้างโค้ด
+clearBtn.MouseButton1Click:Connect(function()
+    scriptEditor.Text = ""
+    clearBtn.Text = "🗑️ ล้างแล้ว"
+    task.wait(1)
+    clearBtn.Text = "CLEAR (แดง)"
+end)
+
+-- ปุ่มเปิด/ปิด (ใช้ปุ่ม Insert บนคีย์บอร์ด หรือทำให้กดที่ขอบหน้าต่างได้)
+local isVisible = true
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if not gpe and input.KeyCode == Enum.KeyCode.Insert then
+        isVisible = not isVisible
+        main.Visible = isVisible
+    end
+end)
