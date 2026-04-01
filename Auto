@@ -3,14 +3,17 @@ local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+
+-- ลบของเก่าก่อนรันใหม่
+if player.PlayerGui:FindFirstChild("PisitFinalV33") then
+    player.PlayerGui.PisitFinalV33:Destroy()
+end
 
 local screenGui = Instance.new("ScreenGui", player.PlayerGui)
-screenGui.Name = "PisitSweetV30"
+screenGui.Name = "PisitFinalV33"
 screenGui.ResetOnSpawn = false
 
--- [[ UI SETUP - หวานเจี๊ยบ Version ]]
+-- [[ UI SETUP ]]
 local mainFrame = Instance.new("Frame", screenGui)
 mainFrame.Size = UDim2.new(0, 230, 0, 320)
 mainFrame.Position = UDim2.new(0, 50, 0.4, 0)
@@ -18,31 +21,58 @@ mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 mainFrame.BorderSizePixel = 0
 Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 15)
 
--- หัวข้อ
-local title = Instance.new("TextLabel", mainFrame)
-title.Size = UDim2.new(1, 0, 0, 40)
-title.Text = "PISIT 360° (6m)"
-title.TextColor3 = Color3.fromRGB(0, 255, 150)
-title.BackgroundTransparency = 1; title.TextSize = 18; title.Font = "SourceSansBold"
+-- ปุ่มกากบาท (X)
+local closeBtn = Instance.new("TextButton", mainFrame)
+closeBtn.Size = UDim2.new(0, 30, 0, 30)
+closeBtn.Position = UDim2.new(1, -35, 0, 5)
+closeBtn.Text = "X"
+closeBtn.TextColor3 = Color3.new(1, 1, 1)
+closeBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+closeBtn.Font = "SourceSansBold"; closeBtn.TextSize = 18
+Instance.new("UICorner", closeBtn)
 
--- [[ รายชื่อผู้เล่น - แก้ไขให้เลื่อนได้ 100% ]]
+-- ปุ่มกุญแจ (Lock) 🔒🔓
+local lockBtn = Instance.new("TextButton", mainFrame)
+lockBtn.Size = UDim2.new(0, 30, 0, 30)
+lockBtn.Position = UDim2.new(1, -70, 0, 5)
+lockBtn.Text = "🔓"
+lockBtn.TextColor3 = Color3.new(1, 1, 1)
+lockBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+lockBtn.Font = "SourceSansBold"; lockBtn.TextSize = 16
+Instance.new("UICorner", lockBtn)
+
+local isLocked = false
+lockBtn.MouseButton1Click:Connect(function()
+    isLocked = not isLocked
+    lockBtn.Text = isLocked and "🔒" or "🔓"
+    lockBtn.BackgroundColor3 = isLocked and Color3.fromRGB(200, 0, 0) or Color3.fromRGB(0, 120, 255)
+end)
+
+closeBtn.MouseButton1Click:Connect(function()
+    screenGui:Destroy()
+end)
+
+local title = Instance.new("TextLabel", mainFrame)
+title.Size = UDim2.new(0.6, 0, 0, 40)
+title.Position = UDim2.new(0, 15, 0, 0)
+title.Text = "PISIT V33 (6m)"
+title.TextColor3 = Color3.fromRGB(0, 255, 150)
+title.BackgroundTransparency = 1; title.TextSize = 16; title.Font = "SourceSansBold"; title.TextXAlignment = "Left"
+
 local scroll = Instance.new("ScrollingFrame", mainFrame)
 scroll.Size = UDim2.new(0.9, 0, 0.62, 0)
-scroll.Position = UDim2.new(0.05, 0, 0.13, 0)
+scroll.Position = UDim2.new(0.05, 0, 0.15, 0)
 scroll.BackgroundTransparency = 0.7; scroll.BackgroundColor3 = Color3.fromRGB(0,0,0)
 scroll.BorderSizePixel = 0; scroll.ScrollBarThickness = 6
-scroll.CanvasSize = UDim2.new(0, 0, 0, 0) -- จะถูกอัปเดตอัตโนมัติ
-scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y -- สั่งให้ยืดตามจำนวนปุ่ม
+scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 
 local layout = Instance.new("UIListLayout", scroll)
-layout.Padding = UDim.new(0, 4)
-layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.Padding = UDim.new(0, 4); layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
--- [[ ปุ่มเปิด/ปิด ]]
 local toggleBtn = Instance.new("TextButton", mainFrame)
 toggleBtn.Size = UDim2.new(0.9, 0, 0, 45)
 toggleBtn.Position = UDim2.new(0.05, 0, 0.82, 0)
-toggleBtn.Text = "เลือกชื่อก่อนสิครับ"
+toggleBtn.Text = "เลือกชื่อเป้าหมาย"
 toggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
 toggleBtn.TextColor3 = Color3.new(1, 1, 1); toggleBtn.Font = "SourceSansBold"
 Instance.new("UICorner", toggleBtn)
@@ -50,65 +80,44 @@ Instance.new("UICorner", toggleBtn)
 local selectedTargetName = ""
 local stickEnabled = false
 
--- [[ ฟังก์ชันอัปเดตรายชื่อ (หวานเจี๊ยบ Edition) ]]
+-- [[ จัดการรายชื่อ ]]
 local function updatePlayerList()
-    -- ลบปุ่มเก่าออก
-    for _, item in pairs(scroll:GetChildren()) do
-        if item:IsA("TextButton") then item:Destroy() end
-    end
-    
-    -- สร้างปุ่มใหม่
+    for _, item in pairs(scroll:GetChildren()) do if item:IsA("TextButton") then item:Destroy() end end
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= player then
             local pBtn = Instance.new("TextButton", scroll)
-            pBtn.Size = UDim2.new(1, -10, 0, 35)
-            pBtn.Text = p.DisplayName
+            pBtn.Size = UDim2.new(1, -10, 0, 35); pBtn.Text = p.DisplayName
             pBtn.BackgroundColor3 = (selectedTargetName == p.Name) and Color3.fromRGB(0, 180, 255) or Color3.fromRGB(40, 40, 40)
-            pBtn.TextColor3 = Color3.new(1, 1, 1)
-            pBtn.TextSize = 14; Instance.new("UICorner", pBtn)
-            
-            pBtn.MouseButton1Click:Connect(function()
-                selectedTargetName = p.Name
-                updatePlayerList() -- รีเฟรชสี
+            pBtn.TextColor3 = Color3.new(1, 1, 1); Instance.new("UICorner", pBtn)
+            pBtn.MouseButton1Click:Connect(function() 
+                selectedTargetName = p.Name; updatePlayerList() 
                 if not stickEnabled then toggleBtn.Text = "เริ่มสิง: "..p.DisplayName end
             end)
         end
     end
 end
+task.spawn(function() while task.wait(1) do updatePlayerList() end end)
 
--- อัปเดตชื่อทุก 1 วินาที (คนเข้า-ออก)
-task.spawn(function()
-    while task.wait(1) do
-        updatePlayerList()
-        if selectedTargetName ~= "" and not Players:FindFirstChild(selectedTargetName) then
-            selectedTargetName = ""; stickEnabled = false
-            toggleBtn.Text = "เป้าหมายหลุดแล้ว"; toggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-        end
-    end
-end)
-
--- [[ ระบบวาร์ปดักหน้าตามทิศทาง 360 องศา - ระยะ 6 เมตร ]]
+-- [[ ระบบวาร์ป ]]
 RunService.Heartbeat:Connect(function()
     if stickEnabled and selectedTargetName ~= "" then
         local target = Players:FindFirstChild(selectedTargetName)
-        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") then
+        local myChar = player.Character
+        local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
+        
+        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and myHRP then
             local targetHRP = target.Character.HumanoidRootPart
             local targetHum = target.Character:FindFirstChildOfClass("Humanoid")
             
-            if targetHum and humanoidRootPart then
+            if targetHum then
                 local moveDir = targetHum.MoveDirection
                 local finalPos
-                
                 if moveDir.Magnitude > 0 then
-                    -- ดักหน้าทิศที่เดิน 6 เมตร + มุดดิน 5 เมตร
                     finalPos = targetHRP.Position + (moveDir * 6) + Vector3.new(0, -5, 0)
                 else
-                    -- ถ้ายืนเฉยๆ ดักหน้าตัว 6 เมตร + มุดดิน 5 เมตร
                     finalPos = (targetHRP.CFrame * CFrame.new(0, -5, -6)).Position
                 end
-                
-                -- วาร์ปไปจ้องเป้าหมาย
-                humanoidRootPart.CFrame = CFrame.new(finalPos, targetHRP.Position)
+                myHRP.CFrame = CFrame.new(finalPos, targetHRP.Position)
             end
         end
     end
@@ -121,10 +130,10 @@ toggleBtn.MouseButton1Click:Connect(function()
     toggleBtn.BackgroundColor3 = stickEnabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
 end)
 
--- [[ ระบบลาก UI (Drag) ]]
+-- [[ ระบบลาก UI แบบตรวจเช็คกุญแจ ]]
 local dragging, dragInput, dragStart, startPos
 mainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+    if not isLocked and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
         dragging = true; dragStart = input.Position; startPos = mainFrame.Position
     end
 end)
