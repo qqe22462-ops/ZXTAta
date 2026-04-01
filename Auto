@@ -4,13 +4,12 @@ local UIS = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 
--- ลบของเก่าก่อนรันใหม่
-if player.PlayerGui:FindFirstChild("PisitFinalV33") then
-    player.PlayerGui.PisitFinalV33:Destroy()
+if player.PlayerGui:FindFirstChild("PisitFinalV37") then
+    player.PlayerGui.PisitFinalV37:Destroy()
 end
 
 local screenGui = Instance.new("ScreenGui", player.PlayerGui)
-screenGui.Name = "PisitFinalV33"
+screenGui.Name = "PisitFinalV37"
 screenGui.ResetOnSpawn = false
 
 -- [[ UI SETUP ]]
@@ -23,23 +22,15 @@ Instance.new("UICorner", mainFrame).CornerRadius = UDim.new(0, 15)
 
 -- ปุ่มกากบาท (X)
 local closeBtn = Instance.new("TextButton", mainFrame)
-closeBtn.Size = UDim2.new(0, 30, 0, 30)
-closeBtn.Position = UDim2.new(1, -35, 0, 5)
-closeBtn.Text = "X"
-closeBtn.TextColor3 = Color3.new(1, 1, 1)
-closeBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
-closeBtn.Font = "SourceSansBold"; closeBtn.TextSize = 18
-Instance.new("UICorner", closeBtn)
+closeBtn.Size = UDim2.new(0, 30, 0, 30); closeBtn.Position = UDim2.new(1, -35, 0, 5)
+closeBtn.Text = "X"; closeBtn.TextColor3 = Color3.new(1, 1, 1); closeBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+closeBtn.Font = "SourceSansBold"; closeBtn.TextSize = 18; Instance.new("UICorner", closeBtn)
 
--- ปุ่มกุญแจ (Lock) 🔒🔓
+-- ปุ่มกุญแจ (Lock)
 local lockBtn = Instance.new("TextButton", mainFrame)
-lockBtn.Size = UDim2.new(0, 30, 0, 30)
-lockBtn.Position = UDim2.new(1, -70, 0, 5)
-lockBtn.Text = "🔓"
-lockBtn.TextColor3 = Color3.new(1, 1, 1)
-lockBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-lockBtn.Font = "SourceSansBold"; lockBtn.TextSize = 16
-Instance.new("UICorner", lockBtn)
+lockBtn.Size = UDim2.new(0, 30, 0, 30); lockBtn.Position = UDim2.new(1, -70, 0, 5)
+lockBtn.Text = "🔓"; lockBtn.TextColor3 = Color3.new(1, 1, 1); lockBtn.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+lockBtn.Font = "SourceSansBold"; lockBtn.TextSize = 16; Instance.new("UICorner", lockBtn)
 
 local isLocked = false
 lockBtn.MouseButton1Click:Connect(function()
@@ -48,74 +39,86 @@ lockBtn.MouseButton1Click:Connect(function()
     lockBtn.BackgroundColor3 = isLocked and Color3.fromRGB(200, 0, 0) or Color3.fromRGB(0, 120, 255)
 end)
 
-closeBtn.MouseButton1Click:Connect(function()
-    screenGui:Destroy()
-end)
+closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
 
 local title = Instance.new("TextLabel", mainFrame)
-title.Size = UDim2.new(0.6, 0, 0, 40)
-title.Position = UDim2.new(0, 15, 0, 0)
-title.Text = "PISIT V33 (6m)"
-title.TextColor3 = Color3.fromRGB(0, 255, 150)
-title.BackgroundTransparency = 1; title.TextSize = 16; title.Font = "SourceSansBold"; title.TextXAlignment = "Left"
+title.Size = UDim2.new(0.6, 0, 0, 40); title.Position = UDim2.new(0, 15, 0, 0)
+title.Text = "PISIT V37 (Red NPC)"; title.TextColor3 = Color3.fromRGB(0, 255, 150)
+title.BackgroundTransparency = 1; title.TextSize = 15; title.Font = "SourceSansBold"; title.TextXAlignment = "Left"
 
 local scroll = Instance.new("ScrollingFrame", mainFrame)
-scroll.Size = UDim2.new(0.9, 0, 0.62, 0)
-scroll.Position = UDim2.new(0.05, 0, 0.15, 0)
+scroll.Size = UDim2.new(0.9, 0, 0.62, 0); scroll.Position = UDim2.new(0.05, 0, 0.15, 0)
 scroll.BackgroundTransparency = 0.7; scroll.BackgroundColor3 = Color3.fromRGB(0,0,0)
-scroll.BorderSizePixel = 0; scroll.ScrollBarThickness = 6
-scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-
-local layout = Instance.new("UIListLayout", scroll)
-layout.Padding = UDim.new(0, 4); layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+scroll.ScrollBarThickness = 6; scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+local layout = Instance.new("UIListLayout", scroll); layout.Padding = UDim.new(0, 4); layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 
 local toggleBtn = Instance.new("TextButton", mainFrame)
-toggleBtn.Size = UDim2.new(0.9, 0, 0, 45)
-toggleBtn.Position = UDim2.new(0.05, 0, 0.82, 0)
-toggleBtn.Text = "เลือกชื่อเป้าหมาย"
-toggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-toggleBtn.TextColor3 = Color3.new(1, 1, 1); toggleBtn.Font = "SourceSansBold"
-Instance.new("UICorner", toggleBtn)
+toggleBtn.Size = UDim2.new(0.9, 0, 0, 45); toggleBtn.Position = UDim2.new(0.05, 0, 0.82, 0)
+toggleBtn.Text = "เลือกเป้าหมาย"; toggleBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+toggleBtn.TextColor3 = Color3.new(1, 1, 1); toggleBtn.Font = "SourceSansBold"; Instance.new("UICorner", toggleBtn)
 
-local selectedTargetName = ""
+local selectedTargetObj = nil
 local stickEnabled = false
 
--- [[ จัดการรายชื่อ ]]
+-- [[ จัดการรายชื่อ (NPC สีแดง + รายชื่อคนอื่น) ]]
 local function updatePlayerList()
     for _, item in pairs(scroll:GetChildren()) do if item:IsA("TextButton") then item:Destroy() end end
+    
+    -- 1. ปุ่ม NPC พื้นหลังสีแดง (ล็อคบรรทัดแรก)
+    local npcBtn = Instance.new("TextButton", scroll)
+    npcBtn.Size = UDim2.new(1, -10, 0, 35)
+    npcBtn.Text = "Weakest Dummy"
+    npcBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0) -- สีแดงตามสั่ง
+    npcBtn.TextColor3 = Color3.new(1, 1, 1); Instance.new("UICorner", npcBtn)
+    
+    npcBtn.MouseButton1Click:Connect(function()
+        -- ค้นหา NPC ใน Workspace
+        local npc = workspace:FindFirstChild("Weakest Dummy") or workspace:FindFirstChild("Weakest Dummy", true)
+        if npc then 
+            selectedTargetObj = npc
+            toggleBtn.Text = "ล็อค NPC: Weakest Dummy"
+        end
+    end)
+
+    -- 2. รายชื่อผู้เล่นคนอื่นๆ
     for _, p in pairs(Players:GetPlayers()) do
         if p ~= player then
             local pBtn = Instance.new("TextButton", scroll)
             pBtn.Size = UDim2.new(1, -10, 0, 35); pBtn.Text = p.DisplayName
-            pBtn.BackgroundColor3 = (selectedTargetName == p.Name) and Color3.fromRGB(0, 180, 255) or Color3.fromRGB(40, 40, 40)
+            pBtn.BackgroundColor3 = (selectedTargetObj == p) and Color3.fromRGB(0, 180, 255) or Color3.fromRGB(40, 40, 40)
             pBtn.TextColor3 = Color3.new(1, 1, 1); Instance.new("UICorner", pBtn)
             pBtn.MouseButton1Click:Connect(function() 
-                selectedTargetName = p.Name; updatePlayerList() 
-                if not stickEnabled then toggleBtn.Text = "เริ่มสิง: "..p.DisplayName end
+                selectedTargetObj = p
+                updatePlayerList()
+                if not stickEnabled then toggleBtn.Text = "ล็อคเป้า: "..p.DisplayName end
             end)
         end
     end
 end
 task.spawn(function() while task.wait(1) do updatePlayerList() end end)
 
--- [[ ระบบวาร์ป ]]
+-- [[ ระบบวาร์ปตามทิศทางและความเร็ว ]]
 RunService.Heartbeat:Connect(function()
-    if stickEnabled and selectedTargetName ~= "" then
-        local target = Players:FindFirstChild(selectedTargetName)
+    if stickEnabled and selectedTargetObj then
+        -- ตรวจสอบว่าเป็น Player หรือ NPC
+        local targetChar = (selectedTargetObj:IsA("Player") and selectedTargetObj.Character) or selectedTargetObj
         local myChar = player.Character
         local myHRP = myChar and myChar:FindFirstChild("HumanoidRootPart")
         
-        if target and target.Character and target.Character:FindFirstChild("HumanoidRootPart") and myHRP then
-            local targetHRP = target.Character.HumanoidRootPart
-            local targetHum = target.Character:FindFirstChildOfClass("Humanoid")
+        if targetChar and targetChar:FindFirstChild("HumanoidRootPart") and myHRP then
+            local targetHRP = targetChar.HumanoidRootPart
+            local targetHum = targetChar:FindFirstChildOfClass("Humanoid")
             
             if targetHum then
+                local currentSpeed = targetHum.WalkSpeed
                 local moveDir = targetHum.MoveDirection
                 local finalPos
-                if moveDir.Magnitude > 0 then
-                    finalPos = targetHRP.Position + (moveDir * 6) + Vector3.new(0, -5, 0)
+                
+                -- เช็คความเร็วตามสั่ง (≤8 ดักหลัง 4m / >8 ดักหน้า 6m)
+                if currentSpeed <= 8 or moveDir.Magnitude <= 0 then
+                    finalPos = (targetHRP.CFrame * CFrame.new(0, -5, 4)).Position
                 else
-                    finalPos = (targetHRP.CFrame * CFrame.new(0, -5, -6)).Position
+                    finalPos = targetHRP.Position + (moveDir * 6) + Vector3.new(0, -5, 0)
                 end
                 myHRP.CFrame = CFrame.new(finalPos, targetHRP.Position)
             end
@@ -124,14 +127,14 @@ RunService.Heartbeat:Connect(function()
 end)
 
 toggleBtn.MouseButton1Click:Connect(function()
-    if selectedTargetName == "" then return end
+    if not selectedTargetObj then return end
     stickEnabled = not stickEnabled
     toggleBtn.Text = stickEnabled and "สิงอยู่: ON" or "หยุดสิง: OFF"
     toggleBtn.BackgroundColor3 = stickEnabled and Color3.fromRGB(0, 200, 0) or Color3.fromRGB(200, 0, 0)
 end)
 
--- [[ ระบบลาก UI แบบตรวจเช็คกุญแจ ]]
-local dragging, dragInput, dragStart, startPos
+-- [[ ระบบลาก UI แบบล็อกกุญแจ ]]
+local dragging, dragStart, startPos
 mainFrame.InputBegan:Connect(function(input)
     if not isLocked and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
         dragging = true; dragStart = input.Position; startPos = mainFrame.Position
@@ -143,6 +146,4 @@ UIS.InputChanged:Connect(function(input)
         mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
-UIS.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
-end)
+UIS.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end end)
