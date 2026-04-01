@@ -1,119 +1,52 @@
--- [[ PISIT AI V7.7: KEY SYSTEM + OMNI-MENU ]]
--- รหัสคีย์คือ: VIP
-
 local Players = game:GetService("Players")
 local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local Debris = game:GetService("Debris")
+local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 local char = player.Character or player.CharacterAdded:Wait()
 
--- ลบ UI เก่าทั้งหมด
-if player.PlayerGui:FindFirstChild("PisitV77_System") then
-    player.PlayerGui.PisitV77_System:Destroy()
+if player.PlayerGui:FindFirstChild("PisitV18_System") then
+    player.PlayerGui.PisitV18_System:Destroy()
 end
 
 local sg = Instance.new("ScreenGui", player.PlayerGui)
-sg.Name = "PisitV77_System"
+sg.Name = "PisitV18_System"
 sg.ResetOnSpawn = false
 
-----------------------------------------------------------------
--- [[ PART 1: KEY SYSTEM (หน้าต่างใส่รหัส) ]]
-----------------------------------------------------------------
-
-local keyFrame = Instance.new("Frame", sg)
-keyFrame.Name = "KeyFrame"
-keyFrame.Size = UDim2.new(0, 350, 0, 220)
-keyFrame.Position = UDim2.new(0.5, -175, 0.5, -110)
-keyFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20) -- หน้าต่างสีดำ
-keyFrame.BorderSizePixel = 0
-Instance.new("UICorner", keyFrame).CornerRadius = UDim.new(0, 15)
-local stroke = Instance.new("UIStroke", keyFrame)
-stroke.Thickness = 2; stroke.Color = Color3.fromRGB(50, 50, 50)
-
-local title = Instance.new("TextLabel", keyFrame)
-title.Size = UDim2.new(1, 0, 0, 50)
-title.Text = "ทักไป tiktok ของคนนี้ tr.ue75 เพื่อเอาคีย์"
-title.TextColor3 = Color3.new(1, 1, 1)
-title.BackgroundTransparency = 1
-title.Font = "SourceSansBold"; title.TextSize = 18
-
-local keyInput = Instance.new("TextBox", keyFrame)
-keyInput.Size = UDim2.new(0, 280, 0, 40)
-keyInput.Position = UDim2.new(0.5, -140, 0.4, 0)
-keyInput.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-keyInput.Text = ""; keyInput.PlaceholderText = "โปรดใส่รหัสคีย์ตรงนี้"
-keyInput.TextColor3 = Color3.new(1, 1, 1)
-keyInput.Font = "SourceSans"; keyInput.TextSize = 20
-Instance.new("UICorner", keyInput)
-
-local verifyBtn = Instance.new("TextButton", keyFrame)
-verifyBtn.Size = UDim2.new(0, 130, 0, 40)
-verifyBtn.Position = UDim2.new(0.2, -15, 0.7, 10)
-verifyBtn.BackgroundColor3 = Color3.fromRGB(0, 170, 0) -- ปุ่มสีเขียว
-verifyBtn.Text = "ยืนยัน"; verifyBtn.TextColor3 = Color3.new(1, 1, 1)
-verifyBtn.Font = "SourceSansBold"; verifyBtn.TextSize = 20
-Instance.new("UICorner", verifyBtn)
-
-local getKeyBtn = Instance.new("TextButton", keyFrame)
-getKeyBtn.Size = UDim2.new(0, 130, 0, 40)
-getKeyBtn.Position = UDim2.new(0.6, 15, 0.7, 10)
-getKeyBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80) -- ปุ่มสีเทา
-getKeyBtn.Text = "รับคีย์"; getKeyBtn.TextColor3 = Color3.new(1, 1, 1)
-getKeyBtn.Font = "SourceSansBold"; getKeyBtn.TextSize = 20
-Instance.new("UICorner", getKeyBtn)
-
-----------------------------------------------------------------
--- [[ PART 2: MAIN MENU (หน้าต่างโปรแกรมหลัก - ซ่อนไว้ก่อน) ]]
-----------------------------------------------------------------
-
-local mainFrame = Instance.new("Frame", sg)
-mainFrame.Name = "MainFrame"
-mainFrame.Size = UDim2.new(0, 180, 0, 260)
-mainFrame.Position = UDim2.new(0, 25, 0.3, -130) 
-mainFrame.BackgroundTransparency = 1
-mainFrame.Visible = false -- ซ่อนไว้จนกว่าจะใส่คีย์ถูก
-
+-- [[ ระบบตัวเลขพุ่งกลางจอ (Timer) ]]
 local timerLabel = Instance.new("TextLabel", sg)
-timerLabel.Size = UDim2.new(0, 200, 0, 100); timerLabel.Position = UDim2.new(0.5, -100, 0.35, -50) 
+timerLabel.Size = UDim2.new(0, 200, 0, 100); timerLabel.Position = UDim2.new(0.5, -100, 0.4, -50) 
 timerLabel.BackgroundTransparency = 1; timerLabel.TextColor3 = Color3.fromRGB(255, 0, 0)
 timerLabel.Font = "SourceSansBold"; timerLabel.TextSize = 100; timerLabel.Visible = false
 
-local function createPisitButton(name, text, parent, position, color)
-    local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(0, 85, 0, 75); btn.Position = position; btn.BackgroundColor3 = color
-    btn.Text = text; btn.TextColor3 = Color3.new(1,1,1); btn.Font = "SourceSansBold"; btn.TextSize = 18
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 12)
-    Instance.new("UIStroke", btn).Thickness = 2
-    return btn
+-- [[ ฟังก์ชันลาก UI แบบมีเงื่อนไขล็อค ]]
+local function makePisitDraggable(gui, lockTable)
+    local dragging, dragInput, dragStart, startPos
+    gui.InputBegan:Connect(function(input)
+        if lockTable.IsLocked then return end
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true; dragStart = input.Position; startPos = gui.Position
+        end
+    end)
+    gui.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement then dragInput = input end
+    end)
+    UIS.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    end)
+    RunService.RenderStepped:Connect(function()
+        if dragging and dragInput then
+            local delta = dragInput.Position - dragStart
+            gui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
 end
 
-local closeBtn = Instance.new("TextButton", mainFrame)
-closeBtn.Size = UDim2.new(0, 35, 0, 35); closeBtn.Position = UDim2.new(0, 0, 0, -45); closeBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40); closeBtn.Text = "X"; closeBtn.TextColor3 = Color3.new(1,0,0)
-Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(1, 0); closeBtn.MouseButton1Click:Connect(function() sg:Destroy() end)
-
-local qBtn = createPisitButton("Q", "ธนู(Q)", mainFrame, UDim2.new(0, 0, 0, 0), Color3.fromRGB(0, 102, 204))
-local rBtn = createPisitButton("R", "โดดไม่กัด(R)", mainFrame, UDim2.new(0, 90, 0, 0), Color3.fromRGB(0, 200, 100))
-local bBtn = createPisitButton("B", "บล็อก(B)", mainFrame, UDim2.new(0, 0, 0, 85), Color3.fromRGB(204, 0, 0))
-local tBtn = createPisitButton("T", "รีตัว(T)", mainFrame, UDim2.new(0, 90, 0, 85), Color3.fromRGB(150, 0, 255))
-local zBtn = createPisitButton("Z", "โดด1(Z)", mainFrame, UDim2.new(0, 0, 0, 170), Color3.fromRGB(100, 100, 100))
-
 ----------------------------------------------------------------
--- [[ LOGIC FUNCTIONS ]]
+-- [[ BATTLE LOGIC ]]
 ----------------------------------------------------------------
-
-local function createBlock()
-    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-    if hrp then 
-        local block = Instance.new("Part", workspace)
-        block.Size = Vector3.new(12, 12, 1.2); block.CFrame = (hrp.CFrame * CFrame.new(0, 0, -4)) + Vector3.new(0, 2.5, 0) 
-        block.Anchored = true; block.CanCollide = true; block.BrickColor = BrickColor.new("Cyan"); block.Material = "Neon"
-        task.delay(1.5, function() TweenService:Create(block, TweenInfo.new(0.5), {Transparency = 1}):Play() end)
-        Debris:AddItem(block, 2) 
-    end
-end
-
 local function shootArrow()
     local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
@@ -129,40 +62,107 @@ local function shootArrow()
     task.delay(1, function() if arrow then TweenService:Create(arrow, TweenInfo.new(0.5), {Transparency = 1}):Play(); Debris:AddItem(arrow, 0.5) end end)
 end
 
--- ระบบคีย์เช็ค
-verifyBtn.MouseButton1Click:Connect(function()
-    if keyInput.Text == "VIP" then
-        keyFrame:Destroy() -- ลบหน้าต่างคีย์
-        mainFrame.Visible = true -- แสดงหน้าโปรแกรมจริง
-    else
-        keyInput.Text = ""
-        keyInput.PlaceholderText = "รหัสผิด! ลองใหม่"
+-- ฟังก์ชันสร้างบล็อกที่หายไป
+local function createBlock()
+    local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+    if hrp then 
+        local block = Instance.new("Part", workspace)
+        block.Size = Vector3.new(12, 12, 1.2); block.CFrame = (hrp.CFrame * CFrame.new(0, 0, -4)) + Vector3.new(0, 2.5, 0) 
+        block.Anchored = true; block.CanCollide = true; block.BrickColor = BrickColor.new("Cyan"); block.Material = "Neon"
+        task.delay(1.5, function() TweenService:Create(block, TweenInfo.new(0.5), {Transparency = 1}):Play() end)
+        Debris:AddItem(block, 2) 
     end
-end)
+end
 
-getKeyBtn.MouseButton1Click:Connect(function()
-    -- ฟังชันก์ปุ่มเทา (รับคีย์)
-    print("ไปที่ TikTok: tr.ue75")
-end)
+----------------------------------------------------------------
+-- [[ MAIN INTERFACE ]]
+----------------------------------------------------------------
+local mainFrame = Instance.new("Frame", sg)
+mainFrame.Size = UDim2.new(0, 180, 0, 260); mainFrame.Position = UDim2.new(0, 25, 0.3, -130); mainFrame.BackgroundTransparency = 1; mainFrame.Visible = false
+makePisitDraggable(mainFrame, {IsLocked = false})
 
--- ปุ่มฟังก์ชันต่างๆ
-zBtn.MouseButton1Click:Connect(function() if player.Character then player.Character:FindFirstChildOfClass("Humanoid").Jump = true end end)
+local function createBtn(text, pos, color)
+    local b = Instance.new("TextButton", mainFrame); b.Size = UDim2.new(0, 85, 0, 75); b.Position = pos; b.BackgroundColor3 = color
+    b.Text = text; b.TextColor3 = Color3.new(1,1,1); b.Font = "SourceSansBold"; b.TextSize = 18; Instance.new("UICorner", b).CornerRadius = UDim.new(0, 12)
+    return b
+end
+
+local qBtn = createBtn("ธนู(Q)", UDim2.new(0,0,0,0), Color3.fromRGB(0, 102, 204))
+local rBtn = createBtn("โดดไม่กัด(R)", UDim2.new(0, 90, 0, 0), Color3.fromRGB(0, 200, 100))
+local bBtn = createBtn("บล็อก(B)", UDim2.new(0, 0, 0, 85), Color3.fromRGB(204, 0, 0))
+local tBtn = createBtn("รีตัว(T)", UDim2.new(0, 90, 0, 85), Color3.fromRGB(150, 0, 255))
+local zBtn = createBtn("โดด1(Z)", UDim2.new(0, 0, 0, 170), Color3.fromRGB(100, 100, 100))
+
+-- เชื่อมฟังก์ชันปุ่ม (จุดที่แก้ไข: เพิ่ม bBtn.MouseButton1Click)
 qBtn.MouseButton1Click:Connect(shootArrow)
-bBtn.MouseButton1Click:Connect(createBlock)
+bBtn.MouseButton1Click:Connect(createBlock) -- บล็อกกลับมาแล้วครับ!
+zBtn.MouseButton1Click:Connect(function() if player.Character then player.Character:FindFirstChildOfClass("Humanoid").Jump = true end end)
+
 tBtn.MouseButton1Click:Connect(function() 
     local hum = player.Character:FindFirstChildOfClass("Humanoid")
     if hum then hum.WalkSpeed = 0; timerLabel.Visible = true; for i=3,1,-1 do timerLabel.Text = tostring(i); task.wait(1) end; timerLabel.Visible = false; hum.Health = 0 end
 end)
+
 rBtn.MouseButton1Click:Connect(function()
     local conn = UIS.JumpRequest:Connect(function() if player.Character then player.Character:FindFirstChildOfClass("Humanoid"):ChangeState(3) end end)
     timerLabel.Visible = true; for i=5,1,-1 do timerLabel.Text = tostring(i); task.wait(1) end; timerLabel.Visible = false; conn:Disconnect()
 end)
 
-UIS.InputBegan:Connect(function(i, p)
-    if p or not mainFrame.Visible then return end
-    if i.KeyCode == Enum.KeyCode.Z then if player.Character then player.Character:FindFirstChildOfClass("Humanoid").Jump = true end
-    elseif i.KeyCode == Enum.KeyCode.T then -- (รีตัวใส่โค้ดเดิม)
-    elseif i.KeyCode == Enum.KeyCode.R then -- (โดดไม่กัดใส่โค้ดเดิม)
-    elseif i.KeyCode == Enum.KeyCode.Q then shootArrow()
-    elseif i.KeyCode == Enum.KeyCode.E then createBlock() end
+----------------------------------------------------------------
+-- [[ ระบบวิน + กุญแจล็อค ]]
+----------------------------------------------------------------
+local function openWinSystem(target)
+    local wf = Instance.new("Frame", sg); wf.Size = UDim2.new(0, 200, 0, 120); wf.Position = UDim2.new(0.5, -100, 0.1, 0); wf.BackgroundColor3 = Color3.fromRGB(15,15,15); Instance.new("UICorner", wf)
+    
+    local winLock = {IsLocked = true}
+    makePisitDraggable(wf, winLock)
+    
+    local lockBtn = Instance.new("TextButton", wf)
+    lockBtn.Size = UDim2.new(0, 30, 0, 30); lockBtn.Position = UDim2.new(1, -35, 1, -35); lockBtn.Text = "🔒"; lockBtn.BackgroundTransparency = 1; lockBtn.TextSize = 20
+    lockBtn.MouseButton1Click:Connect(function()
+        winLock.IsLocked = not winLock.IsLocked
+        lockBtn.Text = winLock.IsLocked and "🔒" or "🔓"
+    end)
+
+    local val = 0
+    local d = Instance.new("TextLabel", wf); d.Size = UDim2.new(1,0,0.7,0); d.BackgroundTransparency = 1; d.Text = val.."/"..target.." Win"; d.TextColor3 = Color3.new(1,1,0); d.Font = "SourceSansBold"; d.TextSize = 40
+    local p = Instance.new("TextButton", wf); p.Size = UDim2.new(0,35,0,35); p.Position = UDim2.new(0,5,0,5); p.Text = "+"; p.BackgroundColor3 = Color3.fromRGB(0,180,0); Instance.new("UICorner", p); p.MouseButton1Click:Connect(function() val = val + 1; d.Text = val.."/"..target.." Win" end)
+    local m = Instance.new("TextButton", wf); m.Size = UDim2.new(0,35,0,35); m.Position = UDim2.new(1,-40,0,5); m.Text = "-"; m.BackgroundColor3 = Color3.fromRGB(180,0,0); Instance.new("UICorner", m); m.MouseButton1Click:Connect(function() val = val - 1; d.Text = val.."/"..target.." Win" end)
+    
+    mainFrame.Visible = true
+end
+
+----------------------------------------------------------------
+-- [[ KEY SYSTEM (รักษาคำของคุณไว้) ]]
+----------------------------------------------------------------
+local function createPisitKey(placeholder, keyToMatch, nextFunc)
+    local f = Instance.new("Frame", sg); f.Size = UDim2.new(0, 420, 0, 260); f.Position = UDim2.new(0.5, -210, 0.5, -130); f.BackgroundColor3 = Color3.fromRGB(15, 15, 15); Instance.new("UICorner", f).CornerRadius = UDim.new(0, 25)
+    local inp = Instance.new("TextBox", f); inp.Size = UDim2.new(0, 340, 0, 55); inp.Position = UDim2.new(0.5, -170, 0.35, 0); inp.BackgroundColor3 = Color3.fromRGB(30, 30, 30); inp.TextColor3 = Color3.new(1,1,1); inp.PlaceholderText = placeholder; inp.Text = ""; Instance.new("UICorner", inp)
+    local btn = Instance.new("TextButton", f); btn.Size = UDim2.new(0, 160, 0, 55); btn.Position = UDim2.new(0.5, -80, 0.7, 0); btn.BackgroundColor3 = Color3.fromRGB(0, 200, 0); btn.Text = (placeholder == "ใส่คีย์ตรงนี้ครับ") and "ยืนยัน" or "ตรวจสอบ"; btn.TextColor3 = Color3.new(1,1,1); btn.Font = "SourceSansBold"; btn.TextSize = 22; Instance.new("UICorner", btn)
+    
+    if keyToMatch == "VIP-PISIT" then
+        local can = Instance.new("TextButton", f); can.Size = UDim2.new(0, 100, 0, 30); can.Position = UDim2.new(0.5, -50, 0.92, 0); can.Text = "ยกเลิก"; can.BackgroundTransparency = 1; can.TextColor3 = Color3.fromRGB(150,150,150); can.MouseButton1Click:Connect(function() f:Destroy() end)
+    end
+
+    btn.MouseButton1Click:Connect(function() if inp.Text == keyToMatch then f:Destroy(); nextFunc() end end)
+end
+
+-- รันระบบ (ใช้ข้อความตามที่คุณเปลี่ยนมา)
+createPisitKey("ใส่คีย์ตรงนี้ครับ", "VIP", function()
+    local qf = Instance.new("Frame", sg); qf.Size = UDim2.new(0, 400, 0, 220); qf.Position = UDim2.new(0.5, -200, 0.5, -110); qf.BackgroundColor3 = Color3.fromRGB(15,15,15); Instance.new("UICorner", qf)
+    local y = Instance.new("TextButton", qf); y.Size = UDim2.new(0, 320, 0, 55); y.Position = UDim2.new(0.5, -140, 0.25, 0); y.Text = "เออกูจะเอา"; y.BackgroundColor3 = Color3.fromRGB(0,180,0); Instance.new("UICorner", y)
+    local n = Instance.new("TextButton", qf); n.Size = UDim2.new(0, 320, 0, 55); n.Position = UDim2.new(0.5, -140, 0.65, 0); n.Text = "สัสกูไม่เอาเว้ย"; n.BackgroundColor3 = Color3.fromRGB(200,0,0); Instance.new("UICorner", n)
+    
+    y.MouseButton1Click:Connect(function()
+        qf:Destroy()
+        createPisitKey("ใส่คีย์ดิว่ะไม่รู้ทักมา", "VIP-PISIT", function()
+            local tf = Instance.new("Frame", sg); tf.Size = UDim2.new(0, 300, 0, 300); tf.Position = UDim2.new(0.5, -150, 0.5, -150); tf.BackgroundColor3 = Color3.fromRGB(15,15,15); Instance.new("UICorner", tf)
+            local sc = Instance.new("ScrollingFrame", tf); sc.Size = UDim2.new(1,0,0.9,0); sc.BackgroundTransparency = 1; Instance.new("UIListLayout", sc).Padding = UDim.new(0,5)
+            for _, v in pairs({10,20,40,50,100}) do
+                local b = Instance.new("TextButton", sc); b.Size = UDim2.new(1,0,0,45); b.Text = v.." วิน"; b.BackgroundColor3 = Color3.fromRGB(40,40,40); b.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", b); b.Parent = sc
+                b.MouseButton1Click:Connect(function() tf:Destroy(); openWinSystem(v) end)
+            end
+        end)
+    end)
+    n.MouseButton1Click:Connect(function() qf:Destroy(); mainFrame.Visible = true end)
 end)
