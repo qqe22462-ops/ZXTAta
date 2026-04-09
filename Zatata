@@ -1,66 +1,89 @@
--- [[ ANTI-LEAK SYSTEM : LOCKED FOREVER ]] --
+-- [[ PISIT_ULTIMATE_DISCONNECT_V5 : THE RAIN OF TRUTH ]] --
 
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local player = Players.LocalPlayer
-local HttpService = game:GetService("HttpService")
 
--- ตรวจสอบว่ามี Gui เดิมอยู่ไหม ถ้ามีให้ลบแล้วใส่ใหม่ (กันมันพยายามลบ)
-if player.PlayerGui:FindFirstChild("PisitAntiTheft_Ultimate") then
-    player.PlayerGui.PisitAntiTheft_Ultimate:Destroy()
+-- ลบ UI เก่า
+if player.PlayerGui:FindFirstChild("PisitRainLock_V5") then
+    player.PlayerGui.PisitRainLock_V5:Destroy()
 end
 
 local sg = Instance.new("ScreenGui", player.PlayerGui)
-sg.Name = "PisitAntiTheft_Ultimate"
-sg.IgnoreGuiInset = true 
-sg.DisplayOrder = 999999 -- มั่นใจว่าอยู่หน้าสุดเหนือทุกอย่าง
-sg.ResetOnSpawn = false -- ตายกี่รอบหน้าจอนี้ก็ไม่หาย
+sg.Name = "PisitRainLock_V5"
+sg.IgnoreGuiInset = true
+sg.DisplayOrder = 2147483647
+sg.ResetOnSpawn = false
 
--- 1. พื้นหลังมืดสนิท (ปิดการมองเห็นทุกอย่างในเกม)
+-- 1. พื้นหลังดำสนิททับทุกอย่าง
 local bg = Instance.new("Frame", sg)
 bg.Size = UDim2.new(1, 0, 1, 0)
 bg.BackgroundColor3 = Color3.new(0, 0, 0)
 bg.BorderSizePixel = 0
-bg.Active = true -- กันการกดทะลุไปข้างหลัง
+bg.Active = true
 
--- 2. ข้อความดุดันตัวใหญ่ยักษ์
-local msg = Instance.new("TextLabel", bg)
-msg.Size = UDim2.new(0.9, 0, 0.8, 0)
-msg.Position = UDim2.new(0.05, 0, 0.1, 0)
-msg.BackgroundTransparency = 1
-msg.Text = "มึงบิด script กูรอให้ไก่ มึงไม่มีทางได้หรอกไอ่เหี้ยกูบอกแล้วไงว่ากูเป็นคนสร้างสคริป"
-msg.TextColor3 = Color3.fromRGB(255, 0, 0)
-msg.TextScaled = true
-msg.Font = Enum.Font.SourceSansBold
-msg.TextWrapped = true
+-- 2. ข้อความด่าหลัก (ตรงกลางจอ)
+local mainMsg = Instance.new("TextLabel", bg)
+mainMsg.Size = UDim2.new(0.8, 0, 0.4, 0)
+mainMsg.Position = UDim2.new(0.1, 0, 0.3, 0)
+mainMsg.BackgroundTransparency = 1
+mainMsg.Text = "มึงบิด script กูรอให้ไก่ มึงไม่มีทางได้หรอกไอ่เหี้ยกูบอกแล้วไงว่ากูเป็นคนสร้างสคริป"
+mainMsg.TextColor3 = Color3.fromRGB(255, 0, 0)
+mainMsg.TextScaled = true
+mainMsg.Font = Enum.Font.SourceSansBold
+mainMsg.ZIndex = 10
 
--- 3. ระบบเสียง Siren แจ้งเตือน (ดังสุดขีดและวนลูป)
+-- 3. เสียง Siren เตือน
 local sound = Instance.new("Sound", bg)
-sound.SoundId = "rbxassetid://138084000" -- เสียงไซเรน
-sound.Volume = 10 -- เพิ่มระดับเสียง
-sound.Looped = true
-sound:Play()
+sound.SoundId = "rbxassetid://138084000"
+sound.Volume = 10; sound.Looped = true; sound:Play()
 
--- 4. ระบบเอฟเฟกต์หน้าจอ (สั่นระรัว + เปลี่ยนสีแดงสลับขาวให้แสบตา)
+-- 4. ระบบ "ฝนคำด่า + เลขมั่ว" ร่วงลงมาทุกทิศทาง
+local words = {
+    {t = "ควย", c = Color3.fromRGB(255, 0, 0)},
+    {t = "สัส", c = Color3.fromRGB(255, 0, 0)},
+    {t = "ปัญญาอ่อน", c = Color3.fromRGB(255, 0, 0)},
+    {t = "ไก่ไม่มีปัญญาเล่น", c = Color3.fromRGB(0, 255, 0)}
+}
+
 task.spawn(function()
     while true do
-        task.wait(0.03)
-        -- สั่นหน้าจอ
-        msg.Position = UDim2.new(0.05 + (math.random(-10, 10)/1000), 0, 0.1 + (math.random(-10, 10)/1000), 0)
-        -- กระพริบสี
-        if msg.TextColor3 == Color3.new(1, 0, 0) then
-            msg.TextColor3 = Color3.new(1, 1, 1)
-        else
-            msg.TextColor3 = Color3.new(1, 0, 0)
-        end
+        task.wait(0.05)
+        local data = words[math.random(1, #words)]
+        local randLabel = Instance.new("TextLabel", bg)
+        randLabel.Size = UDim2.new(0, 150, 0, 50)
+        randLabel.Position = UDim2.new(math.random(), 0, -0.1, 0) -- เริ่มจากด้านบน
+        randLabel.BackgroundTransparency = 1
+        randLabel.Text = data.t .. " " .. math.random(1000, 9999)
+        randLabel.TextColor3 = data.c
+        randLabel.TextScaled = true
+        randLabel.Font = Enum.Font.SourceSansBold
+        
+        -- แอนิเมชันร่วงลงมา
+        task.spawn(function()
+            local speed = math.random(2, 5)
+            for i = 0, 1.2, 0.01 do
+                if not randLabel then break end
+                randLabel.Position = UDim2.new(randLabel.Position.X.Scale, 0, i, 0)
+                task.wait(0.01)
+            end
+            randLabel:Destroy()
+        end)
     end
 end)
 
--- 5. ระบบล็อกเมาส์ / การควบคุม (ทำให้กดอะไรไม่ได้เลย)
-local function lockControls()
-    player.Character.Humanoid.WalkSpeed = 0
-    player.Character.Humanoid.JumpPower = 0
-    -- พยายามลบปุ่มกดอื่นๆ ในเครื่องถ้าทำได้
-end
-task.spawn(lockControls)
+-- 5. ระบบนับถอยหลังเตะออกจากเซิร์ฟเวอร์ (15 วินาที)
+task.spawn(function()
+    local countdown = 15
+    while countdown > 0 do
+        print("Kicking in: " .. countdown)
+        task.wait(1)
+        countdown = countdown - 1
+    end
+    -- เตะผู้เล่นออกจากเซิร์ฟเวอร์
+    player:Kick("\n\nมึงบิด script กูรอให้ไก่ มึงไม่มีทางได้หรอกไอ่เหี้ยกูบอกแล้วไงว่ากูเป็นคนสร้างสคริป\n\n(BY PISIT)")
+end)
 
-print("System Locked by Pisit.")
+-- ล็อกตัวละครและปิดเมนู
+game:GetService("GuiService"):SetMenuIsOpen(false)
+game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
