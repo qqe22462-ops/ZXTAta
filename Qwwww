@@ -9,6 +9,11 @@ loadstring(game:HttpGet("https://encrypt-x.pages.dev/Scripts?Id=0707572550892"))
 
 
 
+script sokuna กาอาณาเขต
+loadstring(game:HttpGet("https://encrypt-x.pages.dev/Scripts?Id=3722722899027"))("3722722899027")
+
+
+
 
 
 ลิ้งค์ดิสคอร์ด 
