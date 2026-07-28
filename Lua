@@ -1,0 +1,35 @@
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+   Name = "⚡ Spawn Galaxy Block",
+   LoadingTitle = "กำลังโหลด...",
+   LoadingSubtitle = "by Delta X",
+   ConfigurationSaving = { Enabled = false },
+   KeySystem = false,
+})
+
+local Tab = Window:CreateTab("🏠 หน้าหลัก", 4483362458)
+
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Event = ReplicatedStorage:WaitForChild("SpawnGalaxyBlock")
+
+local isRunning = false
+
+Tab:CreateToggle({
+   Name = "🚀 เปิด/ปิด รัวยิง Event",
+   CurrentValue = false,
+   Flag = "AutoSpawnToggle",
+   Callback = function(Value)
+      isRunning = Value
+   end,
+})
+
+-- ลูปทำงานเฉพาะตอนเปิดสวิตช์
+RunService.RenderStepped:Connect(function()
+   if isRunning then
+      pcall(function()
+         Event:FireServer()
+      end)
+   end
+end)
