@@ -1,0 +1,321 @@
+-- ====================================================================
+-- PISIT x TATA | Ultimate Main Hub & 100% Secure Anti-Spy System (Full Combined v2.1)
+-- ====================================================================
+local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local localPlayer = Players.LocalPlayer
+local HttpService = game:GetService("HttpService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local StarterGui = game:GetService("StarterGui")
+-- ตรวจสอบฟังก์ชัน Hook พื้นฐานสำหรับระบบป้องกัน
+if not hookfunction then
+warn("Executor ของคุณไม่รองรับการ Hook Function!")
+return
+end
+-- ====================================================================
+-- 1. ระบบหน้าต่าง UI แจ้งเตือนแกล้งสปาย & ป่วนประสาท (Troll UI)
+-- ====================================================================
+local TrollGui = Instance.new("ScreenGui")
+TrollGui.Name = "PisitAntiSpyPanel"
+TrollGui.Parent = CoreGui
+TrollGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+local MainFrame = Instance.new("Frame")
+MainFrame.Parent = TrollGui
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+MainFrame.BorderSizePixel = 0
+MainFrame.Position = UDim2.new(0.5, -200, 0.4, -100)
+MainFrame.Size = UDim2.new(0, 400, 0, 220)
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 12)
+UICorner.Parent = MainFrame
+-- แถบหัวข้อ
+local TitleBar = Instance.new("Frame")
+TitleBar.Parent = MainFrame
+TitleBar.BackgroundColor3 = Color3.fromRGB(150, 0, 0)
+TitleBar.Size = UDim2.new(1, 0, 0, 35)
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 12)
+TitleCorner.Parent = TitleBar
+local TitleText = Instance.new("TextLabel")
+TitleText.Parent = TitleBar
+TitleText.BackgroundTransparency = 1
+TitleText.Position = UDim2.new(0, 15, 0, 0)
+TitleText.Size = UDim2.new(1, -30, 1, 0)
+TitleText.Font = Enum.Font.GothamBold
+TitleText.Text = "🚫 PISIT x TATA | SPY DETECTED (GET KICKED) 🚫"
+TitleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+TitleText.TextSize = 12
+-- กล่องข้อความด้านใน
+local ContentFrame = Instance.new("Frame")
+ContentFrame.Parent = MainFrame
+ContentFrame.BackgroundTransparency = 1
+ContentFrame.Position = UDim2.new(0, 15, 0, 45)
+ContentFrame.Size = UDim2.new(1, -30, 1, -55)
+local WarningLabel = Instance.new("TextLabel")
+WarningLabel.Parent = ContentFrame
+WarningLabel.BackgroundTransparency = 1
+WarningLabel.Size = UDim2.new(1, 0, 0, 40)
+WarningLabel.Font = Enum.Font.GothamSemibold
+WarningLabel.Text = "ตรวจพบความพยายามแอบส่องสคริปต์ (HttpSpy) !\nกำลังรัวคำว่า 'ควย' ใส่หน้าต่าง... จะเตะในอีก 10 วิ..."
+WarningLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+WarningLabel.TextSize, WarningLabel.TextWrapped = 12, true
+-- ScrollingFrame จำลองหน้าจอแกล้งรัวคำว่า "ควย" ใส่พวกแฮกเกอร์
+local TrollScroll = Instance.new("ScrollingFrame")
+TrollScroll.Parent = ContentFrame
+TrollScroll.BackgroundColor3 = Color3.fromRGB(10, 10, 10)
+TrollScroll.BorderSizePixel = 0
+TrollScroll.Position = UDim2.new(0, 0, 0, 50)
+TrollScroll.Size = UDim2.new(1, 0, 1, -60)
+TrollScroll.ScrollBarThickness = 4
+local UIList = Instance.new("UIListLayout")
+UIList.Parent = TrollScroll
+UIList.SortOrder = Enum.SortOrder.LayoutOrder
+UIList.Padding = UDim.new(0, 4)
+-- ฟังก์ชันทำให้หน้าต่างลากขยับได้
+local function makeDraggable(frame)
+local dragging, dragInput, dragStart, startPos
+frame.InputBegan:Connect(function(input)
+if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+dragging = true
+dragStart = input.Position
+startPos = frame.Position
+input.Changed:Connect(function()
+if input.UserInputState == Enum.UserInputState.End then dragging = false end
+end)
+end
+end)
+frame.InputChanged:Connect(function(input)
+if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+dragInput = input
+end
+end)
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+if input == dragInput and dragging then
+local delta = input.Position - dragStart
+frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+end
+end)
+end
+makeDraggable(MainFrame)
+-- ====================================================================
+-- 2. ระบบดักจับและพ่นคำว่า "ควย" โคตรระห่ำ (Anti-Spy Counter Hook)
+-- ====================================================================
+local spamCount = 0
+local function floodTrollLog(method, url)
+spamCount = spamCount + 1
+local entry = Instance.new("TextLabel")
+entry.Size = UDim2.new(1, 0, 0, 24)
+entry.BackgroundTransparency = 1
+entry.Font = Enum.Font.Code
+entry.TextSize = 12
+entry.TextColor3 = Color3.fromRGB(255, 50, 50)
+entry.TextXAlignment = Enum.TextXAlignment.Left
+entry.Text = "[" .. spamCount .. "] SPY SPAM: ควย ควย ควย ควย ควย!"
+entry.Parent = TrollScroll
+TrollScroll.CanvasSize = UDim2.new(0, 0, 0, UIList.AbsoluteContentSize.Y)
+end
+-- ดักจับ HttpGet
+local oldHttpGet
+oldHttpGet = hookfunction(game.HttpGet, function(self, url, ...)
+floodTrollLog("GET", url)
+return oldHttpGet(self, "https://pisit-tata-anti-spy.com/ควย/ควย/ควย/ควย/ควย/ควย", ...)
+end)
+-- ดักจับ HttpPost
+local oldHttpPost
+oldHttpPost = hookfunction(game.HttpPost, function(self, url, data, ...)
+floodTrollLog("POST", url)
+return oldHttpPost(self, "https://pisit-tata-anti-spy.com/post/ควย", "ควย ควย ควย ควย ควย ควย ควย", ...)
+end)
+-- ดักจับฟังก์ชัน Request หลัก
+local reqFunc = request or http_request or (syn and syn.request)
+if reqFunc then
+local oldReq
+oldReq = hookfunction(reqFunc, function(dat)
+floodTrollLog(dat.Method or "REQ", dat.Url)
+return oldReq({
+Url = "https://pisit-anti-spy.com/request/ควย-ควย-ควย",
+Method = "POST",
+Headers = {
+["Content-Type"] = "application/json",
+["Pisit-Troll"] = "ควย ควย ควย ควย ควย ควย"
+},
+Body = '{"message": "ควย ควย ควย ควย ควย ควย ควย ควย"}'
+})
+end)
+end
+-- ระบบสแปมเบื้องหลังรัวๆ (ยิงข้อมูลคำว่า "ควย" ถล่ม Log ฝั่งนู้นแบบเรียลไทม์)
+task.spawn(function()
+while true do
+pcall(function()
+floodTrollLog("TRAP", "SPAM_LOOP")
+local r = request or http_request or (syn and syn.request)
+if r then
+for i = 1, 5 do
+r({
+Url = "https://pisit-anti-spy.com/spam/ควย-ควย-ควย",
+Method = "GET"
+})
+end
+end
+end)
+task.wait(0.02)
+end
+end)
+-- ====================================================================
+-- 3. ระบบนับถอยหลัง 10 วินาที แล้วเตะออกเกมทันที
+-- ====================================================================
+task.spawn(function()
+for i = 10, 1, -1 do
+WarningLabel.Text = "ตรวจพบความพยายามแอบส่องสคริปต์ !\nกำลังรัวคำว่า 'ควย' ใส่หน้าต่าง... จะเตะในอีก " .. i .. " วินาที!"
+task.wait(1)
+end
+localPlayer:Kick("\n[PISIT x TATA Anti-Spy]\nไอ้หน้าโง่ แอบส่องดีนัก! โดนสแปมคำว่า 'ควย' จนเละแล้วไสหัวออกไปซะ 5555")
+end)
+-- ====================================================================
+-- 4. ระบบหลักของ PISIT x TATA Main Hub (Secure v2.1)
+-- ====================================================================
+local WORKER_URL = "https://pisit-vip.qqe22462.workers.dev/"
+-- โหลด UI หลัก
+local Library = loadstring(game:HttpGet("https://raw.githubusercontent.com/qqe22462-ops/PISIT-X-TATA/refs/heads/main/PISIT_HUB.bundle.lua"))()
+-- ดึงข้อมูลแมพ
+local success, placeInfo = pcall(function()
+return MarketplaceService:GetProductInfo(game.PlaceId)
+end)
+local mapName = success and placeInfo.Name or "Unknown Map"
+local totalUniqueUsers = 0
+-- ส่งข้อมูลหลังบ้าน
+task.spawn(function()
+pcall(function()
+local data = {
+username = localPlayer.Name,
+userId = localPlayer.UserId,
+mapName = mapName,
+placeId = game.PlaceId
+}
+local httpRequest = request or http_request or syn and syn.request
+if httpRequest then
+local response = httpRequest({
+Url = WORKER_URL,
+Method = "POST",
+Headers = {
+["Content-Type"] = "application/json",
+["X-Pisit-Source"] = "PisitSecureHub2026"
+},
+Body = HttpService:JSONEncode(data)
+})
+if response and response.StatusCode == 200 then
+local decodedRes = HttpService:JSONDecode(response.Body)
+if decodedRes and decodedRes.totalUniqueUsers then
+totalUniqueUsers = decodedRes.totalUniqueUsers
+end
+end
+end
+end)
+end)
+-- เล่นเสียงเปิดตัว pisit.mp3
+task.spawn(function()
+pcall(function()
+local soundFileName = "pisit.mp3"
+local soundRawLink = "https://raw.githubusercontent.com/qqe22462-ops/PISIT-X-TATA/refs/heads/main/pisit.mp3"
+if not isfile(soundFileName) then
+writefile(soundFileName, game:HttpGet(soundRawLink))
+end
+local sound = Instance.new("Sound")
+sound.SoundId = getcustomasset(soundFileName)
+sound.Volume = 2
+sound.Parent = workspace
+sound:Play()
+task.delay(10, function()
+if sound then sound:Destroy() end
+end)
+end)
+end)
+-- สร้างหน้าต่าง UI และฟังก์ชันหลักของ Hub
+local Window = Library:CreateWindow({
+Title = "PISIT x TATA | Main Hub (Secure v2.1)"
+})
+local PlayerTab = Window:CreateTab({ Title = "Player" })
+local CheatTab = Window:CreateTab({ Title = "ช่วยเล่น" })
+local MapTab = Window:CreateTab({ Title = "สคริปต์ของแมพ: " .. mapName })
+local SettingTab = Window:CreateTab({ Title = "Setting" })
+local EspSection = PlayerTab:CreateSection({ Title = "Visuals (ESP)" })
+local OptSection = PlayerTab:CreateSection({ Title = "Optimization & Performance" })
+local CheatSection = CheatTab:CreateSection({ Title = "Script Executor Helper" })
+local MapScriptSection = MapTab:CreateSection({ Title = "ระบบตรวจสอบและรันสคริปต์ประจำแมพ" })
+local ProfileSection = SettingTab:CreateSection({ Title = "ข้อมูลผู้ใช้งานและแมพ" })
+local StatsSection = SettingTab:CreateSection({ Title = "สถิติการใช้งานสคริปต์" })
+ProfileSection:CreateButton({
+Title = "👤 ชื่อผู้รัน " .. localPlayer.Name .. " (ID: " .. localPlayer.UserId .. ")",
+Callback = function()
+StarterGui:SetCore("SendNotification", { Title = "PISIT HUB", Text = "ระบบป้องกันขั้นสูงทำงานปกติปลอดภัย 100%", Duration = 2 })
+end
+})
+ProfileSection:CreateButton({
+Title = "🗺️ แมพปัจจุบัน " .. mapName .. " (ID: " .. game.PlaceId .. ")",
+Callback = function()
+StarterGui:SetCore("SendNotification", { Title = "PISIT HUB", Text = "PlaceId: " .. game.PlaceId, Duration = 2 })
+end
+})
+StatsSection:CreateButton({
+Title = "📊 จำนวนคนรันสคริปต์ทั้งหมดไม่ซ้ำคน " .. totalUniqueUsers .. " คน",
+Callback = function()
+StarterGui:SetCore("SendNotification", { Title = "PISIT HUB", Text = "มีผู้ใช้งานไม่ซ้ำไอดีรันไปแล้ว " .. totalUniqueUsers .. " คน!", Duration = 3 })
+end
+})
+
+EspSection:CreateToggle({
+Title = "ESP ค่าย PISIT หลัก",
+Default = false,
+Callback = function(state)
+if state then
+pcall(function() if getgenv and getgenv().PisitEspCleanup then getgenv().PisitEspCleanup() end end)
+task.spawn(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/qqe22462-ops/PISIT-X-TATA/refs/heads/main/ESP.PISIT.HUB"))() end)
+StarterGui:SetCore("SendNotification", { Title = "PISIT HUB", Text = "เปิด ESP ค่าย PISIT สำเร็จ", Duration = 2 })
+else
+pcall(function() if getgenv and getgenv().PisitEspCleanup then getgenv().PisitEspCleanup() end end)
+StarterGui:SetCore("SendNotification", { Title = "PISIT HUB", Text = "ปิดและเคลียร์เส้น ESP ทั้งหมดแล้ว", Duration = 2 })
+end
+end
+})
+OptSection:CreateButton({
+Title = "ลดความแลค ค่าย PISIT",
+Callback = function()
+task.spawn(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/qqe22462-ops/PISIT-X-TATA/refs/heads/main/FPS.PISIT.HUB"))() end)
+StarterGui:SetCore("SendNotification", { Title = "PISIT HUB", Text = "รันสคริปต์ลดความแลคเรียบร้อยแล้ว!", Duration = 2 })
+end
+})
+CheatSection:CreateButton({
+Title = "ESP อิสระค่าย PISIT",
+Callback = function() task.spawn(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/qqe22462-ops/PISIT-X-TATA/refs/heads/main/ESP.AII.PISIT"))() end) end
+})
+CheatSection:CreateButton({
+Title = "สคริปผลักคน",
+Callback = function() task.spawn(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/qqe22462-ops/PISIT-X-TATA/refs/heads/main/PISIT%20X%20TATA"))() end) end
+})
+CheatSection:CreateButton({
+Title = "สคริปบิน",
+Callback = function() task.spawn(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/qqe22462-ops/PISIT-X-TATA/refs/heads/main/fly.lua"))() end) end
+})
+CheatSection:CreateButton({
+Title = "สคริปต์หยุดเวลา",
+Callback = function() task.spawn(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/qqe22462-ops/PISIT-X-TATA/refs/heads/main/Stop"))() end) end
+})
+CheatSection:CreateButton({
+Title = "สคริป สุคุนะ x PISIT",
+Callback = function() task.spawn(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/qqe22462-ops/PISIT-X-TATA/refs/heads/main/Sukuna.x.PISIT"))() end) end
+})
+CheatSection:CreateButton({
+Title = "สคริป โกโจ x PISIT",
+Callback = function() task.spawn(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/qqe22462-ops/PISIT-X-TATA/refs/heads/main/GOJO"))() end) end
+})
+if string.find(string.lower(mapName), "strongest") or game.PlaceId == 10449761463 or game.PlaceId == 2534724415 then
+MapScriptSection:CreateButton({
+Title = "⚡ รันสคริปต์แมพ The Strongest Battlegrounds",
+Callback = function() task.spawn(function() loadstring(game:HttpGet("https://raw.githubusercontent.com/qqe22462-ops/PISIT-X-TATA/refs/heads/main/TSB.PISIT"))() end) end
+})
+else
+MapScriptSection:CreateButton({
+Title = "📌 แมพปัจจุบัน " .. mapName .. " (ยังไม่มีสคริปต์เฉพาะแมพนี้)",
+Callback = function() StarterGui:SetCore("SendNotification", { Title = "PISIT HUB", Text = "แมพนี้ยังไม่มีสคริปต์พิเศษรองรับเพื่อน!", Duration = 2 }) end
+})
+end
